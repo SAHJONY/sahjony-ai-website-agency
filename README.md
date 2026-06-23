@@ -7,11 +7,15 @@ businesses. Frontend + serverless backend + cloud database. Built to run on
 ```
 .
 ├── api/
-│   ├── generate.js   → POST: secure Claude proxy (writes site copy)
+│   ├── generate.js   → POST: AI proxy with autonomous engine rotation
+│   │                    (Claude → NVIDIA NIM → Gemini fallback)
 │   ├── data.js       → GET/POST: Upstash read/write (leads & clients)
-│   └── health.js     → GET: checks your env is wired up
+│   └── health.js     → GET: checks which engines/env are wired up
 ├── public/
 │   ├── index.html    → marketing landing page
+│   ├── pricing.html  → pricing tiers ($899 / $1,299 / $89-mo care)
+│   ├── playbook.html → the Operator's Playbook (sell A→Z)
+│   ├── contact.html  → free-mockup request form (saves to Upstash)
 │   ├── builder.html  → the AI website builder (calls /api/generate)
 │   └── dashboard.html→ leads/clients board (calls /api/data)
 ├── package.json
@@ -19,6 +23,20 @@ businesses. Frontend + serverless backend + cloud database. Built to run on
 ├── .env.example
 └── .gitignore
 ```
+
+## AI engines — autonomous fallback rotation
+
+`/api/generate` tries engines in order and auto-rolls to the next one if an
+engine is unset, errors, or is rate-limited. All keys stay server-side.
+
+1. **Claude (Anthropic)** — primary brain · `ANTHROPIC_API_KEY`
+2. **NVIDIA NIM (free)** — rotating pool of free models (Llama, Nemotron,
+   Mixtral, Gemma, DeepSeek) · `NVIDIA_API_KEY` (free key at build.nvidia.com)
+3. **Google Gemini (free tier)** — `GEMINI_API_KEY` (key at aistudio.google.com)
+
+Configure none and the builder still works — it falls back to built-in copy.
+Configure any one and you get live AI generation. `/api/health` reports which
+engines are active.
 
 ## Why this is "full-stack" (and safe)
 

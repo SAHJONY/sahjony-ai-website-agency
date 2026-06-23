@@ -1,17 +1,37 @@
-// GET /api/health — quick check that env vars are wired up (does not leak secrets)
-export default function handler(req, res) {
+// GET /api/health — quick check that engines/env are wired up (does not leak secrets)
+
+async function loadSecrets() {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return {};
+  try {
+    const r = await fetch(url.replace(/\/$/, "") + "/get/" + encodeURIComponent("fda:secrets"), {
+      headers: { Authorization: "Bearer " + token },
+    });
+    const j = await r.json();
+    if (j && j.result) { try { return JSON.parse(j.result) || {}; } catch { return {}; } }
+  } catch (_) { /* ignore */ }
+  return {};
+}
+
+export default async function handler(req, res) {
+  const secrets = await loadSecrets();
+  const has = (name) => !!(process.env[name] || secrets[name]);
+
   res.status(200).json({
     ok: true,
     service: "frontdeskagents website factory",
     time: new Date().toISOString(),
     config: {
-      claude: !!process.env.ANTHROPIC_API_KEY,
-      nvidia: !!process.env.NVIDIA_API_KEY,
-      gemini: !!process.env.GEMINI_API_KEY,
+      claude: has("ANTHROPIC_API_KEY"),
+      nvidia: has("NVIDIA_API_KEY"),
+      openai: has("OPENAI_API_KEY"),
+      grok: has("XAI_API_KEY"),
+      gemini: has("GEMINI_API_KEY"),
       upstash: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+      secretsManager: !!process.env.ADMIN_PASSWORD,
       model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
-      geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     },
-    engineRotation: ["claude (primary)", "nvidia nim (rotating fallback)", "gemini (fallback)"],
+    engineRotation: ["claude (primary)", "nvidia nim (rotating)", "openai", "grok", "gemini"],
   });
 }

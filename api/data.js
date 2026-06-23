@@ -21,6 +21,11 @@ export default async function handler(req, res) {
   const base = url.replace(/\/$/, "");
   const key = sanitizeKey(req.query.key);
 
+  // Never expose API keys through this open endpoint — secrets live behind /api/secrets.
+  if (/secret/i.test(key)) {
+    return res.status(403).json({ error: "Forbidden key. Manage secrets via /api/secrets." });
+  }
+
   try {
     if (req.method === "GET") {
       const r = await fetch(`${base}/get/${encodeURIComponent(key)}`, { headers: auth });

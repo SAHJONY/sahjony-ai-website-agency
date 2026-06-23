@@ -54,6 +54,11 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:15px">
+        <div style="background:#16161e;border:1px solid rgba(255,92,56,.25);border-radius:13px;padding:15px 16px">
+          <label class="lbl" style="color:#ff8366">📋 Paste any business info (optional — fastest way)</label>
+          <textarea id="fPaste" rows="4" placeholder="Paste anything: an About blurb, services & prices, hours, menu, reviews, a Google listing, or the text from their old site. The AI reads it and builds the site from it — you can leave the fields below blank."></textarea>
+          <div style="font-size:12px;color:#8c8998;margin-top:7px">Tip: paste it all and hit build. Fill the fields below only to override or add details.</div>
+        </div>
         <div><label class="lbl">Business name *</label><input id="fName" placeholder="e.g. Maria's Bakery"></div>
         <div><label class="lbl">What kind of business? *</label><input id="fType" placeholder="bakery, salon, auto shop, law firm…"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
@@ -134,9 +139,13 @@ function fallback(type){
 
 async function generate(){
   $("#err").style.display="none";
+  const paste=val("fPaste");
   let name=val("fName"), type=val("fType");
   if(mode==="url" && !name) name=deriveName(val("fUrl"));
-  if(!name || !type){ $("#err").textContent="Please add a business name and type."; $("#err").style.display="block"; return; }
+  // If they pasted info but left fields blank, derive sensible defaults so the AI can run.
+  if(paste && !name){ name=(paste.split(/\n/).find(l=>l.trim())||"").trim().slice(0,48)||"Your Business"; }
+  if(paste && !type){ type="local business"; }
+  if(!name || !type){ $("#err").textContent="Add a business name and type — or just paste the business info above."; $("#err").style.display="block"; return; }
 
   $("#idlePane").style.display="none"; $("#loadPane").style.display="block";
   $("#buildBtn").textContent="Building…"; $("#buildBtn").disabled=true;
@@ -148,6 +157,7 @@ Type: ${type}
 Location: ${city}
 ${url?("They currently have this website (reimagine it as a brand-new premium site): "+url):""}
 ${notes?("Notes: "+notes):""}
+${paste?("SOURCE INFORMATION provided by the owner — treat this as the PRIMARY source of truth. Extract real services, prices, hours, story, and reviews from it instead of inventing them:\n\"\"\"\n"+paste+"\n\"\"\""):""}
 Write ALL text in this language: ${lang}.
 Schema: {"tagline":"<=9 words","heroSub":"<=24 words","about1":"1 sentence","about2":"1 sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex fitting the business mood","labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;

@@ -32,11 +32,31 @@ engine is unset, errors, or is rate-limited. All keys stay server-side.
 1. **Claude (Anthropic)** — primary brain · `ANTHROPIC_API_KEY`
 2. **NVIDIA NIM (free)** — rotating pool of free models (Llama, Nemotron,
    Mixtral, Gemma, DeepSeek) · `NVIDIA_API_KEY` (free key at build.nvidia.com)
-3. **Google Gemini (free tier)** — `GEMINI_API_KEY` (key at aistudio.google.com)
+3. **OpenAI** — `OPENAI_API_KEY` (model via `OPENAI_MODEL`, default `gpt-4o-mini`)
+4. **Grok (xAI)** — `XAI_API_KEY` (model via `XAI_MODEL`, default `grok-2-latest`)
+5. **Google Gemini (free tier)** — `GEMINI_API_KEY` (key at aistudio.google.com)
 
 Configure none and the builder still works — it falls back to built-in copy.
 Configure any one and you get live AI generation. `/api/health` reports which
 engines are active.
+
+### Manage keys at runtime (dashboard → Settings)
+
+Keys are resolved as `process.env` **first**, then from secrets stored in your
+Upstash DB. The dashboard **Settings** tab lets you add/update/delete the AI
+provider keys without redeploying:
+
+- Set `ADMIN_PASSWORD` in env to unlock the panel (it stays locked otherwise).
+- `/api/secrets` is admin-gated, never returns raw values (masked only), and
+  refuses to manage keys that are already set in the environment (env wins).
+- `/api/data` blocks the secrets key, so keys can't leak through the open data
+  route. Upstash creds must stay in env (they bootstrap the lookup).
+
+### Build from pasted business info
+
+The builder has a **📋 Paste any business info** box: drop in an About blurb,
+services & prices, hours, a menu, reviews, or the text from an old site, and the
+AI uses it as the source of truth — you can leave the other fields blank.
 
 ## Why this is "full-stack" (and safe)
 

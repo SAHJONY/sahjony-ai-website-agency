@@ -19,6 +19,7 @@
     <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
     <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(255,92,56,.14);color:#ff8366">🎯 Leads</button>
     <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
+    <button class="tab" data-tab="settings" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">⚙️ Settings</button>
     <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0 10px;border-top:1px solid rgba(255,255,255,.07)">
         <a href="/" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">🏠 Home</a>
@@ -72,9 +73,14 @@ async function save(){
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
+const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+
 function render(){
-  document.getElementById("pTitle").textContent = tab==="leads"?"Leads":"Clients";
-  document.getElementById("pSub").textContent = tab==="leads"?"New business in your pipeline":"Businesses you've built sites for";
+  const [t,s] = TITLES[tab] || TITLES.leads;
+  document.getElementById("pTitle").textContent = t;
+  document.getElementById("pSub").textContent = s;
+  document.getElementById("addBtn").style.display = tab==="settings" ? "none" : "block";
+  if(tab==="settings"){ renderSettings(); return; }
   const items = state[tab]||[];
   const list = document.getElementById("list");
   if(!items.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No ${tab} yet. Click “Add”.</div>`; return; }
@@ -104,6 +110,102 @@ document.getElementById("addBtn").onclick=()=>{
   state[tab].push({id:Date.now(),name,type,city,value: tab==="leads"?"$1,299 build":"Live · $89/mo"});
   save(); render();
 };
+
+/* ===================== SETTINGS — env secrets manager ===================== */
+function adminToken(){ return sessionStorage.getItem("fda_admin") || ""; }
+function setAdminToken(t){ if(t) sessionStorage.setItem("fda_admin", t); else sessionStorage.removeItem("fda_admin"); }
+
+async function renderSettings(){
+  const list = document.getElementById("list");
+  if(!adminToken()){
+    list.innerHTML = `
+      <div style="max-width:480px;background:#14141c;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:24px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px">🔒 Unlock secrets manager</div>
+        <div style="font-size:13.5px;color:#8c8998;line-height:1.55;margin-bottom:16px">Enter your admin password (the <b>ADMIN_PASSWORD</b> env var). It's kept only in this browser tab and sent over HTTPS to manage your AI keys.</div>
+        <input id="adminPw" type="password" placeholder="Admin password" style="width:100%;background:#0a0a0f;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
+        <button id="unlockBtn" style="width:100%;background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:12px;border-radius:10px">Unlock</button>
+        <div id="setMsg" style="display:none;font-size:13px;margin-top:12px"></div>
+      </div>`;
+    document.getElementById("unlockBtn").onclick = async ()=>{
+      const pw = document.getElementById("adminPw").value.trim();
+      if(!pw) return;
+      setAdminToken(pw);
+      const ok = await loadSecrets();
+      if(!ok) setAdminToken(""); // clear on failure so the unlock form returns
+    };
+    document.getElementById("adminPw").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("unlockBtn").click(); });
+    return;
+  }
+  await loadSecrets();
+}
+
+function setMsg(text, ok){
+  const m = document.getElementById("setMsg");
+  if(!m) return;
+  m.style.display="block"; m.textContent=text;
+  m.style.color = ok ? "#2fd47f" : "#ff7a6e";
+}
+
+async function loadSecrets(){
+  const list = document.getElementById("list");
+  let data;
+  try{
+    const r = await fetch("/api/secrets", { headers: { "x-admin-token": adminToken() } });
+    data = await r.json();
+    if(r.status===403 && data.locked){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px;max-width:560px;line-height:1.6">⚠️ ${data.reason}<br><span style="color:#8c8998">Add <b>ADMIN_PASSWORD</b> in Vercel → Settings → Environment Variables, redeploy, then unlock here.</span></div>`; return false; }
+    if(r.status===401){ setMsg("Wrong admin password.", false); return false; }
+    if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">${data.error||"Error loading secrets"}</div>`; return false; }
+  }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">Network error.</div>`; return false; }
+
+  const rows = (data.items||[]).map(it=>{
+    const dot = it.source==="env" ? "#7aa2ff" : it.source==="db" ? "#2fd47f" : "#5c5c66";
+    const tag = it.source==="env" ? "from environment" : it.source==="db" ? "stored • "+it.masked : "not set";
+    const actions = it.source==="env"
+      ? `<span style="font-size:12px;color:#7aa2ff">env-locked</span>`
+      : `<button data-name="${it.name}" class="setKey" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">${it.source==="db"?"Update":"Add"}</button>`
+        + (it.source==="db" ? ` <button data-name="${it.name}" class="delKey" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>` : "");
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+        <div><div style="font-weight:700;font-size:14.5px">${it.label} <span style="color:#8c8998;font-weight:500">· ${it.name}</span></div>
+        <div style="font-size:12.5px;color:#8c8998;margin-top:3px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot};margin-right:6px"></span>${tag}</div></div>
+        <div style="display:flex;gap:8px;white-space:nowrap">${actions}</div>
+      </div>`;
+  }).join("");
+
+  list.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:13px;color:#8c8998">🔵 environment · 🟢 stored in cloud · ⚫ not set</div>
+      <button id="lockBtn" style="background:transparent;color:#8c8998;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:8px">Lock</button>
+    </div>
+    ${rows}
+    <div id="setMsg" style="display:none;font-size:13px;margin-top:4px"></div>
+    <div style="font-size:12px;color:#5c5c66;margin-top:8px;line-height:1.55">Keys set in the Vercel environment always win and can't be edited here. Stored keys are saved to your Upstash database and used by <b>/api/generate</b> as fallbacks. Values are never shown in full.</div>`;
+
+  document.getElementById("lockBtn").onclick = ()=>{ setAdminToken(""); renderSettings(); };
+  list.querySelectorAll(".setKey").forEach(b=>b.onclick=()=>saveKey(b.dataset.name));
+  list.querySelectorAll(".delKey").forEach(b=>b.onclick=()=>deleteKey(b.dataset.name));
+  return true;
+}
+
+async function saveKey(name){
+  const value = prompt("Paste the value for "+name+":\n(stored encrypted-at-rest in your cloud DB; never shown again)");
+  if(!value) return;
+  try{
+    const r = await fetch("/api/secrets",{method:"POST",headers:{"content-type":"application/json","x-admin-token":adminToken()},body:JSON.stringify({name, value})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Save failed"); return; }
+    await loadSecrets();
+  }catch(e){ alert("Network error"); }
+}
+
+async function deleteKey(name){
+  if(!confirm("Delete the stored "+name+"? The engine will stop using it.")) return;
+  try{
+    const r = await fetch("/api/secrets",{method:"POST",headers:{"content-type":"application/json","x-admin-token":adminToken()},body:JSON.stringify({name, delete:true})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Delete failed"); return; }
+    await loadSecrets();
+  }catch(e){ alert("Network error"); }
+}
 
 load();
 </script>

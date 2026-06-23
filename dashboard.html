@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner Dashboard — frontdeskagents.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0a0f;color:#e9e7ef}
+  input,button{font-family:inherit}
+  a{color:inherit}
+</style>
+</head>
+<body>
+<div style="display:grid;grid-template-columns:240px 1fr;min-height:100vh">
+  <aside style="background:#101017;border-right:1px solid rgba(255,255,255,.07);padding:22px 16px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
+    <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(255,92,56,.14);color:#ff8366">🎯 Leads</button>
+    <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <a href="/builder.html" style="text-decoration:none;background:#ff5c38;color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
+      <div id="cloudDot" style="font-size:12px;color:#8c8998;text-align:center">Cloud: checking…</div>
+    </div>
+  </aside>
+
+  <main style="padding:28px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+      <div><div id="pTitle" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700">Leads</div><div id="pSub" style="font-size:13px;color:#8c8998">New business in your pipeline</div></div>
+      <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+    </div>
+    <div id="list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </main>
+</div>
+
+<script>
+const KEY = "fda:panel:owner";
+let state = { leads:[], clients:[] };
+let tab = "leads";
+
+async function load(){
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(KEY));
+    const j = await r.json();
+    if(j.value){ state = Object.assign({leads:[],clients:[]}, j.value); }
+    document.getElementById("cloudDot").textContent = "Cloud: connected ✓";
+    document.getElementById("cloudDot").style.color = "#2fd47f";
+  }catch(e){
+    document.getElementById("cloudDot").textContent = "Cloud: offline (set env vars)";
+  }
+  if(!state.leads.length && !state.clients.length){
+    state.leads = [
+      {id:1,name:"Maria's Bakery",type:"Bakery",city:"Katy, TX",value:"$1,299 build"},
+      {id:2,name:"Sunset Nails",type:"Nail Salon",city:"Sugar Land",value:"$899 build"},
+    ];
+  }
+  render();
+}
+
+async function save(){
+  try{
+    await fetch("/api/data?key="+encodeURIComponent(KEY),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(state)});
+    document.getElementById("cloudDot").textContent = "Cloud: saved ✓";
+    document.getElementById("cloudDot").style.color = "#2fd47f";
+  }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
+}
+
+function render(){
+  document.getElementById("pTitle").textContent = tab==="leads"?"Leads":"Clients";
+  document.getElementById("pSub").textContent = tab==="leads"?"New business in your pipeline":"Businesses you've built sites for";
+  const items = state[tab]||[];
+  const list = document.getElementById("list");
+  if(!items.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No ${tab} yet. Click “Add”.</div>`; return; }
+  list.innerHTML = items.map((it,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px">
+      <div><div style="font-weight:700;font-size:15px">${it.name||""}</div><div style="font-size:12.5px;color:#8c8998">${(it.type||"")}${it.city?(" · "+it.city):""}${it.value?(" · "+it.value):""}</div></div>
+      <div style="display:flex;gap:8px">
+        ${tab==="leads"?`<button data-i="${i}" class="win" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Won →</button>`:""}
+        <button data-i="${i}" class="del" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>
+      </div>
+    </div>`).join("");
+  list.querySelectorAll(".del").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; state[tab].splice(i,1); save(); render(); });
+  list.querySelectorAll(".win").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; const lead=state.leads.splice(i,1)[0]; state.clients.push({...lead, value:"Live · $89/mo"}); save(); render(); });
+}
+
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  tab=t.dataset.tab;
+  document.querySelectorAll(".tab").forEach(x=>{x.style.background="transparent";x.style.color="#b6b2c2";});
+  t.style.background="rgba(255,92,56,.14)";t.style.color="#ff8366";
+  render();
+});
+
+document.getElementById("addBtn").onclick=()=>{
+  const name=prompt("Business name?"); if(!name) return;
+  const type=prompt("Type? (e.g. Bakery)")||"";
+  const city=prompt("City?")||"";
+  state[tab].push({id:Date.now(),name,type,city,value: tab==="leads"?"$1,299 build":"Live · $89/mo"});
+  save(); render();
+};
+
+load();
+</script>
+</body>
+</html>

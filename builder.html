@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Website Builder — frontdeskagents.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0d0d12;color:#f0eef2}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  input,textarea,select{font-family:inherit}
+  a{color:inherit}
+  .gsec{scroll-margin-top:80px}
+  html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+<!-- ============ BUILDER ============ -->
+<div id="builder">
+  <header style="border-bottom:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1140px;margin:0 auto;padding:18px 28px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:32px;height:32px;border-radius:8px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px">frontdeskagents<span style="color:#ff5c38">.com</span> · AI Builder</div>
+      </div>
+      <a href="/" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600">← Home</a>
+    </div>
+  </header>
+
+  <div style="display:grid;grid-template-columns:1.05fr .95fr;min-height:calc(100vh - 61px)">
+    <!-- FORM -->
+    <div style="padding:48px 52px;max-width:640px;margin-left:auto;width:100%">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,56,.12);color:#ff8366;font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;margin-bottom:20px">✦ SAHJONY AI™ · any country · any language</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:40px;line-height:1.05;font-weight:700;letter-spacing:-.02em;margin-bottom:12px">Build a complete website.</h1>
+      <p style="font-size:16px;color:#aaa7b5;line-height:1.6;margin-bottom:26px">Fill the basics — AI writes every section and assembles a full, ready-to-launch site.</p>
+
+      <div style="display:flex;gap:8px;background:#16161e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:5px;margin-bottom:18px">
+        <button id="mFresh" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:#ff5c38;color:#0d0d12">✨ Start fresh</button>
+        <button id="mUrl" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">🔄 Redesign a site</button>
+      </div>
+
+      <div id="urlWrap" style="display:none;margin-bottom:14px">
+        <label style="display:block;font-size:13px;font-weight:700;color:#ff8366;margin-bottom:7px">Paste the current website URL</label>
+        <input id="fUrl" placeholder="oldwebsite.com" style="width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,92,56,.3);background:#16161e;color:#f0eef2;font-size:16px">
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:15px">
+        <div><label class="lbl">Business name *</label><input id="fName" placeholder="e.g. Maria's Bakery"></div>
+        <div><label class="lbl">What kind of business? *</label><input id="fType" placeholder="bakery, salon, auto shop, law firm…"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <div><label class="lbl">City &amp; country</label><input id="fCity" placeholder="Houston, TX, USA"></div>
+          <div><label class="lbl">Language</label><input id="fLang" placeholder="English" value="English"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <div><label class="lbl">Phone</label><input id="fPhone" placeholder="+1 (713) 555-0100"></div>
+          <div><label class="lbl">Email</label><input id="fEmail" placeholder="hello@business.com"></div>
+        </div>
+        <div><label class="lbl">Street address (for the map)</label><input id="fAddr" placeholder="123 Main St"></div>
+        <div><label class="lbl">Anything special? (optional)</label><textarea id="fNotes" rows="2" placeholder="Family-owned since 1990, vegan options, open 7 days…"></textarea></div>
+        <button id="buildBtn" style="margin-top:4px;background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
+        <div id="err" style="color:#ff8366;font-size:14px;text-align:center;display:none"></div>
+        <div style="font-size:13px;color:#8c8998;text-align:center">Runs on your own Claude key via the secure backend.</div>
+      </div>
+    </div>
+
+    <!-- VISUAL -->
+    <div style="background:linear-gradient(160deg,#1a1622,#16161e);border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;padding:48px">
+      <div id="idlePane" style="text-align:center;max-width:380px">
+        <div style="font-size:64px;margin-bottom:20px">🌎</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:23px;font-weight:700">A full website, every section included.</div>
+        <div id="chips" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px"></div>
+      </div>
+      <div id="loadPane" style="display:none;text-align:center">
+        <div style="width:60px;height:60px;border:4px solid rgba(255,92,56,.2);border-top-color:#ff5c38;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 24px"></div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">Building your website…</div>
+        <div style="font-size:13px;color:#e8916b;font-weight:700;margin-top:6px">✦ SAHJONY AI™ is writing every word</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GENERATED SITE MOUNTS HERE ============ -->
+<div id="site" style="display:none"></div>
+
+<style>
+  .lbl{display:block;font-size:13px;font-weight:700;color:#d6d3df;margin-bottom:7px}
+  #builder input,#builder textarea{width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#16161e;color:#f0eef2;font-size:16px}
+  #builder input::placeholder,#builder textarea::placeholder{color:#9aa0aa}
+</style>
+
+<script>
+const $ = s => document.querySelector(s);
+let mode = "fresh";
+
+const CHIPS = ["Home","About","Services","Gallery","Reviews","FAQ","Hours","Map","Contact","Social links","Click-to-call","Footer"];
+$("#chips").innerHTML = CHIPS.map(c=>`<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#d6d3df;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px">${c}</div>`).join("");
+
+$("#mFresh").onclick = ()=>{ mode="fresh"; $("#mFresh").style.background="#ff5c38";$("#mFresh").style.color="#0d0d12";$("#mUrl").style.background="transparent";$("#mUrl").style.color="#aaa7b5";$("#urlWrap").style.display="none"; };
+$("#mUrl").onclick = ()=>{ mode="url"; $("#mUrl").style.background="#ff5c38";$("#mUrl").style.color="#0d0d12";$("#mFresh").style.background="transparent";$("#mFresh").style.color="#aaa7b5";$("#urlWrap").style.display="block"; };
+
+// prefill from ?mode=url&url=
+const qp = new URLSearchParams(location.search);
+if(qp.get("mode")==="url"){ $("#mUrl").click(); }
+if(qp.get("url")){ $("#fUrl").value = qp.get("url"); $("#mUrl").click(); }
+
+function val(id){ return ($("#"+id).value||"").trim(); }
+function deriveName(u){ try{ const h=u.replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0].split(".")[0]; return h.charAt(0).toUpperCase()+h.slice(1); }catch(e){ return "Your Business"; } }
+function initials(n){ const w=(n||"").trim().split(/\s+/).filter(Boolean); return w.length?(w[0][0]+(w[1]?w[1][0]:"")).toUpperCase():"★"; }
+function pickIcon(n){ const t=(n||"").toLowerCase(); const m=[["clean","✨"],["cut","✂️"],["hair","💇"],["repair","🔧"],["oil","🛢️"],["brake","🛑"],["tire","🛞"],["cake","🎂"],["bread","🥖"],["coffee","☕"],["plant","🌿"],["flower","💐"],["nail","💅"],["massage","💆"],["photo","📷"],["legal","⚖️"],["tax","🧾"],["pet","🐾"]]; for(const[k,i]of m)if(t.includes(k))return i; return "●"; }
+function theme(t){ t=(t||"").toLowerCase(); if(/food|restaurant|cafe|coffee|bakery|bread|cake|pizza|taco|grill|bar|diner/.test(t))return"#c1312a"; if(/barber|auto|repair|gym|fitness|construction|plumb|electric|tattoo/.test(t))return"#1f6feb"; if(/plant|flower|spa|salon|nail|beauty|yoga|wellness/.test(t))return"#3d6b4a"; if(/law|legal|account|finance|consult|tech|agency|estate|insur/.test(t))return"#2a3b8f"; return"#5b3df2"; }
+
+function fallback(type){
+  return {
+    tagline:`Your neighborhood ${type}, done right.`,
+    heroSub:"Quality work, fair prices, and friendly service. Proudly serving our community.",
+    about1:`We're a locally owned ${type} built on honest work and treating every customer like a neighbor.`,
+    about2:"From your first visit, you'll feel the difference experience and pride make.",
+    services:[{name:"Signature Service",desc:"The thing we're best known for.",price:""},{name:"Everyday Essentials",desc:"Dependable quality for routine needs.",price:""},{name:"Premium Option",desc:"Our top-tier offering.",price:""},{name:"Quick Service",desc:"In and out, same quality.",price:""},{name:"Custom Work",desc:"Tell us what you need.",price:""},{name:"Consultations",desc:"Not sure? Let's talk.",price:"Free"}],
+    reviews:[{quote:"Best in town. Friendly, fair, and they know their craft.",author:"A happy local"},{quote:"I won't go anywhere else. Honest people, great work.",author:"Longtime customer"},{quote:"Quick, professional, reasonably priced. Recommend.",author:"Verified review"}],
+    faqs:[{q:"Do I need an appointment?",a:"Walk-ins welcome, but booking guarantees your spot."},{q:"Payment options?",a:"Cash and all major cards."},{q:"Do you serve my area?",a:"Yes — we proudly serve the whole local community."}],
+    hours:[{day:"Mon – Fri",time:"9:00 – 18:00"},{day:"Saturday",time:"10:00 – 16:00"},{day:"Sunday",time:"Closed"}],
+    labels:{}
+  };
+}
+
+async function generate(){
+  $("#err").style.display="none";
+  let name=val("fName"), type=val("fType");
+  if(mode==="url" && !name) name=deriveName(val("fUrl"));
+  if(!name || !type){ $("#err").textContent="Please add a business name and type."; $("#err").style.display="block"; return; }
+
+  $("#idlePane").style.display="none"; $("#loadPane").style.display="block";
+  $("#buildBtn").textContent="Building…"; $("#buildBtn").disabled=true;
+
+  const city=val("fCity")||"your city", lang=val("fLang")||"English", notes=val("fNotes"), url=val("fUrl");
+  const prompt = `You write website content for a local business. Return ONLY valid minified JSON, no markdown.
+Business name: ${name}
+Type: ${type}
+Location: ${city}
+${url?("They currently have this website (reimagine it as a brand-new premium site): "+url):""}
+${notes?("Notes: "+notes):""}
+Write ALL text in this language: ${lang}.
+Schema: {"tagline":"<=9 words","heroSub":"<=24 words","about1":"1 sentence","about2":"1 sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex fitting the business mood","labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
+Translate EVERY label and all content into ${lang}.`;
+
+  let gen;
+  try{
+    const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt})});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error||"API error");
+    gen = JSON.parse(j.text.match(/\{[\s\S]*\}/)[0]);
+  }catch(e){
+    console.warn("Falling back:", e.message);
+    gen = fallback(type);
+  }
+  renderSite(name, type, city, lang, gen);
+}
+
+function renderSite(name, type, city, lang, gen){
+  const phone=val("fPhone")||"+1 (713) 555-0100", email=val("fEmail")||(name.toLowerCase().replace(/[^a-z0-9]+/g,"")+"@email.com");
+  const addr=val("fAddr"), full=(addr?addr+", ":"")+city;
+  const primary = gen.primary || theme(type);
+  const L = gen.labels||{};
+  const kw = encodeURIComponent((type.split(/\s+/).slice(-1)[0])||"business");
+  const nav0 = (L.nav||["Home","About","Services","Gallery","Reviews","Contact"]).slice(0,6);
+  const hrefs=["#g-home","#g-about","#g-services","#g-gallery","#g-reviews","#g-contact"];
+  const tel="tel:"+phone.replace(/[^0-9+]/g,""), mail="mailto:"+email;
+  const map=`https://maps.google.com/maps?q=${encodeURIComponent(full)}&z=14&output=embed`;
+  const year=new Date().getFullYear();
+  const svc=(gen.services||[]).slice(0,6);
+  const gal=[]; for(let i=0;i<6;i++) gal.push(`https://loremflickr.com/600/600/${kw},business?lock=${20+i}`);
+
+  const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" style="color:#1d2129;text-decoration:none;font-size:14px;font-weight:600;opacity:.8">${l}</a>`).join("");
+  const svcHtml = svc.map(s=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:16px;padding:28px"><div style="font-size:28px;margin-bottom:14px">${pickIcon(s.name)}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${primary};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:#5c6270;margin-top:8px;line-height:1.55">${s.desc||""}</div></div>`).join("");
+  const galHtml = gal.map(u=>`<div style="aspect-ratio:1/1;border-radius:14px;overflow:hidden"><img src="${u}" style="width:100%;height:100%;object-fit:cover"></div>`).join("");
+  const revHtml = (gen.reviews||[]).slice(0,3).map(r=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:16px;padding:28px"><div style="color:#e8a93a;font-size:16px;letter-spacing:2px;margin-bottom:14px">★★★★★</div><p style="font-size:17px;line-height:1.55;font-style:italic;margin-bottom:18px">"${r.quote||""}"</p><div style="font-weight:700;font-size:14px">${r.author||""}</div></div>`).join("");
+  const faqHtml = (gen.faqs||[]).slice(0,4).map(f=>`<div style="background:#f6f7f9;border:1px solid rgba(0,0,0,.09);border-radius:14px;padding:24px 26px"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">${f.q||""}</div><div style="font-size:16px;color:#5c6270;line-height:1.6">${f.a||""}</div></div>`).join("");
+  const hrsHtml = ((gen.hours&&gen.hours.length?gen.hours:fallback(type).hours)).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:300px"><span style="opacity:.9">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("");
+
+  const siteHtml = `
+  <header style="position:sticky;top:0;z-index:90;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid rgba(0,0,0,.09)">
+    <nav style="max-width:1180px;margin:0 auto;padding:16px 28px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:11px"><div style="width:38px;height:38px;border-radius:9px;background:${primary};color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px">${initials(name)}</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px">${name}</div></div>
+      <div style="display:flex;align-items:center;gap:24px">${navHtml}<a href="${tel}" style="background:${primary};color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:999px;white-space:nowrap">${L.cta||"Call Us"}</a></div>
+    </nav>
+  </header>
+  <section id="g-home" class="gsec" style="position:relative;overflow:hidden">
+    <img src="https://loremflickr.com/1280/720/${kw}?lock=2" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,#ffffffcc,#fff)"></div>
+    <div style="position:relative;max-width:1000px;margin:0 auto;padding:100px 28px 96px;text-align:center">
+      <div style="display:inline-block;background:rgba(0,0,0,.05);color:${primary};font-size:13px;font-weight:700;letter-spacing:.04em;padding:8px 16px;border-radius:999px;margin-bottom:24px">${city}</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:60px;line-height:1.05;font-weight:700;letter-spacing:-.02em;margin-bottom:22px">${gen.tagline||""}</h1>
+      <p style="font-size:20px;line-height:1.6;color:#5c6270;max-width:600px;margin:0 auto 36px">${gen.heroSub||""}</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a href="#g-contact" style="background:${primary};color:#fff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 30px;border-radius:999px">${L.heroCta||"Get in Touch"}</a><a href="#g-services" style="border:1px solid rgba(0,0,0,.12);color:#1d2129;text-decoration:none;font-size:16px;font-weight:600;padding:16px 30px;border-radius:999px">${L.heroCta2||"See Services"}</a></div>
+    </div>
+  </section>
+  <section id="g-about" class="gsec" style="max-width:1040px;margin:0 auto;padding:90px 28px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">
+    <div style="aspect-ratio:4/3;border-radius:18px;overflow:hidden"><img src="https://loremflickr.com/800/600/${kw},shop?lock=8" style="width:100%;height:100%;object-fit:cover"></div>
+    <div><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:14px">${L.aboutKicker||"About Us"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-bottom:20px">${L.aboutTitle||"Built on quality and trust."}</h2><p style="font-size:17px;line-height:1.7;color:#5c6270;margin-bottom:16px">${gen.about1||""}</p><p style="font-size:17px;line-height:1.7;color:#5c6270">${gen.about2||""}</p></div>
+  </section>
+  <section id="g-services" class="gsec" style="background:#f6f7f9"><div style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:50px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.servicesKicker||"What We Offer"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${L.servicesTitle||"Our Services"}</h2></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">${svcHtml}</div></div></section>
+  <section id="g-gallery" class="gsec" style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:44px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.galleryKicker||"Gallery"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${L.galleryTitle||"Take a Look"}</h2></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">${galHtml}</div></section>
+  <section id="g-reviews" class="gsec" style="background:#f6f7f9"><div style="max-width:1180px;margin:0 auto;padding:90px 28px"><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:48px">${L.reviewsTitle||"What People Say"}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">${revHtml}</div></div></section>
+  <section id="g-faq" class="gsec" style="max-width:860px;margin:0 auto;padding:90px 28px"><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:44px">${L.faqTitle||"FAQ"}</h2><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
+  <section id="g-contact" class="gsec" style="background:${primary};color:#fff"><div style="max-width:1180px;margin:0 auto;padding:84px 28px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:stretch">
+    <div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em;margin-bottom:28px">${L.contactTitle||"Visit Us"}</h2><div style="display:flex;flex-direction:column;gap:22px;max-width:400px"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.find||"Find Us"}</div><div style="font-size:18px;line-height:1.5">${full}</div></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.hours||"Hours"}</div><div style="display:flex;flex-direction:column;gap:3px">${hrsHtml}</div></div><div style="display:flex;gap:28px;flex-wrap:wrap"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.call||"Call"}</div><a href="${tel}" style="font-size:18px;color:#fff;text-decoration:none">${phone}</a></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.email||"Email"}</div><a href="${mail}" style="font-size:18px;color:#fff;text-decoration:none">${email}</a></div></div></div></div>
+    <div style="border-radius:18px;overflow:hidden;min-height:380px;background:rgba(255,255,255,.1)"><iframe src="${map}" width="100%" height="100%" style="border:0;min-height:380px;display:block" loading="lazy"></iframe></div>
+  </div></section>
+  <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||("Proudly serving "+city)}</div><div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>`;
+
+  document.getElementById("site").innerHTML = `
+    <div style="background:#0d0d12;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="font-size:13px;color:#b3b0bd">✨ Generated — <b style="color:#fff">${name}</b> · ${lang}</div>
+      <div style="display:flex;gap:10px">
+        <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
+        <button id="dlBtn" style="background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
+      </div>
+    </div></div>
+    <div id="siteRoot" style="background:#fff;color:#1d2129">${siteHtml}</div>`;
+
+  document.getElementById("builder").style.display="none";
+  document.getElementById("site").style.display="block";
+  window.scrollTo(0,0);
+  document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
+  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml);
+}
+
+function downloadSite(name, inner){
+  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}</style></head><body>${inner}</body></html>`;
+  const blob=new Blob([doc],{type:"text/html"}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"website")+".html";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+$("#buildBtn").onclick = generate;
+</script>
+</body>
+</html>

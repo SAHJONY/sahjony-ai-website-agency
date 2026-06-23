@@ -2,8 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI Website Builder — frontdeskagents.com</title>
+<meta name="theme-color" content="#0d0d12">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="frontdesk">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="frontdeskagents.com">
+<meta property="og:title" content="AI Website Builder — frontdeskagents.com">
+<meta property="og:description" content="Generate a complete, bilingual local-business website in seconds. Add photos, video and social links.">
+<meta property="og:image" content="/icon-512.png">
+<meta name="twitter:card" content="summary">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -14,6 +28,23 @@
   a{color:inherit}
   .gsec{scroll-margin-top:80px}
   html{scroll-behavior:smooth}
+  /* Builder layout responsiveness */
+  @media(max-width:880px){
+    .bgrid{grid-template-columns:1fr!important}
+    .bgrid > div:last-child{display:none!important} /* hide decorative panel on mobile */
+    .bform{padding:28px 20px!important;max-width:100%!important}
+    #builder header > div{flex-wrap:wrap;gap:12px}
+    #builder header nav{display:none}
+  }
+  /* Generated-site preview responsiveness (mirrors the downloaded file) */
+  @media(max-width:760px){
+    #siteRoot h1{font-size:38px!important}
+    #siteRoot h2{font-size:28px!important}
+    #siteRoot section, #siteRoot section > div{padding-left:18px!important;padding-right:18px!important}
+    #siteRoot [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}
+    #siteRoot [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+    #siteRoot nav{flex-wrap:wrap;gap:12px!important}
+  }
 </style>
 </head>
 <body>
@@ -36,9 +67,9 @@
     </div>
   </header>
 
-  <div style="display:grid;grid-template-columns:1.05fr .95fr;min-height:calc(100vh - 61px)">
+  <div class="bgrid" style="display:grid;grid-template-columns:1.05fr .95fr;min-height:calc(100vh - 61px)">
     <!-- FORM -->
-    <div style="padding:48px 52px;max-width:640px;margin-left:auto;width:100%">
+    <div class="bform" style="padding:48px 52px;max-width:640px;margin-left:auto;width:100%">
       <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,56,.12);color:#ff8366;font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;margin-bottom:20px">✦ SAHJONY AI™ · any country · any language</div>
       <h1 style="font-family:'Space Grotesk',sans-serif;font-size:40px;line-height:1.05;font-weight:700;letter-spacing:-.02em;margin-bottom:12px">Build a complete website.</h1>
       <p style="font-size:16px;color:#aaa7b5;line-height:1.6;margin-bottom:26px">Fill the basics — AI writes every section and assembles a full, ready-to-launch site.</p>
@@ -378,7 +409,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
 }
 
 function downloadSite(name, inner){
-  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}</style></head><body>${inner}</body></html>`;
+  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
   const blob=new Blob([doc],{type:"text/html"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"website")+".html";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);

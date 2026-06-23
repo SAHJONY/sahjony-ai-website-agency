@@ -2,15 +2,35 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>frontdeskagents.com — Websites for local business</title>
+<meta name="theme-color" content="#0d0d12">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="frontdesk">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="frontdeskagents.com">
+<meta property="og:title" content="frontdeskagents.com — AI websites for local business">
+<meta property="og:description" content="Build beautiful, bilingual websites for local businesses with AI. Live in a week, priced for a small business.">
+<meta property="og:image" content="/icon-512.png">
+<meta name="twitter:card" content="summary">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0d0d12;color:#f0eef2}
   a{color:inherit}
-  .btn{text-decoration:none;font-weight:700;border-radius:999px;display:inline-block}
+  .btn{text-decoration:none;font-weight:700;border-radius:999px;display:inline-block;border:none;cursor:pointer}
+  @media(max-width:720px){
+    header nav{flex-wrap:wrap;gap:12px 16px!important;padding:14px 18px!important}
+    h1{font-size:42px!important;line-height:1.05!important}
+    section{padding-left:18px!important;padding-right:18px!important}
+    .grid3{grid-template-columns:1fr!important}
+  }
 </style>
 </head>
 <body>
@@ -35,10 +55,34 @@
     <a href="/builder.html" class="btn" style="background:#ff5c38;color:#0d0d12;font-size:16px;padding:16px 32px">⚡ Build a site now</a>
     <a href="/dashboard.html" class="btn" style="border:1px solid rgba(255,255,255,.2);color:#f0eef2;font-size:16px;padding:16px 32px">Open the dashboard →</a>
   </div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+    <button id="shareBtn" class="btn" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:14px;padding:11px 20px">🔗 Share app</button>
+    <button id="installBtn" class="btn" style="display:none;background:rgba(255,92,56,.16);color:#ff8366;font-size:14px;padding:11px 20px">⬇ Install app</button>
+  </div>
+  <div id="shareMsg" style="font-size:13px;color:#2fd47f;margin-top:10px;display:none">Link copied — share it anywhere.</div>
 </section>
 
+<script>
+  // Share — uses the native share sheet on phones, clipboard elsewhere.
+  document.getElementById("shareBtn").onclick = async () => {
+    const data = { title: "frontdeskagents.com", text: "AI websites for local business — build one in seconds.", url: location.origin + "/" };
+    try {
+      if (navigator.share) { await navigator.share(data); }
+      else { await navigator.clipboard.writeText(data.url); const m=document.getElementById("shareMsg"); m.style.display="block"; setTimeout(()=>m.style.display="none", 2500); }
+    } catch (_) {}
+  };
+  // Install — Add to Home Screen / install as an app.
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById("installBtn").style.display = "inline-block"; });
+  document.getElementById("installBtn").onclick = async () => {
+    if (!deferredPrompt) { alert("To install: open your browser menu and choose “Add to Home Screen” / “Install app.”"); return; }
+    deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById("installBtn").style.display = "none";
+  };
+  window.addEventListener("appinstalled", () => { document.getElementById("installBtn").style.display = "none"; });
+</script>
+
 <section style="max-width:1100px;margin:0 auto;padding:30px 28px 90px">
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+  <div class="grid3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
     <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">🤖</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px">AI builds it</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6">Enter a few details (or paste an old URL). Claude writes every section and assembles a full site.</div></div>
     <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">🌐</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px">Deploy free</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6">Hosted on Vercel with your own domain. Download the file or publish in one click.</div></div>
     <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">📊</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px">Run the business</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6">Track leads &amp; clients in the dashboard, synced to your Upstash cloud database.</div></div>

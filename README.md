@@ -5,7 +5,7 @@ businesses. Frontend + serverless backend + cloud database. Built to run on
 **Vercel** with **Upstash Redis** and the **Claude (Anthropic)** API.
 
 ```
-export/
+.
 ├── api/
 │   ├── generate.js   → POST: secure Claude proxy (writes site copy)
 │   ├── data.js       → GET/POST: Upstash read/write (leads & clients)
@@ -37,14 +37,13 @@ client-side code.
   open the **REST API** tab → copy the **UPSTASH_REDIS_REST_URL** and
   **UPSTASH_REDIS_REST_TOKEN**.
 
-### 2. Put this folder on GitHub
+### 2. Put this repo on GitHub
 ```bash
-cd export
 git init
 git add .
 git commit -m "frontdeskagents website factory"
 git branch -M main
-git remote add origin https://github.com/SAHJONY/lone-star-website--factory.git
+git remote add origin https://github.com/SAHJONY/sahjony-ai-website-agency.git
 git push -u origin main
 ```
 
@@ -78,7 +77,6 @@ follow the DNS instructions. Done — your platform is live and permanent.
 ## Run locally
 ```bash
 npm i -g vercel
-cd export
 cp .env.example .env.local   # fill in your real keys
 vercel dev                   # http://localhost:3000
 ```

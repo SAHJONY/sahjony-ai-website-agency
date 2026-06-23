@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Local env files — NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

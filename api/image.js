@@ -57,8 +57,17 @@ export default async function handler(req, res) {
 
   // Resolve provider. Set IMAGE_PROVIDER (env or dashboard secret) to pin one,
   // e.g. IMAGE_PROVIDER=higgsfield, regardless of which other keys are present.
-  const force = (getKey("IMAGE_PROVIDER") || "").toLowerCase();
+  // ?provider= on the request forces one for a single call (testing/diagnosis).
+  const force = ((req.query && req.query.provider) || getKey("IMAGE_PROVIDER") || "").toLowerCase();
   let url, key, model, provider;
+  if (force === "fal" && getKey("FAL_API_KEY")) {
+    url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";
+    key = getKey("FAL_API_KEY"); model = ""; provider = "fal";
+  } else if (force === "custom" && getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
+    url = getKey("IMAGE_API_URL"); key = getKey("IMAGE_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "custom";
+  } else if (force === "openai" && getKey("OPENAI_API_KEY")) {
+    url = "https://api.openai.com/v1/images/generations"; key = getKey("OPENAI_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "openai";
+  } else
   if (force === "higgsfield" && higgsfieldCred(getKey)) {
     url = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
     key = higgsfieldCred(getKey); provider = "higgsfield";

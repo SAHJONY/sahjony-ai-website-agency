@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Owner Dashboard — frontdeskagents.com</title>
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="frontdesk">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -11,16 +19,47 @@
   body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0a0f;color:#e9e7ef}
   input,button{font-family:inherit}
   a{color:inherit}
+  @media(max-width:760px){
+    .dgrid{grid-template-columns:1fr!important}
+    .dgrid > aside{border-right:none!important;border-bottom:1px solid rgba(255,255,255,.07)}
+    .dgrid > main{padding:20px 16px!important}
+  }
 </style>
 </head>
 <body>
-<div style="display:grid;grid-template-columns:240px 1fr;min-height:100vh">
+
+<!-- ===== LOGIN GATE ===== -->
+<div id="loginGate" style="position:fixed;inset:0;z-index:1000;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:380px;background:#14141c;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px 28px;text-align:center">
+    <div style="width:46px;height:46px;border-radius:11px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px">⚡</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px">Owner login</div>
+    <div style="font-size:13.5px;color:#8c8998;margin-bottom:22px">Enter your password to open the dashboard.</div>
+    <input id="loginPw" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#0a0a0f;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:13px 15px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
+    <button id="loginBtn" style="width:100%;background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:13px;border-radius:11px">Log in</button>
+    <div id="loginMsg" style="display:none;font-size:13px;color:#ff7a6e;margin-top:12px"></div>
+    <div style="font-size:12px;color:#5c5c66;margin-top:16px;line-height:1.5">Protected by your <b>ADMIN_PASSWORD</b>. Not set yet? You'll be let in with a reminder to add one.</div>
+  </div>
+</div>
+
+<div class="dgrid" style="display:grid;grid-template-columns:240px 1fr;min-height:100vh;display:none">
   <aside style="background:#101017;border-right:1px solid rgba(255,255,255,.07);padding:22px 16px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
     <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(255,92,56,.14);color:#ff8366">🎯 Leads</button>
     <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
+    <button class="tab" data-tab="inbox" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📨 Inbox</button>
+    <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
+    <button class="tab" data-tab="sites" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🌐 Sites</button>
+    <button class="tab" data-tab="playbook" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📖 Playbook</button>
+    <button class="tab" data-tab="settings" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">⚙️ Settings</button>
     <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0 10px;border-top:1px solid rgba(255,255,255,.07)">
+        <a href="/" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">🏠 Home</a>
+        <a href="/pricing.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💸 Pricing</a>
+        <a href="/scripts.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💬 Scripts</a>
+        <a href="/contact.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">✉️ Contact</a>
+      </div>
       <a href="/builder.html" style="text-decoration:none;background:#ff5c38;color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
+      <button id="logoutBtn" style="background:transparent;color:#8c8998;border:1px solid rgba(255,255,255,.12);cursor:pointer;font-size:12.5px;font-weight:600;padding:8px;border-radius:9px">🔒 Log out</button>
       <div id="cloudDot" style="font-size:12px;color:#8c8998;text-align:center">Cloud: checking…</div>
     </div>
   </aside>
@@ -28,7 +67,10 @@
   <main style="padding:28px 32px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
       <div><div id="pTitle" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700">Leads</div><div id="pSub" style="font-size:13px;color:#8c8998">New business in your pipeline</div></div>
-      <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+      <div style="display:flex;gap:8px">
+        <button id="findBtn" style="display:none;background:rgba(47,212,127,.16);color:#2fd47f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 16px;border-radius:10px">📍 Find leads</button>
+        <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+      </div>
     </div>
     <div id="list" style="display:flex;flex-direction:column;gap:10px"></div>
   </main>
@@ -36,19 +78,20 @@
 
 <script>
 const KEY = "fda:panel:owner";
-let state = { leads:[], clients:[] };
+let state = { leads:[], clients:[], subs:[] };
 let tab = "leads";
 
 async function load(){
   try{
-    const r = await fetch("/api/data?key="+encodeURIComponent(KEY));
+    const r = await fetch("/api/data?key="+encodeURIComponent(KEY), { headers: authHeaders() });
     const j = await r.json();
-    if(j.value){ state = Object.assign({leads:[],clients:[]}, j.value); }
+    if(j.value){ state = Object.assign({leads:[],clients:[],subs:[]}, j.value); }
     document.getElementById("cloudDot").textContent = "Cloud: connected ✓";
     document.getElementById("cloudDot").style.color = "#2fd47f";
   }catch(e){
     document.getElementById("cloudDot").textContent = "Cloud: offline (set env vars)";
   }
+  if(!state.subs) state.subs = [];
   if(!state.leads.length && !state.clients.length){
     state.leads = [
       {id:1,name:"Maria's Bakery",type:"Bakery",city:"Katy, TX",value:"$1,299 build"},
@@ -58,30 +101,249 @@ async function load(){
   render();
 }
 
+function authHeaders(extra){
+  const h = Object.assign({}, extra||{});
+  const t = sessionStorage.getItem("fda_admin");
+  if(t) h["x-admin-token"] = t;
+  return h;
+}
+
 async function save(){
   try{
-    await fetch("/api/data?key="+encodeURIComponent(KEY),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(state)});
+    await fetch("/api/data?key="+encodeURIComponent(KEY),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(state)});
     document.getElementById("cloudDot").textContent = "Cloud: saved ✓";
     document.getElementById("cloudDot").style.color = "#2fd47f";
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
+const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+
 function render(){
-  document.getElementById("pTitle").textContent = tab==="leads"?"Leads":"Clients";
-  document.getElementById("pSub").textContent = tab==="leads"?"New business in your pipeline":"Businesses you've built sites for";
+  const [t,s] = TITLES[tab] || TITLES.leads;
+  document.getElementById("pTitle").textContent = t;
+  document.getElementById("pSub").textContent = s;
+  document.getElementById("addBtn").style.display = tab==="settings" ? "none" : "block";
+  document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : "＋ Add";
+  document.getElementById("findBtn").style.display = tab==="leads" ? "block" : "none";
+  if(tab==="settings"){ renderSettings(); return; }
+  if(tab==="inbox"){ renderInbox(); return; }
+  if(tab==="subs"){ renderSubs(); return; }
+  if(tab==="sites"){ renderSites(); return; }
+  if(tab==="playbook"){ renderPlaybook(); return; }
   const items = state[tab]||[];
   const list = document.getElementById("list");
   if(!items.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No ${tab} yet. Click “Add”.</div>`; return; }
   list.innerHTML = items.map((it,i)=>`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px">
       <div><div style="font-weight:700;font-size:15px">${it.name||""}</div><div style="font-size:12.5px;color:#8c8998">${(it.type||"")}${it.city?(" · "+it.city):""}${it.value?(" · "+it.value):""}</div></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button data-i="${i}" class="reach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">✉️ Reach</button>
         ${tab==="leads"?`<button data-i="${i}" class="win" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Won →</button>`:""}
         <button data-i="${i}" class="del" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>
       </div>
     </div>`).join("");
   list.querySelectorAll(".del").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; state[tab].splice(i,1); save(); render(); });
-  list.querySelectorAll(".win").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; const lead=state.leads.splice(i,1)[0]; state.clients.push({...lead, value:"Live · $89/mo"}); save(); render(); });
+  list.querySelectorAll(".reach").forEach(b=>b.onclick=()=>reach(+b.dataset.i));
+  list.querySelectorAll(".win").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i; const lead=state.leads.splice(i,1)[0];
+    state.clients.push({...lead, value:"Live · $89/mo"});
+    // Auto-start a care-plan subscription for the new client.
+    state.subs.push({ id:Date.now(), name:lead.name, plan:"Care plan", price:89, status:"active", since:new Date().toISOString().slice(0,10) });
+    save(); render();
+  });
+}
+
+/* ===================== SUBSCRIPTIONS ===================== */
+function money(n){ return "$"+(Number(n)||0).toLocaleString(); }
+function renderSubs(){
+  const list = document.getElementById("list");
+  const subs = state.subs||[];
+  const active = subs.filter(s=>s.status==="active");
+  const mrr = active.reduce((t,s)=>t+(Number(s.price)||0),0);
+  const paused = subs.filter(s=>s.status==="paused").length;
+  const canceled = subs.filter(s=>s.status==="canceled").length;
+
+  const summary = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+      <div style="background:linear-gradient(160deg,#1f1626,#14141c);border:1px solid rgba(255,92,56,.3);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Monthly recurring (MRR)</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#ff8366">${money(mrr)}</div></div>
+      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Yearly (ARR)</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700">${money(mrr*12)}</div></div>
+      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Active</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#2fd47f">${active.length}</div></div>
+      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Paused · Canceled</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700">${paused} · ${canceled}</div></div>
+    </div>`;
+
+  if(!subs.length){ list.innerHTML = summary + `<div style="color:#8c8998;font-size:14px;padding:20px">No subscriptions yet. Mark a lead “Won” or click “Add subscription”.</div>`; return; }
+
+  const statusColor = {active:["#2fd47f","rgba(21,194,107,.14)"], paused:["#e8b13a","rgba(232,177,58,.14)"], canceled:["#ff7a6e","rgba(255,90,77,.14)"]};
+  const rows = subs.map((s,i)=>{
+    const [c,bg]=statusColor[s.status]||statusColor.active;
+    const toggle = s.status==="active"
+      ? `<button data-i="${i}" class="sPause" style="background:rgba(232,177,58,.14);color:#e8b13a;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Pause</button>`
+      : s.status==="paused"
+      ? `<button data-i="${i}" class="sResume" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Resume</button>`
+      : `<button data-i="${i}" class="sResume" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Reactivate</button>`;
+    const cancelBtn = s.status!=="canceled" ? `<button data-i="${i}" class="sCancel" style="background:rgba(255,90,77,.1);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Cancel</button>` : "";
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+      <div><div style="font-weight:700;font-size:15px">${s.name||""} <span style="display:inline-block;font-size:11px;font-weight:700;color:${c};background:${bg};padding:2px 9px;border-radius:999px;margin-left:6px;text-transform:capitalize">${s.status}</span></div>
+      <div style="font-size:12.5px;color:#8c8998;margin-top:3px">${money(s.price)}/mo · ${s.plan||"Care plan"}${s.since?(" · since "+s.since):""}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button data-i="${i}" class="sLink" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">💳 Link</button>${toggle}${cancelBtn}<button data-i="${i}" class="sDel" style="background:rgba(255,255,255,.06);color:#8c8998;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button></div>
+    </div>`;
+  }).join("");
+
+  const toolbar = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button id="payLinkBtn" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px">💳 Create payment link</button></div>`;
+  list.innerHTML = summary + toolbar + rows;
+  document.getElementById("payLinkBtn").onclick = ()=>{
+    const name=prompt("Client / business name?"); if(!name) return;
+    const build=parseFloat(prompt("One-time build price? (USD, 0 to skip)","1299"))||0;
+    const monthly=parseFloat(prompt("Monthly care plan? (USD, 0 to skip)","89"))||0;
+    paymentLink(name, build, monthly);
+  };
+  list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0); });
+  list.querySelectorAll(".sPause").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="paused"; save(); render(); });
+  list.querySelectorAll(".sResume").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="active"; save(); render(); });
+  list.querySelectorAll(".sCancel").forEach(b=>b.onclick=()=>{ if(confirm("Cancel this subscription?")){ state.subs[+b.dataset.i].status="canceled"; save(); render(); } });
+  list.querySelectorAll(".sDel").forEach(b=>b.onclick=()=>{ if(confirm("Delete this subscription record?")){ state.subs.splice(+b.dataset.i,1); save(); render(); } });
+}
+
+async function paymentLink(name, build, monthly){
+  try{
+    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Could not create payment link. Is STRIPE_SECRET_KEY set?"); return; }
+    try{ await navigator.clipboard.writeText(j.url); }catch(_){}
+    window.open(j.url,"_blank");
+    alert("✓ Payment link created & copied — send it to "+name+":\n\n"+j.url);
+  }catch(e){ alert("Network error creating payment link."); }
+}
+
+/* ===================== LEAD FINDER + OUTREACH ===================== */
+function findLeads(){
+  if(!navigator.geolocation){ alert("Geolocation isn't supported on this device."); return; }
+  const kw = prompt("Business type to find nearby? (e.g. barber, bakery, auto repair)\nLeave blank for all.","")||"";
+  const list = document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;padding:20px">📍 Getting your location…</div>`;
+  navigator.geolocation.getCurrentPosition(async (pos)=>{
+    list.innerHTML = `<div style="color:#8c8998;padding:20px">🔎 Searching nearby businesses…</div>`;
+    try{
+      const r = await fetch("/api/leads-find",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude,keyword:kw})});
+      const j = await r.json();
+      if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">${j.error||"Search failed."}</div>`; return; }
+      renderFound(j.leads||[]);
+    }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; }
+  }, ()=>{ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Location blocked. Allow location access to find nearby leads.</div>`; }, {timeout:10000});
+}
+function renderFound(leads){
+  const list = document.getElementById("list");
+  if(!leads.length){ list.innerHTML = `<div style="color:#8c8998;padding:20px">No businesses found. Try a different keyword. <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px">← Back</button></div>`; document.getElementById("backLeads").onclick=render; return; }
+  list.innerHTML = `<div style="margin-bottom:10px;color:#8c8998;font-size:13px">Found ${leads.length} nearby · 🟢 = no website (best prospects) <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px;margin-left:8px">← Back</button></div>`
+    + leads.map((l,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        <div style="min-width:0"><div style="font-weight:700;font-size:14.5px">${l.needsSite?"🟢 ":"⚪ "}${l.name||""}</div><div style="font-size:12px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[l.address,l.phone,l.website?"has site":"NO SITE"].filter(Boolean).join(" · ")}</div></div>
+        <button data-i="${i}" class="addFound" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Add</button>
+      </div>`).join("");
+  document.getElementById("backLeads").onclick = render;
+  list.querySelectorAll(".addFound").forEach(b=>b.onclick=()=>{ const l=leads[+b.dataset.i]; state.leads.push({id:Date.now(),name:l.name,type:"",city:l.address||"",phone:l.phone||"",value:l.needsSite?"No website — hot 🔥":"Has site"}); save(); b.textContent="Added ✓"; b.disabled=true; });
+}
+async function sendOutreach(name, defaultTo){
+  const ch = (prompt("Send via — type 'sms' or 'email':","sms")||"").toLowerCase().startsWith("e") ? "email" : "sms";
+  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", defaultTo||"")||""; if(!to) return;
+  const msg = prompt("Message:", `Hi! I'm local and I build websites for businesses like ${name}. I put together a free sample for you — want me to send it over? No cost, no commitment.`)||""; if(!msg) return;
+  try{
+    const r = await fetch("/api/outreach",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({channel:ch,to,message:msg})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Send failed."); return; }
+    alert("✓ Sent to "+to);
+  }catch(e){ alert("Network error."); }
+}
+function reach(i){ const it = state[tab][i]; if(it) sendOutreach(it.name, it.phone||""); }
+
+/* ===================== INBOX (free-mockup requests) ===================== */
+const INBOX_KEY = "fda:contact:inbox";
+let inboxCache = [];
+async function renderInbox(){
+  document.getElementById("addBtn").style.display = "none";
+  const list = document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">Loading…</div>`;
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(INBOX_KEY), { headers: authHeaders() });
+    const j = await r.json();
+    if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">${j.error||"Could not load inbox."}</div>`; return; }
+    inboxCache = Array.isArray(j.value) ? j.value.slice().reverse() : []; // newest first
+  }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; return; }
+
+  if(!inboxCache.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No requests yet. They arrive here when someone submits the <a href="/contact.html" style="color:#ff8366">contact form</a>.</div>`; return; }
+  list.innerHTML = inboxCache.map((m,i)=>`
+    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:0"><div style="font-weight:700;font-size:15px">${m.name||"(no name)"} <span style="color:#8c8998;font-weight:500;font-size:13px">· ${m.type||""}</span></div>
+        <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${m.contact||""}${m.city?(" · "+m.city):""}</div>
+        ${m.url?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">site: ${m.url}</div>`:""}
+        ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${m.notes}”</div>`:""}
+        <div style="font-size:11.5px;color:#5c5c66;margin-top:6px">${(m.at||"").slice(0,16).replace("T"," ")}</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+          <button data-i="${i}" class="ibLead" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Lead</button>
+          <button data-i="${i}" class="ibReach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">✉️ Reach</button>
+          <button data-i="${i}" class="ibDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
+        </div>
+      </div>
+    </div>`).join("");
+  list.querySelectorAll(".ibLead").forEach(b=>b.onclick=()=>{ const m=inboxCache[+b.dataset.i]; state.leads.push({id:Date.now(),name:m.name,type:m.type||"",city:m.city||"",phone:m.contact||"",value:"Mockup request 🔥"}); save(); b.textContent="Added ✓"; b.disabled=true; });
+  list.querySelectorAll(".ibReach").forEach(b=>b.onclick=()=>{ const m=inboxCache[+b.dataset.i]; sendOutreach(m.name, m.contact||""); });
+  list.querySelectorAll(".ibDel").forEach(b=>b.onclick=()=>deleteInbox(+b.dataset.i));
+}
+async function deleteInbox(i){
+  if(!confirm("Delete this request?")) return;
+  const target = inboxCache[i];
+  // inboxCache is reversed; rebuild the original-order array without this entry (match by id).
+  const remaining = inboxCache.filter(x=>x!==target).slice().reverse();
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(INBOX_KEY),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(remaining)});
+    if(!r.ok){ const j=await r.json(); alert(j.error||"Delete failed"); return; }
+    renderInbox();
+  }catch(e){ alert("Network error."); }
+}
+
+/* ===================== SITES (published) ===================== */
+async function renderSites(){
+  document.getElementById("addBtn").style.display = "none";
+  const list = document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">Loading…</div>`;
+  let data;
+  try{
+    const r = await fetch("/api/sites", { headers: authHeaders() });
+    data = await r.json();
+    if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">${data.error||"Could not load sites."}</div>`; return; }
+  }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">Network error.</div>`; return; }
+
+  const sites = data.sites || [];
+  if(!sites.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No published sites yet. Build one in the <a href="/builder.html" style="color:#ff8366">builder</a>, then hit <b>🚀 Save &amp; Publish</b>.</div>`; return; }
+
+  list.innerHTML = sites.map(s=>{
+    const link = "/s/"+s.slug;
+    const when = (s.at||"").slice(0,10);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(21,194,107,.14);color:#2fd47f;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Open</a>
+        <button data-slug="${s.slug}" class="siteCopy" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Copy link</button>
+        <button data-slug="${s.slug}" class="siteDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  list.querySelectorAll(".siteCopy").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(location.origin+"/s/"+b.dataset.slug); b.textContent="Copied ✓"; setTimeout(()=>b.textContent="Copy link",1200);}catch(_){}});
+  list.querySelectorAll(".siteDel").forEach(b=>b.onclick=async()=>{
+    if(!confirm("Unpublish and delete this site?")) return;
+    try{
+      const r=await fetch("/api/sites",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({delete:true,slug:b.dataset.slug})});
+      if(!r.ok){ const j=await r.json(); alert(j.error||"Delete failed"); return; }
+      renderSites();
+    }catch(e){ alert("Network error"); }
+  });
+}
+
+/* ===================== PLAYBOOK (embedded) ===================== */
+function renderPlaybook(){
+  document.getElementById("addBtn").style.display = "none";
+  document.getElementById("list").innerHTML = `<iframe src="/playbook.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d0d12"></iframe>`;
 }
 
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
@@ -91,7 +353,16 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   render();
 });
 
+document.getElementById("findBtn").onclick = findLeads;
+
 document.getElementById("addBtn").onclick=()=>{
+  if(tab==="subs"){
+    const name=prompt("Client / business name?"); if(!name) return;
+    const price=parseFloat(prompt("Monthly price? (USD)","89"))||89;
+    const plan=prompt("Plan name?","Care plan")||"Care plan";
+    state.subs.push({id:Date.now(),name,plan,price,status:"active",since:new Date().toISOString().slice(0,10)});
+    save(); render(); return;
+  }
   const name=prompt("Business name?"); if(!name) return;
   const type=prompt("Type? (e.g. Bakery)")||"";
   const city=prompt("City?")||"";
@@ -99,7 +370,139 @@ document.getElementById("addBtn").onclick=()=>{
   save(); render();
 };
 
-load();
+/* ===================== SETTINGS — env secrets manager ===================== */
+function adminToken(){ return sessionStorage.getItem("fda_admin") || ""; }
+function setAdminToken(t){ if(t) sessionStorage.setItem("fda_admin", t); else sessionStorage.removeItem("fda_admin"); }
+
+async function renderSettings(){
+  const list = document.getElementById("list");
+  if(!adminToken()){
+    list.innerHTML = `
+      <div style="max-width:480px;background:#14141c;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:24px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px">🔒 Unlock secrets manager</div>
+        <div style="font-size:13.5px;color:#8c8998;line-height:1.55;margin-bottom:16px">Enter your admin password (the <b>ADMIN_PASSWORD</b> env var). It's kept only in this browser tab and sent over HTTPS to manage your AI keys.</div>
+        <input id="adminPw" type="password" placeholder="Admin password" style="width:100%;background:#0a0a0f;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
+        <button id="unlockBtn" style="width:100%;background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:12px;border-radius:10px">Unlock</button>
+        <div id="setMsg" style="display:none;font-size:13px;margin-top:12px"></div>
+      </div>`;
+    document.getElementById("unlockBtn").onclick = async ()=>{
+      const pw = document.getElementById("adminPw").value.trim();
+      if(!pw) return;
+      setAdminToken(pw);
+      const ok = await loadSecrets();
+      if(!ok) setAdminToken(""); // clear on failure so the unlock form returns
+    };
+    document.getElementById("adminPw").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("unlockBtn").click(); });
+    return;
+  }
+  await loadSecrets();
+}
+
+function setMsg(text, ok){
+  const m = document.getElementById("setMsg");
+  if(!m) return;
+  m.style.display="block"; m.textContent=text;
+  m.style.color = ok ? "#2fd47f" : "#ff7a6e";
+}
+
+async function loadSecrets(){
+  const list = document.getElementById("list");
+  let data;
+  try{
+    const r = await fetch("/api/secrets", { headers: { "x-admin-token": adminToken() } });
+    data = await r.json();
+    if(r.status===403 && data.locked){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px;max-width:560px;line-height:1.6">⚠️ ${data.reason}<br><span style="color:#8c8998">Add <b>ADMIN_PASSWORD</b> in Vercel → Settings → Environment Variables, redeploy, then unlock here.</span></div>`; return false; }
+    if(r.status===401){ setMsg("Wrong admin password.", false); return false; }
+    if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">${data.error||"Error loading secrets"}</div>`; return false; }
+  }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">Network error.</div>`; return false; }
+
+  const rows = (data.items||[]).map(it=>{
+    const dot = it.source==="env" ? "#7aa2ff" : it.source==="db" ? "#2fd47f" : "#5c5c66";
+    const tag = it.source==="env" ? "from environment" : it.source==="db" ? "stored • "+it.masked : "not set";
+    const actions = it.source==="env"
+      ? `<span style="font-size:12px;color:#7aa2ff">env-locked</span>`
+      : `<button data-name="${it.name}" class="setKey" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">${it.source==="db"?"Update":"Add"}</button>`
+        + (it.source==="db" ? ` <button data-name="${it.name}" class="delKey" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>` : "");
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+        <div><div style="font-weight:700;font-size:14.5px">${it.label} <span style="color:#8c8998;font-weight:500">· ${it.name}</span></div>
+        <div style="font-size:12.5px;color:#8c8998;margin-top:3px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot};margin-right:6px"></span>${tag}</div></div>
+        <div style="display:flex;gap:8px;white-space:nowrap">${actions}</div>
+      </div>`;
+  }).join("");
+
+  list.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:13px;color:#8c8998">🔵 environment · 🟢 stored in cloud · ⚫ not set</div>
+      <button id="lockBtn" style="background:transparent;color:#8c8998;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:8px">Lock</button>
+    </div>
+    ${rows}
+    <div id="setMsg" style="display:none;font-size:13px;margin-top:4px"></div>
+    <div style="font-size:12px;color:#5c5c66;margin-top:8px;line-height:1.55">Keys set in the Vercel environment always win and can't be edited here. Stored keys are saved to your Upstash database and used by <b>/api/generate</b> as fallbacks. Values are never shown in full.</div>`;
+
+  document.getElementById("lockBtn").onclick = ()=>{ setAdminToken(""); renderSettings(); };
+  list.querySelectorAll(".setKey").forEach(b=>b.onclick=()=>saveKey(b.dataset.name));
+  list.querySelectorAll(".delKey").forEach(b=>b.onclick=()=>deleteKey(b.dataset.name));
+  return true;
+}
+
+async function saveKey(name){
+  const value = prompt("Paste the value for "+name+":\n(stored encrypted-at-rest in your cloud DB; never shown again)");
+  if(!value) return;
+  try{
+    const r = await fetch("/api/secrets",{method:"POST",headers:{"content-type":"application/json","x-admin-token":adminToken()},body:JSON.stringify({name, value})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Save failed"); return; }
+    await loadSecrets();
+  }catch(e){ alert("Network error"); }
+}
+
+async function deleteKey(name){
+  if(!confirm("Delete the stored "+name+"? The engine will stop using it.")) return;
+  try{
+    const r = await fetch("/api/secrets",{method:"POST",headers:{"content-type":"application/json","x-admin-token":adminToken()},body:JSON.stringify({name, delete:true})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Delete failed"); return; }
+    await loadSecrets();
+  }catch(e){ alert("Network error"); }
+}
+
+/* ===================== LOGIN GATE ===================== */
+function enterApp(){
+  document.getElementById("loginGate").style.display = "none";
+  document.querySelector(".dgrid").style.display = "grid";
+  load();
+}
+async function doLogin(){
+  const pw = document.getElementById("loginPw").value;
+  const msg = document.getElementById("loginMsg");
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true; btn.textContent = "Checking…";
+  try{
+    const r = await fetch("/api/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({password:pw})});
+    const j = await r.json();
+    if(r.ok && j.ok){
+      sessionStorage.setItem("fda_auth","1");
+      if(pw && !j.noPassword){
+        sessionStorage.setItem("fda_admin", pw); // also unlocks Settings
+        document.cookie = "fda_auth="+encodeURIComponent(pw)+";path=/;max-age=86400;samesite=strict"; // unlocks gated pages
+      }
+      enterApp();
+      return;
+    }
+    msg.style.display="block"; msg.textContent = j.error || "Wrong password.";
+  }catch(e){
+    msg.style.display="block"; msg.textContent = "Network error — try again.";
+  }finally{
+    btn.disabled = false; btn.textContent = "Log in";
+  }
+}
+document.getElementById("loginBtn").onclick = doLogin;
+document.getElementById("loginPw").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("fda_auth"); sessionStorage.removeItem("fda_admin"); document.cookie="fda_auth=;path=/;max-age=0"; location.reload(); };
+
+// Already logged in this session? Skip the gate.
+if(sessionStorage.getItem("fda_auth")==="1"){ enterApp(); }
+else { document.getElementById("loginPw").focus(); }
 </script>
 </body>
 </html>

@@ -1,6 +1,11 @@
 // /api/data?key=...   GET -> read,  POST (json body) -> write
 // Server-side proxy to Upstash Redis (REST). The Upstash token lives ONLY on the
 // server, never in the browser. Stores one JSON blob per key.
+//
+// AUTH: this endpoint is owner-only. When ADMIN_PASSWORD is set, every request
+// must send a matching `x-admin-token` header (the dashboard does this after
+// login). Public visitors never touch this — the contact form writes through the
+// separate, write-only /api/contact path instead.
 
 function sanitizeKey(k) {
   return String(k || "fda:default").replace(/[^a-zA-Z0-9:_-]/g, "_").slice(0, 120);
@@ -9,8 +14,14 @@ function sanitizeKey(k) {
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // Owner-only gate. If no password is configured, stay open (app still works).
+  const admin = process.env.ADMIN_PASSWORD;
+  if (admin && req.headers["x-admin-token"] !== admin) {
+    return res.status(401).json({ error: "Unauthorized. Log in to the dashboard." });
+  }
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -20,6 +31,11 @@ export default async function handler(req, res) {
   const auth = { Authorization: "Bearer " + token };
   const base = url.replace(/\/$/, "");
   const key = sanitizeKey(req.query.key);
+
+  // Never expose API keys through this endpoint — secrets live behind /api/secrets.
+  if (/secret/i.test(key)) {
+    return res.status(403).json({ error: "Forbidden key. Manage secrets via /api/secrets." });
+  }
 
   try {
     if (req.method === "GET") {

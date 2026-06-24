@@ -46,6 +46,7 @@
     <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
     <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(255,92,56,.14);color:#ff8366">🎯 Leads</button>
     <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
+    <button class="tab" data-tab="inbox" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📨 Inbox</button>
     <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
     <button class="tab" data-tab="sites" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🌐 Sites</button>
     <button class="tab" data-tab="playbook" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📖 Playbook</button>
@@ -115,7 +116,7 @@ async function save(){
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
-const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], settings:["Settings","Manage AI engine keys (env secrets)"] };
 
 function render(){
   const [t,s] = TITLES[tab] || TITLES.leads;
@@ -125,6 +126,7 @@ function render(){
   document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : "＋ Add";
   document.getElementById("findBtn").style.display = tab==="leads" ? "block" : "none";
   if(tab==="settings"){ renderSettings(); return; }
+  if(tab==="inbox"){ renderInbox(); return; }
   if(tab==="subs"){ renderSubs(); return; }
   if(tab==="sites"){ renderSites(); return; }
   if(tab==="playbook"){ renderPlaybook(); return; }
@@ -240,16 +242,62 @@ function renderFound(leads){
   document.getElementById("backLeads").onclick = render;
   list.querySelectorAll(".addFound").forEach(b=>b.onclick=()=>{ const l=leads[+b.dataset.i]; state.leads.push({id:Date.now(),name:l.name,type:"",city:l.address||"",phone:l.phone||"",value:l.needsSite?"No website — hot 🔥":"Has site"}); save(); b.textContent="Added ✓"; b.disabled=true; });
 }
-async function reach(i){
-  const it = state[tab][i]; if(!it) return;
+async function sendOutreach(name, defaultTo){
   const ch = (prompt("Send via — type 'sms' or 'email':","sms")||"").toLowerCase().startsWith("e") ? "email" : "sms";
-  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", it.phone||"")||""; if(!to) return;
-  const msg = prompt("Message:", `Hi! I'm local and I build websites for businesses like ${it.name}. I put together a free sample for you — want me to send it over? No cost, no commitment.`)||""; if(!msg) return;
+  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", defaultTo||"")||""; if(!to) return;
+  const msg = prompt("Message:", `Hi! I'm local and I build websites for businesses like ${name}. I put together a free sample for you — want me to send it over? No cost, no commitment.`)||""; if(!msg) return;
   try{
     const r = await fetch("/api/outreach",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({channel:ch,to,message:msg})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Send failed."); return; }
     alert("✓ Sent to "+to);
+  }catch(e){ alert("Network error."); }
+}
+function reach(i){ const it = state[tab][i]; if(it) sendOutreach(it.name, it.phone||""); }
+
+/* ===================== INBOX (free-mockup requests) ===================== */
+const INBOX_KEY = "fda:contact:inbox";
+let inboxCache = [];
+async function renderInbox(){
+  document.getElementById("addBtn").style.display = "none";
+  const list = document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">Loading…</div>`;
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(INBOX_KEY), { headers: authHeaders() });
+    const j = await r.json();
+    if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">${j.error||"Could not load inbox."}</div>`; return; }
+    inboxCache = Array.isArray(j.value) ? j.value.slice().reverse() : []; // newest first
+  }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; return; }
+
+  if(!inboxCache.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No requests yet. They arrive here when someone submits the <a href="/contact.html" style="color:#ff8366">contact form</a>.</div>`; return; }
+  list.innerHTML = inboxCache.map((m,i)=>`
+    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:0"><div style="font-weight:700;font-size:15px">${m.name||"(no name)"} <span style="color:#8c8998;font-weight:500;font-size:13px">· ${m.type||""}</span></div>
+        <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${m.contact||""}${m.city?(" · "+m.city):""}</div>
+        ${m.url?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">site: ${m.url}</div>`:""}
+        ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${m.notes}”</div>`:""}
+        <div style="font-size:11.5px;color:#5c5c66;margin-top:6px">${(m.at||"").slice(0,16).replace("T"," ")}</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+          <button data-i="${i}" class="ibLead" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Lead</button>
+          <button data-i="${i}" class="ibReach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">✉️ Reach</button>
+          <button data-i="${i}" class="ibDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
+        </div>
+      </div>
+    </div>`).join("");
+  list.querySelectorAll(".ibLead").forEach(b=>b.onclick=()=>{ const m=inboxCache[+b.dataset.i]; state.leads.push({id:Date.now(),name:m.name,type:m.type||"",city:m.city||"",phone:m.contact||"",value:"Mockup request 🔥"}); save(); b.textContent="Added ✓"; b.disabled=true; });
+  list.querySelectorAll(".ibReach").forEach(b=>b.onclick=()=>{ const m=inboxCache[+b.dataset.i]; sendOutreach(m.name, m.contact||""); });
+  list.querySelectorAll(".ibDel").forEach(b=>b.onclick=()=>deleteInbox(+b.dataset.i));
+}
+async function deleteInbox(i){
+  if(!confirm("Delete this request?")) return;
+  const target = inboxCache[i];
+  // inboxCache is reversed; rebuild the original-order array without this entry (match by id).
+  const remaining = inboxCache.filter(x=>x!==target).slice().reverse();
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(INBOX_KEY),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(remaining)});
+    if(!r.ok){ const j=await r.json(); alert(j.error||"Delete failed"); return; }
+    renderInbox();
   }catch(e){ alert("Network error."); }
 }
 

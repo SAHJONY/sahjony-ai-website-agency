@@ -57,7 +57,11 @@ export default async function handler(req, res) {
 
   // Resolve provider.
   let url, key, model, provider;
-  if (getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
+  if (getKey("FAL_API_KEY")) {
+    // Black Forest Labs FLUX 1.1 [pro] via fal.ai — top-tier photoreal quality.
+    url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";
+    key = getKey("FAL_API_KEY"); model = ""; provider = "fal";
+  } else if (getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
     url = getKey("IMAGE_API_URL"); key = getKey("IMAGE_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "custom";
   } else if (getKey("HIGGSFIELD_API_KEY")) {
     url = process.env.HIGGSFIELD_API_URL || "https://api.higgsfield.ai/v1/images/generations";
@@ -65,15 +69,23 @@ export default async function handler(req, res) {
   } else if (getKey("OPENAI_API_KEY")) {
     url = "https://api.openai.com/v1/images/generations"; key = getKey("OPENAI_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "openai";
   } else {
-    return res.status(500).json({ error: "No image provider configured. Set IMAGE_API_URL/IMAGE_API_KEY, HIGGSFIELD_API_KEY, or OPENAI_API_KEY." });
+    return res.status(500).json({ error: "No image provider configured. Set FAL_API_KEY (recommended), IMAGE_API_URL/IMAGE_API_KEY, HIGGSFIELD_API_KEY, or OPENAI_API_KEY." });
+  }
+
+  // Build the request per provider (auth scheme + body shape differ).
+  let headers, payload;
+  if (provider === "fal") {
+    const [w, h] = String(size).toLowerCase().split("x").map(Number);
+    const image_size = (w && h) ? (w > h ? "landscape_16_9" : h > w ? "portrait_16_9" : "square_hd") : "landscape_16_9";
+    headers = { "content-type": "application/json", Authorization: "Key " + key };
+    payload = { prompt, image_size, num_images: 1, output_format: "jpeg" };
+  } else {
+    headers = { "content-type": "application/json", Authorization: "Bearer " + key };
+    payload = { model, prompt, n: 1, size };
   }
 
   try {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({ model, prompt, n: 1, size }),
-    });
+    const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
     const data = await r.json();
     if (!r.ok) return res.status(r.status).json({ error: (data && data.error && (data.error.message || data.error)) || "Image API error" });
     const out = pickUrl(data);

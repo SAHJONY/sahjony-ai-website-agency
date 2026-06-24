@@ -338,7 +338,7 @@ Translate EVERY label and all content into ${lang}.`;
     try{
       const mood=(gen.design&&gen.design.mood)?(", "+gen.design.mood+" mood"):"";
       const ip=`Professional, photorealistic, editorial hero photograph for a ${type} named "${name}" in ${city}${mood}. High-end, natural light, shallow depth of field, no text, no watermarks, no logos.`;
-      const ir=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:ip,size:"1024x1024"})});
+      const ir=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:ip,size:"1536x1024"})});
       const ij=await ir.json();
       if(ir.ok && ij.url){ mediaPayload.photos=[ij.url]; }
       else if(ij.error){ console.warn("Image:", ij.error); }

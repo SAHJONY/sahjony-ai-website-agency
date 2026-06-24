@@ -47,9 +47,10 @@ The builder prompts the model as a world-class designer: it picks a distinctive
 **color palette + Google-Font pairing per business**, so every generated site
 looks bespoke (fonts load dynamically and carry into the downloaded `.html`).
 
-**AI images** — `/api/image` generates on-brand hero art. It's provider-agnostic
-(OpenAI-images-compatible) and **Higgsfield-ready**: set `IMAGE_API_URL` +
-`IMAGE_API_KEY`, or `HIGGSFIELD_API_KEY`, or it falls back to `OPENAI_API_KEY`
+**AI images** — `/api/image` generates on-brand hero art. **Recommended:**
+`FAL_API_KEY` for **FLUX 1.1 [pro]** via fal.ai (top-tier photoreal). Also
+supports a generic OpenAI-images endpoint (`IMAGE_API_URL` + `IMAGE_API_KEY`),
+Higgsfield (`HIGGSFIELD_API_KEY`), or falls back to `OPENAI_API_KEY`
 (`gpt-image-1`). Toggle "✨ Generate a stunning AI hero image" in the builder.
 
 ### Manage keys at runtime (dashboard → Settings)

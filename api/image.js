@@ -57,8 +57,7 @@ export default async function handler(req, res) {
 
   // Resolve provider. Set IMAGE_PROVIDER (env or dashboard secret) to pin one,
   // e.g. IMAGE_PROVIDER=higgsfield, regardless of which other keys are present.
-  // ?provider= on the request forces one for a single call (testing/diagnosis).
-  const force = ((req.query && req.query.provider) || getKey("IMAGE_PROVIDER") || "").toLowerCase();
+  const force = (getKey("IMAGE_PROVIDER") || "").toLowerCase();
   let url, key, model, provider;
   if (force === "fal" && getKey("FAL_API_KEY")) {
     url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";

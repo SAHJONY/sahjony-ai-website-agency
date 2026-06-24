@@ -276,15 +276,19 @@ function postCard(url, primary){
   return `<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:14px;padding:18px 20px;text-decoration:none;color:#1d2129"><div style="font-size:26px">${icon}</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">${label}</div><div style="font-size:13px;color:#5c6270;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${url}</div></div><div style="color:${primary};font-weight:700">→</div></a>`;
 }
 
-function fallback(type){
+function fallback(type, name, city){
+  const biz = (name||"").trim() || "We";
+  const has = !!(name||"").trim();
+  const where = (city||"").trim();
+  const local = where ? `in ${where}` : "in our community";
   return {
-    tagline:`Your neighborhood ${type}, done right.`,
-    heroSub:"Quality work, fair prices, and friendly service. Proudly serving our community.",
-    about1:`We're a locally owned ${type} built on honest work and treating every customer like a neighbor.`,
-    about2:"From your first visit, you'll feel the difference experience and pride make.",
-    services:[{name:"Signature Service",desc:"The thing we're best known for.",price:""},{name:"Everyday Essentials",desc:"Dependable quality for routine needs.",price:""},{name:"Premium Option",desc:"Our top-tier offering.",price:""},{name:"Quick Service",desc:"In and out, same quality.",price:""},{name:"Custom Work",desc:"Tell us what you need.",price:""},{name:"Consultations",desc:"Not sure? Let's talk.",price:"Free"}],
-    reviews:[{quote:"Best in town. Friendly, fair, and they know their craft.",author:"A happy local"},{quote:"I won't go anywhere else. Honest people, great work.",author:"Longtime customer"},{quote:"Quick, professional, reasonably priced. Recommend.",author:"Verified review"}],
-    faqs:[{q:"Do I need an appointment?",a:"Walk-ins welcome, but booking guarantees your spot."},{q:"Payment options?",a:"Cash and all major cards."},{q:"Do you serve my area?",a:"Yes — we proudly serve the whole local community."}],
+    tagline:`${has?name:"Your local "+type}, ${local}.`.slice(0,80),
+    heroSub:`Trusted ${type} ${local} — quality work, fair prices, and service that treats you like a neighbor.`,
+    about1:`${has?name+" is":"We're"} a ${type} ${local}, built on honest work and doing the job right the first time.`,
+    about2:`From your first call to the finished job, ${has?name:"we"} bring experience, pride, and care to everything we do.`,
+    services:[{name:"Free Estimates",desc:`Tell us what you need — no-pressure quotes for ${where||"your area"}.`,price:"Free"},{name:"Standard Service",desc:`Dependable ${type} work, done on time.`,price:""},{name:"Premium Service",desc:"Our top-tier option, finished to the highest standard.",price:""},{name:"Repairs & Fixes",desc:"Fast, reliable help when something goes wrong.",price:""},{name:"Maintenance Plans",desc:"Keep things running with scheduled visits.",price:""},{name:"Emergency Service",desc:`Same-day help ${local}.`,price:""}],
+    reviews:[{quote:`Best ${type} ${local}. Friendly, fair, and they clearly know their craft.`,author:"Maria G."},{quote:`I won't go anywhere else. Honest people and great work, every time.`,author:"James T."},{quote:"Quick, professional, and reasonably priced. Highly recommend.",author:"Dana R."}],
+    faqs:[{q:"Do I need an appointment?",a:"Walk-ins are welcome, but booking ahead guarantees your spot."},{q:"What payment options do you accept?",a:"Cash and all major cards."},{q:`Do you serve ${where||"my area"}?`,a:`Yes — we proudly serve ${where?where+" and the surrounding area":"the whole local community"}.`}],
     hours:[{day:"Mon – Fri",time:"9:00 – 18:00"},{day:"Saturday",time:"10:00 – 16:00"},{day:"Sunday",time:"Closed"}],
     labels:{}
   };
@@ -303,11 +307,11 @@ async function generate(){
   $("#idlePane").style.display="none"; $("#loadPane").style.display="block";
   $("#buildBtn").textContent="Building…"; $("#buildBtn").disabled=true;
 
-  const city=val("fCity")||"your city", lang=val("fLang")||"English", notes=val("fNotes"), url=val("fUrl");
+  const city=val("fCity"), lang=val("fLang")||"English", notes=val("fNotes"), url=val("fUrl");
   const prompt = `You are a world-class brand & web designer + copywriter. Design a STUNNING, premium, magazine-quality website — distinctive and memorable, NEVER generic or templated. Return ONLY valid minified JSON, no markdown.
 Business name: ${name}
 Type: ${type}
-Location: ${city}
+${city?("Location: "+city):""}
 ${url?("They currently have this website (reimagine it as a brand-new, far more premium site): "+url):""}
 ${notes?("Notes: "+notes):""}
 ${paste?("SOURCE INFORMATION provided by the owner — treat this as the PRIMARY source of truth. Extract real services, prices, hours, story, and reviews from it instead of inventing them:\n\"\"\"\n"+paste+"\n\"\"\""):""}
@@ -319,15 +323,29 @@ Copy must be specific and vivid — sensory, local, confident. No filler.
 Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
-  let gen;
-  try{
-    const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt})});
-    const j = await r.json();
-    if(!r.ok) throw new Error(j.error||"API error");
-    gen = JSON.parse(j.text.match(/\{[\s\S]*\}/)[0]);
-  }catch(e){
-    console.warn("Falling back:", e.message);
-    gen = fallback(type);
+  // Try the AI brain; retry once before giving up. Only fall back to the built-in
+  // copy if generation genuinely fails — and tell the user when that happens, so a
+  // generic site is never silently presented as a finished, AI-designed one.
+  let gen, genError=null;
+  for(let attempt=0; attempt<2 && !gen; attempt++){
+    try{
+      if(attempt>0){ const lm=$("#loadMsg"); if(lm) lm.textContent="Retrying the design engine…"; }
+      const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt})});
+      const j = await r.json();
+      if(!r.ok) throw new Error(j.error||("Generator returned "+r.status));
+      const match = (j.text||"").match(/\{[\s\S]*\}/);
+      if(!match) throw new Error("AI response was not valid JSON");
+      gen = JSON.parse(match[0]);
+      genError=null;
+    }catch(e){
+      genError=e.message||"generation failed";
+      console.warn("Generate attempt "+(attempt+1)+" failed:", genError);
+    }
+  }
+  if(!gen){
+    gen = fallback(type, name, city);
+    const eb=$("#err");
+    if(eb){ eb.textContent="⚠ The AI design engine was unavailable, so we built a starter site from your details. Click Generate again to retry the full AI design. (Reason: "+genError+")"; eb.style.display="block"; }
   }
 
   const mediaPayload = collectMedia();
@@ -348,8 +366,11 @@ Translate EVERY label and all content into ${lang}.`;
 
 function renderSite(name, type, city, lang, gen, mediaIn){
   const M = mediaIn || { photos:[], video:"", audio:"", social:{}, posts:[] };
-  const phone=val("fPhone")||"+1 (713) 555-0100", email=val("fEmail")||(name.toLowerCase().replace(/[^a-z0-9]+/g,"")+"@email.com");
-  const addr=val("fAddr"), full=(addr?addr+", ":"")+city;
+  // Real contact details only — never invent a fake phone/email/address. Blank
+  // fields are simply omitted from the contact section instead of rendering a
+  // placeholder like "@email.com" or a 555 number.
+  const phone=val("fPhone"), email=val("fEmail");
+  const addr=val("fAddr"), full=[addr,city].filter(Boolean).join(", ");
   const D = gen.design||{};
   const primary = D.primary || gen.primary || theme(type);
   const accent = D.accent || primary;
@@ -361,8 +382,8 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const kw = encodeURIComponent((type.split(/\s+/).slice(-1)[0])||"business");
   const nav0 = (L.nav||["Home","About","Services","Gallery","Reviews","Contact"]).slice(0,6);
   const hrefs=["#g-home","#g-about","#g-services","#g-gallery","#g-reviews","#g-contact"];
-  const tel="tel:"+phone.replace(/[^0-9+]/g,""), mail="mailto:"+email;
-  const map=`https://maps.google.com/maps?q=${encodeURIComponent(full)}&z=14&output=embed`;
+  const tel="tel:"+(phone||"").replace(/[^0-9+]/g,""), mail="mailto:"+(email||"");
+  const map=full?`https://maps.google.com/maps?q=${encodeURIComponent(full)}&z=14&output=embed`:"";
   const year=new Date().getFullYear();
   const svc=(gen.services||[]).slice(0,6);
   // Use the client's real photos first; fall back to themed placeholders.
@@ -387,7 +408,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const galHtml = gal.map(u=>`<div style="aspect-ratio:1/1;border-radius:14px;overflow:hidden"><img src="${u}" style="width:100%;height:100%;object-fit:cover"></div>`).join("");
   const revHtml = (gen.reviews||[]).slice(0,3).map(r=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:16px;padding:28px"><div style="color:#e8a93a;font-size:16px;letter-spacing:2px;margin-bottom:14px">★★★★★</div><p style="font-size:17px;line-height:1.55;font-style:italic;margin-bottom:18px">"${r.quote||""}"</p><div style="font-weight:700;font-size:14px">${r.author||""}</div></div>`).join("");
   const faqHtml = (gen.faqs||[]).slice(0,4).map(f=>`<div style="background:#f6f7f9;border:1px solid rgba(0,0,0,.09);border-radius:14px;padding:24px 26px"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">${f.q||""}</div><div style="font-size:16px;color:#5c6270;line-height:1.6">${f.a||""}</div></div>`).join("");
-  const hrsHtml = ((gen.hours&&gen.hours.length?gen.hours:fallback(type).hours)).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:300px"><span style="opacity:.9">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("");
+  const hrsHtml = ((gen.hours&&gen.hours.length?gen.hours:fallback(type,name,city).hours)).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:300px"><span style="opacity:.9">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("");
 
   // Optional media sections — only render when the client provided them.
   const videoSection = M.video ? `
@@ -428,10 +449,10 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-faq" class="gsec" style="max-width:860px;margin:0 auto;padding:90px 28px"><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:44px">${L.faqTitle||"FAQ"}</h2><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
   ${postsSection}
   <section id="g-contact" class="gsec" style="background:${primary};color:#fff"><div style="max-width:1180px;margin:0 auto;padding:84px 28px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:stretch">
-    <div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em;margin-bottom:28px">${L.contactTitle||"Visit Us"}</h2><div style="display:flex;flex-direction:column;gap:22px;max-width:400px"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.find||"Find Us"}</div><div style="font-size:18px;line-height:1.5">${full}</div></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.hours||"Hours"}</div><div style="display:flex;flex-direction:column;gap:3px">${hrsHtml}</div></div><div style="display:flex;gap:28px;flex-wrap:wrap"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.call||"Call"}</div><a href="${tel}" style="font-size:18px;color:#fff;text-decoration:none">${phone}</a></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.email||"Email"}</div><a href="${mail}" style="font-size:18px;color:#fff;text-decoration:none">${email}</a></div></div></div></div>
-    <div style="border-radius:18px;overflow:hidden;min-height:380px;background:rgba(255,255,255,.1)"><iframe src="${map}" width="100%" height="100%" style="border:0;min-height:380px;display:block" loading="lazy"></iframe></div>
+    <div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em;margin-bottom:28px">${L.contactTitle||"Visit Us"}</h2><div style="display:flex;flex-direction:column;gap:22px;max-width:400px">${full?`<div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.find||"Find Us"}</div><div style="font-size:18px;line-height:1.5">${full}</div></div>`:""}<div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.hours||"Hours"}</div><div style="display:flex;flex-direction:column;gap:3px">${hrsHtml}</div></div><div style="display:flex;gap:28px;flex-wrap:wrap">${phone?`<div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.call||"Call"}</div><a href="${tel}" style="font-size:18px;color:#fff;text-decoration:none">${phone}</a></div>`:""}${email?`<div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.email||"Email"}</div><a href="${mail}" style="font-size:18px;color:#fff;text-decoration:none">${email}</a></div>`:""}</div></div></div>
+    ${map?`<div style="border-radius:18px;overflow:hidden;min-height:380px;background:rgba(255,255,255,.1)"><iframe src="${map}" width="100%" height="100%" style="border:0;min-height:380px;display:block" loading="lazy"></iframe></div>`:""}
   </div></section>
-  <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||("Proudly serving "+city)}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:18px">${socialFooter}</div>`:""}<div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>
+  <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||(city?("Proudly serving "+city):("Quality "+type+" you can count on"))}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:18px">${socialFooter}</div>`:""}<div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>
   </div>`;
 
   document.getElementById("site").innerHTML = `

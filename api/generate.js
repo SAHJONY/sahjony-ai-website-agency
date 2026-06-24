@@ -51,9 +51,24 @@ async function loadSecrets() {
   return {};
 }
 
+// Per-engine wall-clock budget. Without this, ONE slow free model can consume the
+// whole function timeout (-> 504) and the fast fallbacks below it never get a turn.
+const ENGINE_TIMEOUT_MS = Number(process.env.ENGINE_TIMEOUT_MS || 18000);
+
+// fetch() that aborts after `ms`, so a hung/slow engine rolls to the next one.
+async function fetchT(url, opts, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms || ENGINE_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 // Generic OpenAI-compatible chat call (NVIDIA, OpenAI, Grok all speak this).
 async function chatCompletions(url, key, model, prompt, maxTokens) {
-  const r = await fetch(url, {
+  const r = await fetchT(url, {
     method: "POST",
     headers: { "content-type": "application/json", Authorization: "Bearer " + key },
     body: JSON.stringify({
@@ -75,7 +90,7 @@ async function tryClaude(prompt, maxTokens, getKey) {
   const key = getKey("ANTHROPIC_API_KEY");
   if (!key) return null;
   const model = process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022";
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const r = await fetchT("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
@@ -92,8 +107,11 @@ async function tryNvidia(prompt, maxTokens, getKey) {
   const key = getKey("NVIDIA_API_KEY");
   if (!key) return null;
   const models = nvidiaModels();
+  // Try at most 2 free models per request — each can be slow, and trying all 6
+  // would blow the function's wall-clock budget before fast engines get a turn.
+  const attempts = Math.min(models.length, Number(process.env.NVIDIA_MAX_ATTEMPTS || 2));
   let lastErr;
-  for (let i = 0; i < models.length; i++) {
+  for (let i = 0; i < attempts; i++) {
     const model = models[(rotationCursor + i) % models.length];
     try {
       const text = await chatCompletions("https://integrate.api.nvidia.com/v1/chat/completions", key, model, prompt, maxTokens);
@@ -140,7 +158,7 @@ async function tryGemini(prompt, maxTokens, getKey) {
   if (!key) return null;
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const r = await fetch(url, {
+  const r = await fetchT(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens } }),
@@ -174,8 +192,10 @@ export default async function handler(req, res) {
   const secrets = await loadSecrets();
   const getKey = (name) => process.env[name] || secrets[name] || "";
 
-  // Ordered rotation: primary brain first, then fallback brains.
-  const engines = [tryClaude, tryNvidia, tryOpenAI, tryGrok, tryGemini, tryGLM];
+  // Ordered rotation: FAST, reliable brains first so a working engine answers in
+  // seconds. Slow free models (NVIDIA NIM) are a backstop, tried only after the
+  // fast hosted engines are unavailable — otherwise they eat the timeout budget.
+  const engines = [tryClaude, tryOpenAI, tryGemini, tryGrok, tryGLM, tryNvidia];
   const errors = [];
   let configured = 0;
 

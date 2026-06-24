@@ -97,10 +97,12 @@ export default async function handler(req, res) {
     headers = { "content-type": "application/json", Authorization: "Key " + key };
     payload = { prompt, image_size, num_images: 1, output_format: "jpeg" };
   } else if (provider === "higgsfield") {
-    // Higgsfield auth is "Key KEY_ID:KEY_SECRET" and the body is { input: {...} }.
+    // Auth is "Key KEY_ID:KEY_SECRET". The SDK's subscribe() FLATTENS its `input`
+    // onto the request body, so params (prompt, aspect_ratio, ...) go at the TOP
+    // LEVEL — NOT nested under "input" (that yields "'prompt' is a required property").
     const aspect = (w && h) ? (w > h ? "16:9" : h > w ? "9:16" : "1:1") : "16:9";
     headers = { "content-type": "application/json", Authorization: "Key " + key };
-    payload = { input: { prompt, aspect_ratio: aspect, safety_tolerance: 2 } };
+    payload = { prompt, aspect_ratio: aspect, safety_tolerance: 2 };
   } else {
     headers = { "content-type": "application/json", Authorization: "Bearer " + key };
     payload = { model, prompt, n: 1, size };

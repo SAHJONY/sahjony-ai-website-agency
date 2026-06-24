@@ -54,11 +54,20 @@ async function loadSecrets() {
 // Per-engine wall-clock budget. Without this, ONE slow free model can consume the
 // whole function timeout (-> 504) and the fast fallbacks below it never get a turn.
 const ENGINE_TIMEOUT_MS = Number(process.env.ENGINE_TIMEOUT_MS || 18000);
+// Total budget across ALL engine attempts — must stay under the function's
+// maxDuration (60s in vercel.json) so we always return a JSON answer, never a 504.
+const REQUEST_BUDGET_MS = Number(process.env.GEN_BUDGET_MS || 52000);
+let requestDeadline = 0; // epoch ms; set per request in the handler.
 
 // fetch() that aborts after `ms`, so a hung/slow engine rolls to the next one.
+// Each attempt is capped at the SMALLER of the per-engine timeout and whatever
+// remains of the overall request budget, so the engine chain can't overrun.
 async function fetchT(url, opts, ms) {
+  const cap = ms || ENGINE_TIMEOUT_MS;
+  const remaining = requestDeadline ? requestDeadline - Date.now() : cap;
+  const wait = Math.max(1500, Math.min(cap, remaining)); // never below 1.5s
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms || ENGINE_TIMEOUT_MS);
+  const t = setTimeout(() => ctrl.abort(), wait);
   try {
     return await fetch(url, { ...opts, signal: ctrl.signal });
   } finally {
@@ -187,6 +196,10 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== "string") {
     return res.status(400).json({ error: "Body must include a 'prompt' string." });
   }
+
+  // Cap the whole engine chain so we always return JSON before the function
+  // times out (which would surface to the browser as a 504 -> generic fallback).
+  requestDeadline = Date.now() + REQUEST_BUDGET_MS;
 
   // Resolve keys: env first, then secrets stored in the DB.
   const secrets = await loadSecrets();

@@ -99,8 +99,15 @@ export default async function handler(req, res) {
 
   try {
     const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
-    const data = await r.json();
-    if (!r.ok) return res.status(r.status).json({ error: (data && data.error && (data.error.message || data.error)) || "Image API error" });
+    const raw = await r.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+    if (!r.ok) {
+      // Surface the provider's real message (e.g. invalid credentials vs no credits)
+      // instead of a generic string, so misconfig is diagnosable.
+      const detail = (data && data.error && (data.error.message || data.error)) || (data && (data.message || data.detail)) || (raw || "").slice(0, 300) || "Image API error";
+      return res.status(r.status).json({ error: String(detail), provider, status: r.status });
+    }
 
     // Higgsfield returns a request_id + status_url; poll until the image is ready.
     if (provider === "higgsfield") {

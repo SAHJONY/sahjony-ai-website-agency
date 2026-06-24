@@ -44,8 +44,28 @@ export default async function handler(req, res) {
   if (req.query && req.query.slug != null) return trackBeacon(req, res);
 
   const secrets = await loadSecrets();
-  const has = (name) => !!(process.env[name] || secrets[name]);
+  const get = (name) => process.env[name] || secrets[name] || "";
+  const has = (name) => !!get(name);
   const higgsfield = has("HIGGSFIELD_API_KEY") || (has("HIGGSFIELD_KEY_ID") && has("HIGGSFIELD_KEY_SECRET"));
+
+  // Safe credential SHAPE check (no secret leaked) — GET /api/health?diag=higgsfield.
+  // Tells us if the credential is structurally a KEY_ID:KEY_SECRET pair.
+  if (req.query && req.query.diag === "higgsfield") {
+    const id = get("HIGGSFIELD_KEY_ID"), sec = get("HIGGSFIELD_KEY_SECRET");
+    const combined = (id && sec) ? (id + ":" + sec) : get("HIGGSFIELD_API_KEY");
+    const parts = combined.split(":");
+    return res.status(200).json({
+      source: (id && sec) ? "separate (KEY_ID + KEY_SECRET)" : has("HIGGSFIELD_API_KEY") ? "combined (HIGGSFIELD_API_KEY)" : "none",
+      hasKeyId: !!id, hasKeySecret: !!sec, hasCombinedVar: has("HIGGSFIELD_API_KEY"),
+      totalLength: combined.length,
+      hasColon: combined.includes(":"),
+      partsCount: parts.length,
+      part1Length: parts[0] ? parts[0].length : 0,
+      part2Length: parts[1] ? parts[1].length : 0,
+      hasWhitespace: /\s/.test(combined),
+      idPreview: combined.slice(0, 4) + "…",   // first 4 chars only, never the secret
+    });
+  }
   // Which image provider /api/image will actually use (mirror its resolver order).
   const forced = (process.env.IMAGE_PROVIDER || secrets.IMAGE_PROVIDER || "").toLowerCase();
   const imageProvider =

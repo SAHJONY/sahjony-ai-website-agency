@@ -59,24 +59,24 @@ export default async function handler(req, res) {
   // e.g. IMAGE_PROVIDER=higgsfield, regardless of which other keys are present.
   const force = (getKey("IMAGE_PROVIDER") || "").toLowerCase();
   let url, key, model, provider;
-  if (force === "higgsfield" && getKey("HIGGSFIELD_API_KEY")) {
-    url = process.env.HIGGSFIELD_API_URL || "https://api.higgsfield.ai/v1/generations";
-    key = getKey("HIGGSFIELD_API_KEY"); model = process.env.HIGGSFIELD_MODEL || "flux"; provider = "higgsfield";
+  if (force === "higgsfield" && higgsfieldCred(getKey)) {
+    url = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
+    key = higgsfieldCred(getKey); provider = "higgsfield";
   } else if (getKey("FAL_API_KEY")) {
     // Black Forest Labs FLUX 1.1 [pro] via fal.ai — top-tier photoreal quality.
     url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";
     key = getKey("FAL_API_KEY"); model = ""; provider = "fal";
   } else if (getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
     url = getKey("IMAGE_API_URL"); key = getKey("IMAGE_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "custom";
-  } else if (getKey("HIGGSFIELD_API_KEY")) {
-    // Higgsfield is ASYNC: POST /v1/generations -> { id }, then poll
-    // GET /v1/generations/{id} until status=completed. See pollHiggsfield below.
-    url = process.env.HIGGSFIELD_API_URL || "https://api.higgsfield.ai/v1/generations";
-    key = getKey("HIGGSFIELD_API_KEY"); model = process.env.HIGGSFIELD_MODEL || "flux"; provider = "higgsfield";
+  } else if (higgsfieldCred(getKey)) {
+    // Higgsfield (platform.higgsfield.ai) is ASYNC: POST the model endpoint -> a
+    // request_id + status_url, then poll until status=completed. See pollHiggsfield.
+    url = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
+    key = higgsfieldCred(getKey); provider = "higgsfield";
   } else if (getKey("OPENAI_API_KEY")) {
     url = "https://api.openai.com/v1/images/generations"; key = getKey("OPENAI_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "openai";
   } else {
-    return res.status(500).json({ error: "No image provider configured. Set FAL_API_KEY (recommended), IMAGE_API_URL/IMAGE_API_KEY, HIGGSFIELD_API_KEY, or OPENAI_API_KEY." });
+    return res.status(500).json({ error: "No image provider configured. Set FAL_API_KEY (recommended), IMAGE_API_URL/IMAGE_API_KEY, HIGGSFIELD_API_KEY (or HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET), or OPENAI_API_KEY." });
   }
 
   const [w, h] = String(size).toLowerCase().split("x").map(Number);
@@ -88,8 +88,10 @@ export default async function handler(req, res) {
     headers = { "content-type": "application/json", Authorization: "Key " + key };
     payload = { prompt, image_size, num_images: 1, output_format: "jpeg" };
   } else if (provider === "higgsfield") {
-    headers = { "content-type": "application/json", Authorization: "Bearer " + key };
-    payload = { task: "text-to-image", model, prompt, width: w || 1024, height: h || 1024, steps: 30 };
+    // Higgsfield auth is "Key KEY_ID:KEY_SECRET" and the body is { input: {...} }.
+    const aspect = (w && h) ? (w > h ? "16:9" : h > w ? "9:16" : "1:1") : "16:9";
+    headers = { "content-type": "application/json", Authorization: "Key " + key };
+    payload = { input: { prompt, aspect_ratio: aspect, safety_tolerance: 2 } };
   } else {
     headers = { "content-type": "application/json", Authorization: "Bearer " + key };
     payload = { model, prompt, n: 1, size };
@@ -100,15 +102,21 @@ export default async function handler(req, res) {
     const data = await r.json();
     if (!r.ok) return res.status(r.status).json({ error: (data && data.error && (data.error.message || data.error)) || "Image API error" });
 
-    // Higgsfield returns a job id; poll until the image is ready.
+    // Higgsfield returns a request_id + status_url; poll until the image is ready.
     if (provider === "higgsfield") {
-      let out = pickUrl(data); // in case some plans return the URL inline
+      let out = higgsUrl(data); // in case it's already done inline
       if (!out) {
-        const id = data.id || data.generation_id || (data.data && data.data.id);
-        if (!id) return res.status(502).json({ error: "Higgsfield did not return a generation id." });
-        out = await pollHiggsfield(url, id, key);
+        const id = data.request_id || data.id;
+        // Prefer the absolute status_url the API hands back; else build it from the host.
+        let statusUrl = data.status_url;
+        if (!statusUrl && id) {
+          try { statusUrl = new URL(url).origin + "/requests/" + encodeURIComponent(id) + "/status"; } catch (_) {}
+        }
+        if (!statusUrl) return res.status(502).json({ error: "Higgsfield did not return a request id or status_url." });
+        out = await pollHiggsfield(statusUrl, key);
       }
-      if (!out) return res.status(504).json({ error: "Higgsfield image timed out before it finished rendering." });
+      if (out === "__NSFW__") return res.status(422).json({ error: "Higgsfield flagged the prompt as unsafe; try a different description." });
+      if (!out) return res.status(504).json({ error: "Higgsfield image failed or timed out before it finished rendering." });
       return res.status(200).json({ url: out, provider });
     }
 
@@ -120,23 +128,41 @@ export default async function handler(req, res) {
   }
 }
 
-// Poll Higgsfield GET /v1/generations/{id} until it completes (or we run out of
-// budget — must stay under the function's maxDuration of 60s).
-async function pollHiggsfield(baseUrl, id, key) {
-  const statusUrl = baseUrl.replace(/\/$/, "") + "/" + encodeURIComponent(id);
+// Higgsfield credential is "KEY_ID:KEY_SECRET". Accept it either as a single
+// HIGGSFIELD_API_KEY already in that form, or as separate ID + SECRET vars.
+function higgsfieldCred(getKey) {
+  const id = getKey("HIGGSFIELD_KEY_ID");
+  const secret = getKey("HIGGSFIELD_KEY_SECRET");
+  if (id && secret) return id + ":" + secret;
+  return getKey("HIGGSFIELD_API_KEY") || "";
+}
+
+// Pull the finished image URL out of a Higgsfield status/response payload.
+function higgsUrl(j) {
+  if (!j) return "";
+  if (Array.isArray(j.images) && j.images[0]) return typeof j.images[0] === "string" ? j.images[0] : (j.images[0].url || "");
+  if (j.video && j.video.url) return j.video.url;
+  if (j.result && j.result.raw && j.result.raw.url) return j.result.raw.url;
+  return j.output_url || j.url || "";
+}
+
+// Poll Higgsfield's status_url until the job completes (or we run out of budget —
+// must stay under the function's maxDuration of 60s).
+async function pollHiggsfield(statusUrl, key) {
   const deadline = Date.now() + Number(process.env.HIGGSFIELD_POLL_MS || 48000);
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 2500));
     let j;
     try {
-      const r = await fetch(statusUrl, { headers: { Authorization: "Bearer " + key } });
+      const r = await fetch(statusUrl, { headers: { Authorization: "Key " + key } });
       j = await r.json();
       if (!r.ok) continue;
     } catch (_) { continue; }
     const status = (j.status || j.state || "").toLowerCase();
-    const url = j.output_url || pickUrl(j) || (j.result && (j.result.url || j.result.output_url));
-    if (url && (!status || status === "completed" || status === "succeeded" || status === "done")) return url;
-    if (status === "failed" || status === "error") return "";
+    if (status === "completed" || status === "succeeded" || status === "done") return higgsUrl(j) || "";
+    if (status === "nsfw") return "__NSFW__";
+    if (status === "failed" || status === "error" || status === "canceled") return "";
+    // queued / in_progress -> keep polling
   }
   return "";
 }

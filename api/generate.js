@@ -124,6 +124,16 @@ async function tryGrok(prompt, maxTokens, getKey) {
   return { text, engine: "grok:" + model };
 }
 
+// ---- Engine: GLM (Z.ai / Zhipu, OpenAI-compatible) ----
+async function tryGLM(prompt, maxTokens, getKey) {
+  const key = getKey("ZAI_API_KEY");
+  if (!key) return null;
+  const model = process.env.ZAI_MODEL || "glm-4.6";
+  const base = (process.env.ZAI_BASE_URL || "https://api.z.ai/api/paas/v4").replace(/\/$/, "");
+  const text = await chatCompletions(base + "/chat/completions", key, model, prompt, maxTokens);
+  return { text, engine: "glm:" + model };
+}
+
 // ---- Engine: Google Gemini (free tier) ----
 async function tryGemini(prompt, maxTokens, getKey) {
   const key = getKey("GEMINI_API_KEY");
@@ -165,7 +175,7 @@ export default async function handler(req, res) {
   const getKey = (name) => process.env[name] || secrets[name] || "";
 
   // Ordered rotation: primary brain first, then fallback brains.
-  const engines = [tryClaude, tryNvidia, tryOpenAI, tryGrok, tryGemini];
+  const engines = [tryClaude, tryNvidia, tryOpenAI, tryGrok, tryGemini, tryGLM];
   const errors = [];
   let configured = 0;
 
@@ -183,7 +193,7 @@ export default async function handler(req, res) {
 
   if (configured === 0) {
     return res.status(500).json({
-      error: "No AI engine is configured. Add a key (ANTHROPIC / NVIDIA / OPENAI / XAI / GEMINI) in env or the dashboard Settings panel.",
+      error: "No AI engine is configured. Add a key (ANTHROPIC / NVIDIA / OPENAI / XAI / GEMINI / ZAI) in env or the dashboard Settings panel.",
     });
   }
   return res.status(502).json({ error: "All AI engines failed", detail: errors });

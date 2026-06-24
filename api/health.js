@@ -28,10 +28,12 @@ export default async function handler(req, res) {
       openai: has("OPENAI_API_KEY"),
       grok: has("XAI_API_KEY"),
       gemini: has("GEMINI_API_KEY"),
+      glm: has("ZAI_API_KEY"),
+      image: !!(has("IMAGE_API_KEY") || has("HIGGSFIELD_API_KEY") || has("OPENAI_API_KEY")),
       upstash: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
       secretsManager: !!process.env.ADMIN_PASSWORD,
       model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
     },
-    engineRotation: ["claude (primary)", "nvidia nim (rotating)", "openai", "grok", "gemini"],
+    engineRotation: ["claude (primary)", "nvidia nim (rotating)", "openai", "grok", "gemini", "glm (z.ai)"],
   });
 }

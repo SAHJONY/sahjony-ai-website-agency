@@ -116,6 +116,7 @@
               <button type="button" id="addPhotoUrl" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);cursor:pointer;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">Add</button>
             </div>
             <div id="photoThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIimg" type="checkbox" style="width:auto;accent-color:#ff5c38"> ✨ Generate a stunning AI hero image (when no photos are added)</label>
           </div>
 
           <!-- Video -->
@@ -175,7 +176,7 @@
       <div id="loadPane" style="display:none;text-align:center">
         <div style="width:60px;height:60px;border:4px solid rgba(255,92,56,.2);border-top-color:#ff5c38;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 24px"></div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">Building your website…</div>
-        <div style="font-size:13px;color:#e8916b;font-weight:700;margin-top:6px">✦ SAHJONY AI™ is writing every word</div>
+        <div id="loadMsg" style="font-size:13px;color:#e8916b;font-weight:700;margin-top:6px">✦ SAHJONY AI™ is writing every word</div>
       </div>
     </div>
   </div>
@@ -210,6 +211,13 @@ function deriveName(u){ try{ const h=u.replace(/^https?:\/\//,"").replace(/^www\
 function initials(n){ const w=(n||"").trim().split(/\s+/).filter(Boolean); return w.length?(w[0][0]+(w[1]?w[1][0]:"")).toUpperCase():"★"; }
 function pickIcon(n){ const t=(n||"").toLowerCase(); const m=[["clean","✨"],["cut","✂️"],["hair","💇"],["repair","🔧"],["oil","🛢️"],["brake","🛑"],["tire","🛞"],["cake","🎂"],["bread","🥖"],["coffee","☕"],["plant","🌿"],["flower","💐"],["nail","💅"],["massage","💆"],["photo","📷"],["legal","⚖️"],["tax","🧾"],["pet","🐾"]]; for(const[k,i]of m)if(t.includes(k))return i; return "●"; }
 function theme(t){ t=(t||"").toLowerCase(); if(/food|restaurant|cafe|coffee|bakery|bread|cake|pizza|taco|grill|bar|diner/.test(t))return"#c1312a"; if(/barber|auto|repair|gym|fitness|construction|plumb|electric|tattoo/.test(t))return"#1f6feb"; if(/plant|flower|spa|salon|nail|beauty|yoga|wellness/.test(t))return"#3d6b4a"; if(/law|legal|account|finance|consult|tech|agency|estate|insur/.test(t))return"#2a3b8f"; return"#5b3df2"; }
+
+/* ===================== DESIGN SYSTEM ===================== */
+const HEAD_FONTS = ["Space Grotesk","Sora","Poppins","Montserrat","Playfair Display","Fraunces","DM Serif Display","Bricolage Grotesque","Outfit","Syne","Unbounded","Manrope"];
+const BODY_FONTS = ["Inter","DM Sans","Manrope","Work Sans","Nunito Sans","Mulish","Figtree","Rubik"];
+function safeFont(name, list, fallback){ return list.includes(name) ? name : fallback; }
+function gfUrl(){ const fams=[...new Set([].slice.call(arguments).filter(Boolean))].map(n=>"family="+encodeURIComponent(n).replace(/%20/g,"+")+":wght@400;500;600;700;800").join("&"); return "https://fonts.googleapis.com/css2?"+fams+"&display=swap"; }
+function loadFonts(href){ if(document.querySelector('link[data-genfont="'+href+'"]')) return; const l=document.createElement("link"); l.rel="stylesheet"; l.href=href; l.setAttribute("data-genfont",href); document.head.appendChild(l); }
 
 /* ===================== MEDIA & SOCIAL ===================== */
 const media = { photos:[], videoData:"", audioData:"" };
@@ -297,15 +305,19 @@ async function generate(){
   $("#buildBtn").textContent="Building…"; $("#buildBtn").disabled=true;
 
   const city=val("fCity")||"your city", lang=val("fLang")||"English", notes=val("fNotes"), url=val("fUrl");
-  const prompt = `You write website content for a local business. Return ONLY valid minified JSON, no markdown.
+  const prompt = `You are a world-class brand & web designer + copywriter. Design a STUNNING, premium, magazine-quality website — distinctive and memorable, NEVER generic or templated. Return ONLY valid minified JSON, no markdown.
 Business name: ${name}
 Type: ${type}
 Location: ${city}
-${url?("They currently have this website (reimagine it as a brand-new premium site): "+url):""}
+${url?("They currently have this website (reimagine it as a brand-new, far more premium site): "+url):""}
 ${notes?("Notes: "+notes):""}
 ${paste?("SOURCE INFORMATION provided by the owner — treat this as the PRIMARY source of truth. Extract real services, prices, hours, story, and reviews from it instead of inventing them:\n\"\"\"\n"+paste+"\n\"\"\""):""}
 Write ALL text in this language: ${lang}.
-Schema: {"tagline":"<=9 words","heroSub":"<=24 words","about1":"1 sentence","about2":"1 sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex fitting the business mood","labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
+ART DIRECTION: choose a bold, cohesive color palette and a tasteful Google-Font pairing that matches THIS brand's personality (luxury, playful, rustic, modern, etc.). Pick fonts ONLY from these exact names.
+Heading fonts: Space Grotesk, Sora, Poppins, Montserrat, Playfair Display, Fraunces, DM Serif Display, Bricolage Grotesque, Outfit, Syne, Unbounded, Manrope.
+Body fonts: Inter, DM Sans, Manrope, Work Sans, Nunito Sans, Mulish, Figtree, Rubik.
+Copy must be specific and vivid — sensory, local, confident. No filler.
+Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
   let gen;
@@ -318,14 +330,34 @@ Translate EVERY label and all content into ${lang}.`;
     console.warn("Falling back:", e.message);
     gen = fallback(type);
   }
-  renderSite(name, type, city, lang, gen, collectMedia());
+
+  const mediaPayload = collectMedia();
+  // Optional: generate a stunning AI hero image when the client added no photos.
+  if($("#fAIimg") && $("#fAIimg").checked && !mediaPayload.photos.length){
+    const lm=$("#loadMsg"); if(lm) lm.textContent="🎨 Painting a stunning hero image…";
+    try{
+      const mood=(gen.design&&gen.design.mood)?(", "+gen.design.mood+" mood"):"";
+      const ip=`Professional, photorealistic, editorial hero photograph for a ${type} named "${name}" in ${city}${mood}. High-end, natural light, shallow depth of field, no text, no watermarks, no logos.`;
+      const ir=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:ip,size:"1024x1024"})});
+      const ij=await ir.json();
+      if(ir.ok && ij.url){ mediaPayload.photos=[ij.url]; }
+      else if(ij.error){ console.warn("Image:", ij.error); }
+    }catch(_){}
+  }
+  renderSite(name, type, city, lang, gen, mediaPayload);
 }
 
 function renderSite(name, type, city, lang, gen, mediaIn){
   const M = mediaIn || { photos:[], video:"", audio:"", social:{}, posts:[] };
   const phone=val("fPhone")||"+1 (713) 555-0100", email=val("fEmail")||(name.toLowerCase().replace(/[^a-z0-9]+/g,"")+"@email.com");
   const addr=val("fAddr"), full=(addr?addr+", ":"")+city;
-  const primary = gen.primary || theme(type);
+  const D = gen.design||{};
+  const primary = D.primary || gen.primary || theme(type);
+  const accent = D.accent || primary;
+  const headingFont = safeFont(D.headingFont, HEAD_FONTS, "Space Grotesk");
+  const bodyFont = safeFont(D.bodyFont, BODY_FONTS, "Inter");
+  const fontsHref = gfUrl(headingFont, bodyFont, "Space Grotesk", "Inter");
+  loadFonts(fontsHref);
   const L = gen.labels||{};
   const kw = encodeURIComponent((type.split(/\s+/).slice(-1)[0])||"business");
   const nav0 = (L.nav||["Home","About","Services","Gallery","Reviews","Contact"]).slice(0,6);
@@ -358,6 +390,8 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-social" class="gsec" style="max-width:1040px;margin:0 auto;padding:84px 28px"><div style="text-align:center;margin-bottom:40px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">Social</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.02em">Follow us</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">${M.posts.map(p=>postCard(p,primary)).join("")}</div>${socialNav?`<div style="display:flex;gap:12px;justify-content:center;margin-top:32px">${socialLinksHtml(M.social, primary+"1a", 46)}</div>`:""}</section>` : "";
 
   const siteHtml = `
+  <style>.genroot{font-family:'${bodyFont}',system-ui,sans-serif}.genroot [style*="Space Grotesk"]{font-family:'${headingFont}',system-ui,sans-serif!important}</style>
+  <div class="genroot">
   <header style="position:sticky;top:0;z-index:90;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid rgba(0,0,0,.09)">
     <nav style="max-width:1180px;margin:0 auto;padding:16px 28px;display:flex;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:11px"><div style="width:38px;height:38px;border-radius:9px;background:${primary};color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px">${initials(name)}</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px">${name}</div></div>
@@ -389,7 +423,8 @@ function renderSite(name, type, city, lang, gen, mediaIn){
     <div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em;margin-bottom:28px">${L.contactTitle||"Visit Us"}</h2><div style="display:flex;flex-direction:column;gap:22px;max-width:400px"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.find||"Find Us"}</div><div style="font-size:18px;line-height:1.5">${full}</div></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.hours||"Hours"}</div><div style="display:flex;flex-direction:column;gap:3px">${hrsHtml}</div></div><div style="display:flex;gap:28px;flex-wrap:wrap"><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.call||"Call"}</div><a href="${tel}" style="font-size:18px;color:#fff;text-decoration:none">${phone}</a></div><div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:5px">${L.email||"Email"}</div><a href="${mail}" style="font-size:18px;color:#fff;text-decoration:none">${email}</a></div></div></div></div>
     <div style="border-radius:18px;overflow:hidden;min-height:380px;background:rgba(255,255,255,.1)"><iframe src="${map}" width="100%" height="100%" style="border:0;min-height:380px;display:block" loading="lazy"></iframe></div>
   </div></section>
-  <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||("Proudly serving "+city)}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:18px">${socialFooter}</div>`:""}<div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>`;
+  <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||("Proudly serving "+city)}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:18px">${socialFooter}</div>`:""}<div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>
+  </div>`;
 
   document.getElementById("site").innerHTML = `
     <div style="background:#0d0d12;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -405,11 +440,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   document.getElementById("site").style.display="block";
   window.scrollTo(0,0);
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
-  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml);
+  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref);
 }
 
-function downloadSite(name, inner){
-  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
+function downloadSite(name, inner, fontsHref){
+  const fonts = fontsHref || "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
+  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
   const blob=new Blob([doc],{type:"text/html"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"website")+".html";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);

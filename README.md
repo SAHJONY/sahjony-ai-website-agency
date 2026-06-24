@@ -35,10 +35,22 @@ engine is unset, errors, or is rate-limited. All keys stay server-side.
 3. **OpenAI** — `OPENAI_API_KEY` (model via `OPENAI_MODEL`, default `gpt-4o-mini`)
 4. **Grok (xAI)** — `XAI_API_KEY` (model via `XAI_MODEL`, default `grok-2-latest`)
 5. **Google Gemini (free tier)** — `GEMINI_API_KEY` (key at aistudio.google.com)
+6. **GLM (Z.ai / Zhipu)** — `ZAI_API_KEY` (model via `ZAI_MODEL`, default `glm-4.6`)
 
 Configure none and the builder still works — it falls back to built-in copy.
 Configure any one and you get live AI generation. `/api/health` reports which
 engines are active.
+
+### Stunning, non-generic design
+
+The builder prompts the model as a world-class designer: it picks a distinctive
+**color palette + Google-Font pairing per business**, so every generated site
+looks bespoke (fonts load dynamically and carry into the downloaded `.html`).
+
+**AI images** — `/api/image` generates on-brand hero art. It's provider-agnostic
+(OpenAI-images-compatible) and **Higgsfield-ready**: set `IMAGE_API_URL` +
+`IMAGE_API_KEY`, or `HIGGSFIELD_API_KEY`, or it falls back to `OPENAI_API_KEY`
+(`gpt-image-1`). Toggle "✨ Generate a stunning AI hero image" in the builder.
 
 ### Manage keys at runtime (dashboard → Settings)
 

@@ -6,6 +6,9 @@
     "api/image.js": { "maxDuration": 60 },
     "api/generate.js": { "maxDuration": 60 }
   },
+  "rewrites": [
+    { "source": "/s/:slug", "destination": "/api/site?slug=:slug" }
+  ],
   "headers": [
     {
       "source": "/sw.js",

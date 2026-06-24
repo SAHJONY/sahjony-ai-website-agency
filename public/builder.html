@@ -428,8 +428,9 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   document.getElementById("site").innerHTML = `
     <div style="background:#0d0d12;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div style="font-size:13px;color:#b3b0bd">✨ Generated — <b style="color:#fff">${name}</b> · ${lang}</div>
-      <div style="display:flex;gap:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
+        <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🚀 Save & Publish</button>
         <button id="dlBtn" style="background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
       </div>
     </div></div>
@@ -440,11 +441,36 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   window.scrollTo(0,0);
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
   document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref);
+  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref);
+}
+
+function getCookie(n){ const m=document.cookie.match(new RegExp('(?:^|; )'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=([^;]+)')); return m?decodeURIComponent(m[1]):""; }
+
+function buildDoc(name, inner, fontsHref){
+  const fonts = fontsHref || "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
+}
+
+async function publishSite(name, inner, fontsHref){
+  const token = getCookie("fda_auth");
+  if(!token){ alert("Log into your Owner Dashboard first — only you can publish sites."); location.href="/dashboard.html"; return; }
+  const btn=document.getElementById("pubBtn"); const old=btn.textContent; btn.textContent="Publishing…"; btn.disabled=true;
+  try{
+    const doc = buildDoc(name, inner, fontsHref);
+    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Publish failed."); return; }
+    const full = location.origin + j.url;
+    try{ await navigator.clipboard.writeText(full); }catch(_){}
+    btn.textContent="✓ Published";
+    alert("🎉 Live & link copied:\n"+full+"\n\nManage it anytime in Dashboard → Sites.");
+    window.open(j.url, "_blank");
+  }catch(e){ alert("Network error while publishing."); }
+  finally{ btn.disabled=false; setTimeout(()=>{btn.textContent=old;}, 1500); }
 }
 
 function downloadSite(name, inner, fontsHref){
-  const fonts = fontsHref || "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
-  const doc=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
+  const doc=buildDoc(name, inner, fontsHref);
   const blob=new Blob([doc],{type:"text/html"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"website")+".html";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);

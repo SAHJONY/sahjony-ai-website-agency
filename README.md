@@ -64,6 +64,15 @@ provider keys without redeploying:
   refuses to manage keys that are already set in the environment (env wins).
 - Upstash creds must stay in env (they bootstrap the lookup).
 
+### Publish & manage sites
+
+- In the builder, **🚀 Save & Publish** stores the generated site and makes it
+  live at a clean URL: `https://YOURDOMAIN/s/<slug>`.
+- **Dashboard → 🌐 Sites** lists every published site: open, copy link, delete
+  (unpublish). Publishing is owner-only (uses the dashboard login cookie).
+- `/api/sites` (owner-gated) saves/lists/deletes; `/api/site` (public, read-only)
+  serves the HTML, mapped to `/s/:slug` via a rewrite. Requires Upstash.
+
 ### Payments (Stripe)
 
 Sell the build + the recurring care plan with real checkout — no SDK, calls

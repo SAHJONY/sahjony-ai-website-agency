@@ -93,7 +93,6 @@
 </footer>
 
 <script>
-const KEY = "fda:contact:inbox";
 const form = document.getElementById("form");
 const msg = document.getElementById("msg");
 const btn = document.getElementById("send");
@@ -119,16 +118,9 @@ form.onsubmit = async (e) => {
 
   btn.disabled = true; btn.textContent = "Sending…";
   try{
-    // Append to the cloud inbox: read current list, push, write back.
-    let list = [];
-    try{
-      const r = await fetch("/api/data?key=" + encodeURIComponent(KEY));
-      const j = await r.json();
-      if(j && Array.isArray(j.value)) list = j.value;
-    }catch(_){ /* first message, or DB offline */ }
-    list.push(entry);
-    const w = await fetch("/api/data?key=" + encodeURIComponent(KEY), {
-      method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(list)
+    // Public, write-only intake — never reads owner data.
+    const w = await fetch("/api/contact", {
+      method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(entry)
     });
     if(!w.ok) throw new Error("save failed");
     show("✓ Got it! We'll send your free mockup shortly. Want it now? Try the builder.", true);

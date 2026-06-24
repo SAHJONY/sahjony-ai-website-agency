@@ -78,7 +78,7 @@ let tab = "leads";
 
 async function load(){
   try{
-    const r = await fetch("/api/data?key="+encodeURIComponent(KEY));
+    const r = await fetch("/api/data?key="+encodeURIComponent(KEY), { headers: authHeaders() });
     const j = await r.json();
     if(j.value){ state = Object.assign({leads:[],clients:[],subs:[]}, j.value); }
     document.getElementById("cloudDot").textContent = "Cloud: connected ✓";
@@ -96,9 +96,16 @@ async function load(){
   render();
 }
 
+function authHeaders(extra){
+  const h = Object.assign({}, extra||{});
+  const t = sessionStorage.getItem("fda_admin");
+  if(t) h["x-admin-token"] = t;
+  return h;
+}
+
 async function save(){
   try{
-    await fetch("/api/data?key="+encodeURIComponent(KEY),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(state)});
+    await fetch("/api/data?key="+encodeURIComponent(KEY),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(state)});
     document.getElementById("cloudDot").textContent = "Cloud: saved ✓";
     document.getElementById("cloudDot").style.color = "#2fd47f";
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }

@@ -49,8 +49,19 @@ provider keys without redeploying:
 - Set `ADMIN_PASSWORD` in env to unlock the panel (it stays locked otherwise).
 - `/api/secrets` is admin-gated, never returns raw values (masked only), and
   refuses to manage keys that are already set in the environment (env wins).
-- `/api/data` blocks the secrets key, so keys can't leak through the open data
-  route. Upstash creds must stay in env (they bootstrap the lookup).
+- Upstash creds must stay in env (they bootstrap the lookup).
+
+### Authentication model
+
+- **`/api/login`** validates `ADMIN_PASSWORD` and gates the dashboard UI.
+- **`/api/data`** is owner-only: when `ADMIN_PASSWORD` is set, every request must
+  send a matching `x-admin-token` header (the dashboard sends it after login).
+  Leads, clients and subscriptions are fully locked behind this.
+- **`/api/contact`** is the only public, write-only path: it can append a lead to
+  the contact inbox and nothing else (no reads, no other keys). The contact form
+  uses it, so visitors can submit without any access to owner data.
+- If `ADMIN_PASSWORD` is unset, the app stays open so it works out of the box;
+  set it (and redeploy) to turn protection on.
 
 ### Build from pasted business info
 

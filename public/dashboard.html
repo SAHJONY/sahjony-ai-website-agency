@@ -175,15 +175,34 @@ function renderSubs(){
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
       <div><div style="font-weight:700;font-size:15px">${s.name||""} <span style="display:inline-block;font-size:11px;font-weight:700;color:${c};background:${bg};padding:2px 9px;border-radius:999px;margin-left:6px;text-transform:capitalize">${s.status}</span></div>
       <div style="font-size:12.5px;color:#8c8998;margin-top:3px">${money(s.price)}/mo · ${s.plan||"Care plan"}${s.since?(" · since "+s.since):""}</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${toggle}${cancelBtn}<button data-i="${i}" class="sDel" style="background:rgba(255,255,255,.06);color:#8c8998;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button data-i="${i}" class="sLink" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">💳 Link</button>${toggle}${cancelBtn}<button data-i="${i}" class="sDel" style="background:rgba(255,255,255,.06);color:#8c8998;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button></div>
     </div>`;
   }).join("");
 
-  list.innerHTML = summary + rows;
+  const toolbar = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button id="payLinkBtn" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px">💳 Create payment link</button></div>`;
+  list.innerHTML = summary + toolbar + rows;
+  document.getElementById("payLinkBtn").onclick = ()=>{
+    const name=prompt("Client / business name?"); if(!name) return;
+    const build=parseFloat(prompt("One-time build price? (USD, 0 to skip)","1299"))||0;
+    const monthly=parseFloat(prompt("Monthly care plan? (USD, 0 to skip)","89"))||0;
+    paymentLink(name, build, monthly);
+  };
+  list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0); });
   list.querySelectorAll(".sPause").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="paused"; save(); render(); });
   list.querySelectorAll(".sResume").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="active"; save(); render(); });
   list.querySelectorAll(".sCancel").forEach(b=>b.onclick=()=>{ if(confirm("Cancel this subscription?")){ state.subs[+b.dataset.i].status="canceled"; save(); render(); } });
   list.querySelectorAll(".sDel").forEach(b=>b.onclick=()=>{ if(confirm("Delete this subscription record?")){ state.subs.splice(+b.dataset.i,1); save(); render(); } });
+}
+
+async function paymentLink(name, build, monthly){
+  try{
+    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Could not create payment link. Is STRIPE_SECRET_KEY set?"); return; }
+    try{ await navigator.clipboard.writeText(j.url); }catch(_){}
+    window.open(j.url,"_blank");
+    alert("✓ Payment link created & copied — send it to "+name+":\n\n"+j.url);
+  }catch(e){ alert("Network error creating payment link."); }
 }
 
 /* ===================== PLAYBOOK (embedded) ===================== */
@@ -326,7 +345,10 @@ async function doLogin(){
     const j = await r.json();
     if(r.ok && j.ok){
       sessionStorage.setItem("fda_auth","1");
-      if(pw && !j.noPassword){ sessionStorage.setItem("fda_admin", pw); } // also unlocks Settings
+      if(pw && !j.noPassword){
+        sessionStorage.setItem("fda_admin", pw); // also unlocks Settings
+        document.cookie = "fda_auth="+encodeURIComponent(pw)+";path=/;max-age=86400;samesite=strict"; // unlocks gated pages
+      }
       enterApp();
       return;
     }
@@ -339,7 +361,7 @@ async function doLogin(){
 }
 document.getElementById("loginBtn").onclick = doLogin;
 document.getElementById("loginPw").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("fda_auth"); sessionStorage.removeItem("fda_admin"); location.reload(); };
+document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("fda_auth"); sessionStorage.removeItem("fda_admin"); document.cookie="fda_auth=;path=/;max-age=0"; location.reload(); };
 
 // Already logged in this session? Skip the gate.
 if(sessionStorage.getItem("fda_auth")==="1"){ enterApp(); }

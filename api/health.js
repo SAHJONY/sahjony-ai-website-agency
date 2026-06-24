@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       glm: has("ZAI_API_KEY"),
       image: !!(has("IMAGE_API_KEY") || has("HIGGSFIELD_API_KEY") || has("OPENAI_API_KEY")),
       upstash: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+      stripe: !!process.env.STRIPE_SECRET_KEY,
       secretsManager: !!process.env.ADMIN_PASSWORD,
       model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
     },

@@ -1,10 +1,9 @@
 // Service worker — makes the app installable and usable offline on any device.
-const CACHE = "fda-v1";
+const CACHE = "fda-v2";
 const CORE = [
   "/",
   "/index.html",
   "/pricing.html",
-  "/playbook.html",
   "/contact.html",
   "/builder.html",
   "/dashboard.html",

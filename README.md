@@ -64,6 +64,20 @@ provider keys without redeploying:
   refuses to manage keys that are already set in the environment (env wins).
 - Upstash creds must stay in env (they bootstrap the lookup).
 
+### Payments (Stripe)
+
+Sell the build + the recurring care plan with real checkout — no SDK, calls
+Stripe's REST API directly.
+
+- Set `STRIPE_SECRET_KEY`. In the dashboard **Subscriptions** tab, "💳 Create
+  payment link" (or per-row **Link**) generates a Stripe Checkout link (one-time
+  build + `$/mo` subscription) to send the client.
+- `/api/checkout` is owner-gated (`x-admin-token`). `/api/stripe-webhook`
+  auto-records paid clients/subscriptions: configure it in Stripe as
+  `https://YOURDOMAIN/api/stripe-webhook?token=WEBHOOK_TOKEN` for the
+  `checkout.session.completed` event. It re-fetches each session from Stripe to
+  confirm payment (so forged events are rejected).
+
 ### Authentication model
 
 - **`/api/login`** validates `ADMIN_PASSWORD` and gates the dashboard UI.

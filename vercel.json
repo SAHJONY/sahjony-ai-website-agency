@@ -7,7 +7,9 @@
     "api/generate.js": { "maxDuration": 60 }
   },
   "rewrites": [
-    { "source": "/s/:slug", "destination": "/api/site?slug=:slug" }
+    { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },
+    { "source": "/api/track", "destination": "/api/health" },
+    { "source": "/api/login", "destination": "/api/data?action=login" }
   ],
   "headers": [
     {

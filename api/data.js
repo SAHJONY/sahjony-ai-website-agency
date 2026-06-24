@@ -17,6 +17,19 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // Owner login (formerly /api/login, rewritten here as ?action=login in
+  // vercel.json — merged to stay under the Hobby 12-function limit). Handled
+  // BEFORE the owner-gate below, since this is how the dashboard gets its token.
+  if (req.query && req.query.action === "login") {
+    if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const adminPw = process.env.ADMIN_PASSWORD;
+    if (!adminPw) return res.status(200).json({ ok: true, noPassword: true });
+    let b = req.body;
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    if (b && b.password === adminPw) return res.status(200).json({ ok: true });
+    return res.status(401).json({ ok: false, error: "Wrong password" });
+  }
+
   // Owner-only gate. If no password is configured, stay open (app still works).
   const admin = process.env.ADMIN_PASSWORD;
   if (admin && req.headers["x-admin-token"] !== admin) {

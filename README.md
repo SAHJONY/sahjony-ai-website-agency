@@ -64,6 +64,21 @@ provider keys without redeploying:
   refuses to manage keys that are already set in the environment (env wins).
 - Upstash creds must stay in env (they bootstrap the lookup).
 
+### Lead finder & outreach
+
+- **Dashboard → Leads → 📍 Find leads** uses your location + Google Places to list
+  nearby businesses, flagging those with **no website** (🟢 best prospects); add
+  them to the pipeline in one tap. Needs `GOOGLE_PLACES_API_KEY`.
+- Each lead/client has **✉️ Reach** — send a templated message by **email**
+  (Resend, `RESEND_API_KEY`) or **SMS** (Twilio, `TWILIO_*`) via `/api/outreach`.
+
+### Local SEO & analytics
+
+- Every generated/published site embeds **meta description, Open Graph, and
+  JSON-LD `LocalBusiness`** (name, address, phone, social `sameAs`) for Google.
+- Published sites report views via `/api/track`; the **Sites** tab shows a 👁
+  view count per site.
+
 ### Publish & manage sites
 
 - In the builder, **🚀 Save & Publish** stores the generated site and makes it

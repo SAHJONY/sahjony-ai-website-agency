@@ -49,8 +49,17 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      const index = await readJSON(INDEX_KEY, []);
-      return res.status(200).json({ sites: Array.isArray(index) ? index : [] });
+      let index = await readJSON(INDEX_KEY, []);
+      if (!Array.isArray(index)) index = [];
+      // Attach live view counts.
+      await Promise.all(index.map(async (s) => {
+        try {
+          const r = await upstash("/get/" + encodeURIComponent("fda:views:" + s.slug), {});
+          const j = r ? await r.json() : null;
+          s.views = j && j.result ? Number(j.result) || 0 : 0;
+        } catch { s.views = 0; }
+      }));
+      return res.status(200).json({ sites: index });
     }
 
     if (req.method === "POST") {

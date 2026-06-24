@@ -373,6 +373,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const socialNav = socialLinksHtml(M.social, "rgba(0,0,0,.06)", 34);
   const socialFooter = socialLinksHtml(M.social, "rgba(255,255,255,.1)", 40);
 
+  // ---- Local SEO: meta + JSON-LD LocalBusiness (baked into published/downloaded site) ----
+  const esc = (s)=>String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const sameAs = Object.entries(M.social||{}).filter(([k,v])=>v&&v.trim()).map(([k,v])=>socialHref(k,v));
+  const seoDesc = String(gen.heroSub||gen.tagline||(name+" — "+type+" in "+city)).replace(/\s+/g," ").trim().slice(0,160);
+  const ld = {"@context":"https://schema.org","@type":"LocalBusiness","name":name,"description":seoDesc,"telephone":phone,"email":email,"address":{"@type":"PostalAddress","streetAddress":addr||"","addressLocality":city},"areaServed":city};
+  if(sameAs.length) ld.sameAs=sameAs;
+  if(/^https?:/.test(heroImg)) ld.image=heroImg;
+  const seoHead = `<meta name="description" content="${esc(seoDesc)}"><meta property="og:title" content="${esc(name)}"><meta property="og:description" content="${esc(seoDesc)}"><meta property="og:type" content="website">${/^https?:/.test(heroImg)?`<meta property="og:image" content="${heroImg}">`:""}<meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">${JSON.stringify(ld).replace(/</g,"\\u003c")}<\/script>`;
+
   const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" style="color:#1d2129;text-decoration:none;font-size:14px;font-weight:600;opacity:.8">${l}</a>`).join("");
   const svcHtml = svc.map(s=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:16px;padding:28px"><div style="font-size:28px;margin-bottom:14px">${pickIcon(s.name)}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${primary};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:#5c6270;margin-top:8px;line-height:1.55">${s.desc||""}</div></div>`).join("");
   const galHtml = gal.map(u=>`<div style="aspect-ratio:1/1;border-radius:14px;overflow:hidden"><img src="${u}" style="width:100%;height:100%;object-fit:cover"></div>`).join("");
@@ -440,23 +449,25 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   document.getElementById("site").style.display="block";
   window.scrollTo(0,0);
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
-  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref);
-  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref);
+  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead);
+  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead);
 }
 
 function getCookie(n){ const m=document.cookie.match(new RegExp('(?:^|; )'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=([^;]+)')); return m?decodeURIComponent(m[1]):""; }
 
-function buildDoc(name, inner, fontsHref){
+function buildDoc(name, inner, fontsHref, seoHead){
   const fonts = fontsHref || "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap";
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}</body></html>`;
+  // Analytics beacon: published pages (served at /s/<slug>) report a view.
+  const track = `<script>(function(){try{var m=location.pathname.match(/\\/s\\/([a-z0-9-]+)/);if(m){var u="/api/track?slug="+m[1];navigator.sendBeacon?navigator.sendBeacon(u):fetch(u);}}catch(e){}})();<\/script>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>${seoHead||""}<link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}html{scroll-behavior:smooth}section{scroll-margin-top:80px}img,iframe,video{max-width:100%}@media(max-width:760px){h1{font-size:38px!important}h2{font-size:28px!important}section,section>div{padding-left:18px!important;padding-right:18px!important}[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}nav{flex-wrap:wrap;gap:12px!important}}</style></head><body>${inner}${track}</body></html>`;
 }
 
-async function publishSite(name, inner, fontsHref){
+async function publishSite(name, inner, fontsHref, seoHead){
   const token = getCookie("fda_auth");
   if(!token){ alert("Log into your Owner Dashboard first — only you can publish sites."); location.href="/dashboard.html"; return; }
   const btn=document.getElementById("pubBtn"); const old=btn.textContent; btn.textContent="Publishing…"; btn.disabled=true;
   try{
-    const doc = buildDoc(name, inner, fontsHref);
+    const doc = buildDoc(name, inner, fontsHref, seoHead);
     const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Publish failed."); return; }
@@ -469,8 +480,8 @@ async function publishSite(name, inner, fontsHref){
   finally{ btn.disabled=false; setTimeout(()=>{btn.textContent=old;}, 1500); }
 }
 
-function downloadSite(name, inner, fontsHref){
-  const doc=buildDoc(name, inner, fontsHref);
+function downloadSite(name, inner, fontsHref, seoHead){
+  const doc=buildDoc(name, inner, fontsHref, seoHead);
   const blob=new Blob([doc],{type:"text/html"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=(name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"website")+".html";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);

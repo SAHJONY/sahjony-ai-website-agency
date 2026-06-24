@@ -66,7 +66,10 @@
   <main style="padding:28px 32px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
       <div><div id="pTitle" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700">Leads</div><div id="pSub" style="font-size:13px;color:#8c8998">New business in your pipeline</div></div>
-      <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+      <div style="display:flex;gap:8px">
+        <button id="findBtn" style="display:none;background:rgba(47,212,127,.16);color:#2fd47f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 16px;border-radius:10px">📍 Find leads</button>
+        <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+      </div>
     </div>
     <div id="list" style="display:flex;flex-direction:column;gap:10px"></div>
   </main>
@@ -120,6 +123,7 @@ function render(){
   document.getElementById("pSub").textContent = s;
   document.getElementById("addBtn").style.display = tab==="settings" ? "none" : "block";
   document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : "＋ Add";
+  document.getElementById("findBtn").style.display = tab==="leads" ? "block" : "none";
   if(tab==="settings"){ renderSettings(); return; }
   if(tab==="subs"){ renderSubs(); return; }
   if(tab==="sites"){ renderSites(); return; }
@@ -130,12 +134,14 @@ function render(){
   list.innerHTML = items.map((it,i)=>`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px">
       <div><div style="font-weight:700;font-size:15px">${it.name||""}</div><div style="font-size:12.5px;color:#8c8998">${(it.type||"")}${it.city?(" · "+it.city):""}${it.value?(" · "+it.value):""}</div></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button data-i="${i}" class="reach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">✉️ Reach</button>
         ${tab==="leads"?`<button data-i="${i}" class="win" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Won →</button>`:""}
         <button data-i="${i}" class="del" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>
       </div>
     </div>`).join("");
   list.querySelectorAll(".del").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; state[tab].splice(i,1); save(); render(); });
+  list.querySelectorAll(".reach").forEach(b=>b.onclick=()=>reach(+b.dataset.i));
   list.querySelectorAll(".win").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.i; const lead=state.leads.splice(i,1)[0];
     state.clients.push({...lead, value:"Live · $89/mo"});
@@ -207,6 +213,46 @@ async function paymentLink(name, build, monthly){
   }catch(e){ alert("Network error creating payment link."); }
 }
 
+/* ===================== LEAD FINDER + OUTREACH ===================== */
+function findLeads(){
+  if(!navigator.geolocation){ alert("Geolocation isn't supported on this device."); return; }
+  const kw = prompt("Business type to find nearby? (e.g. barber, bakery, auto repair)\nLeave blank for all.","")||"";
+  const list = document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;padding:20px">📍 Getting your location…</div>`;
+  navigator.geolocation.getCurrentPosition(async (pos)=>{
+    list.innerHTML = `<div style="color:#8c8998;padding:20px">🔎 Searching nearby businesses…</div>`;
+    try{
+      const r = await fetch("/api/leads-find",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude,keyword:kw})});
+      const j = await r.json();
+      if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">${j.error||"Search failed."}</div>`; return; }
+      renderFound(j.leads||[]);
+    }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; }
+  }, ()=>{ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Location blocked. Allow location access to find nearby leads.</div>`; }, {timeout:10000});
+}
+function renderFound(leads){
+  const list = document.getElementById("list");
+  if(!leads.length){ list.innerHTML = `<div style="color:#8c8998;padding:20px">No businesses found. Try a different keyword. <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px">← Back</button></div>`; document.getElementById("backLeads").onclick=render; return; }
+  list.innerHTML = `<div style="margin-bottom:10px;color:#8c8998;font-size:13px">Found ${leads.length} nearby · 🟢 = no website (best prospects) <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px;margin-left:8px">← Back</button></div>`
+    + leads.map((l,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        <div style="min-width:0"><div style="font-weight:700;font-size:14.5px">${l.needsSite?"🟢 ":"⚪ "}${l.name||""}</div><div style="font-size:12px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[l.address,l.phone,l.website?"has site":"NO SITE"].filter(Boolean).join(" · ")}</div></div>
+        <button data-i="${i}" class="addFound" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Add</button>
+      </div>`).join("");
+  document.getElementById("backLeads").onclick = render;
+  list.querySelectorAll(".addFound").forEach(b=>b.onclick=()=>{ const l=leads[+b.dataset.i]; state.leads.push({id:Date.now(),name:l.name,type:"",city:l.address||"",phone:l.phone||"",value:l.needsSite?"No website — hot 🔥":"Has site"}); save(); b.textContent="Added ✓"; b.disabled=true; });
+}
+async function reach(i){
+  const it = state[tab][i]; if(!it) return;
+  const ch = (prompt("Send via — type 'sms' or 'email':","sms")||"").toLowerCase().startsWith("e") ? "email" : "sms";
+  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", it.phone||"")||""; if(!to) return;
+  const msg = prompt("Message:", `Hi! I'm local and I build websites for businesses like ${it.name}. I put together a free sample for you — want me to send it over? No cost, no commitment.`)||""; if(!msg) return;
+  try{
+    const r = await fetch("/api/outreach",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({channel:ch,to,message:msg})});
+    const j = await r.json();
+    if(!r.ok){ alert(j.error||"Send failed."); return; }
+    alert("✓ Sent to "+to);
+  }catch(e){ alert("Network error."); }
+}
+
 /* ===================== SITES (published) ===================== */
 async function renderSites(){
   document.getElementById("addBtn").style.display = "none";
@@ -226,7 +272,7 @@ async function renderSites(){
     const link = "/s/"+s.slug;
     const when = (s.at||"").slice(0,10);
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
-      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug}</div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
+      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(21,194,107,.14);color:#2fd47f;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Open</a>
         <button data-slug="${s.slug}" class="siteCopy" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Copy link</button>
@@ -258,6 +304,8 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   t.style.background="rgba(255,92,56,.14)";t.style.color="#ff8366";
   render();
 });
+
+document.getElementById("findBtn").onclick = findLeads;
 
 document.getElementById("addBtn").onclick=()=>{
   if(tab==="subs"){

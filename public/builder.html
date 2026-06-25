@@ -47,7 +47,7 @@
   }
 </style>
 </head>
-<body>
+<body data-i18n-auto>
 
 <!-- ============ BUILDER ============ -->
 <div id="builder">
@@ -62,6 +62,7 @@
         <a href="/pricing.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600">Pricing</a>
         <a href="/dashboard.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600">Dashboard</a>
         <a href="/contact.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600">Contact</a>
+        <select data-lang-select aria-label="Language" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:13px;font-weight:700;padding:8px 11px;border-radius:999px;cursor:pointer"></select>
       </div>
     </div>
   </header>
@@ -182,7 +183,8 @@
 </div>
 
 <!-- ============ GENERATED SITE MOUNTS HERE ============ -->
-<div id="site" style="display:none"></div>
+<!-- data-no-i18n: never translate the client's generated site (its language is chosen in the form) -->
+<div id="site" data-no-i18n style="display:none"></div>
 
 <style>
   .lbl{display:block;font-size:13px;font-weight:700;color:#d6d3df;margin-bottom:7px}
@@ -510,5 +512,6 @@ function downloadSite(name, inner, fontsHref, seoHead){
 
 $("#buildBtn").onclick = generate;
 </script>
+<script src="/i18n.js"></script>
 </body>
 </html>

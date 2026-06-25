@@ -38,7 +38,10 @@ export default async function handler(req, res) {
     }
     let upd = req.body;
     if (typeof upd === "string") { try { upd = JSON.parse(upd); } catch { upd = {}; } }
-    try { await tgHandleUpdate(upd || {}); } catch (_) {}
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+    const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+    const baseUrl = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+    try { await tgHandleUpdate(upd || {}, baseUrl); } catch (_) {}
     return res.status(200).json({ ok: true }); // always 200 so Telegram doesn't retry-storm
   }
 

@@ -5,7 +5,8 @@
   "functions": {
     "api/image.js": { "maxDuration": 60 },
     "api/generate.js": { "maxDuration": 60 },
-    "api/leads-find.js": { "maxDuration": 30 }
+    "api/leads-find.js": { "maxDuration": 30 },
+    "api/contact.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },

@@ -26,7 +26,7 @@
   }
 </style>
 </head>
-<body>
+<body data-i18n-auto>
 
 <!-- ===== LOGIN GATE ===== -->
 <div id="loginGate" style="position:fixed;inset:0;z-index:1000;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:24px">
@@ -59,6 +59,7 @@
         <a href="/contact.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">✉️ Contact</a>
       </div>
       <a href="/builder.html" style="text-decoration:none;background:#ff5c38;color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
+      <select data-lang-select data-no-i18n aria-label="Language" style="background:rgba(255,255,255,.06);color:#b6b2c2;border:1px solid rgba(255,255,255,.12);font-size:12.5px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer"></select>
       <button id="logoutBtn" style="background:transparent;color:#8c8998;border:1px solid rgba(255,255,255,.12);cursor:pointer;font-size:12.5px;font-weight:600;padding:8px;border-radius:9px">🔒 Log out</button>
       <div id="cloudDot" style="font-size:12px;color:#8c8998;text-align:center">Cloud: checking…</div>
     </div>
@@ -72,7 +73,7 @@
         <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
       </div>
     </div>
-    <div id="list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div id="list" data-no-i18n style="display:flex;flex-direction:column;gap:10px"></div>
   </main>
 </div>
 
@@ -560,5 +561,6 @@ document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("
 if(sessionStorage.getItem("fda_auth")==="1"){ enterApp(); }
 else { document.getElementById("loginPw").focus(); }
 </script>
+<script src="/i18n.js"></script>
 </body>
 </html>

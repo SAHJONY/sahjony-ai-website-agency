@@ -196,7 +196,9 @@ function renderSubs(){
     const build=parseFloat(prompt("One-time build price? (USD, 0 to skip)","1299"))||0;
     const monthly=parseFloat(prompt("Monthly care plan? (USD, 0 to skip)","89"))||0;
     const installments=Math.max(1,Math.round(parseFloat(prompt("Can't pay in full? Split the build into how many monthly payments?\n(1 = pay in full)","1"))||1));
-    paymentLink(name, build, monthly, installments);
+    let down=0;
+    if(installments>1 && build>0){ down=Math.max(0,parseFloat(prompt("Down payment due today? (USD — leave blank to use your minimum policy)","")||0)||0); }
+    paymentLink(name, build, monthly, installments, down);
   };
   list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0, 1); });
   list.querySelectorAll(".sPause").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="paused"; save(); render(); });
@@ -205,9 +207,9 @@ function renderSubs(){
   list.querySelectorAll(".sDel").forEach(b=>b.onclick=()=>{ if(confirm("Delete this subscription record?")){ state.subs.splice(+b.dataset.i,1); save(); render(); } });
 }
 
-async function paymentLink(name, build, monthly, installments){
+async function paymentLink(name, build, monthly, installments, downPayment){
   try{
-    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1})});
+    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1,downPayment:downPayment||0})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Could not create payment options."); return; }
     // The server returns a ready-to-send message listing every option:

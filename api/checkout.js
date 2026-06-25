@@ -71,14 +71,25 @@ export default async function handler(req, res) {
   const cashapp = process.env.CASHAPP_CASHTAG || "";
   const manual = { zelle, cashapp };
 
-  const buildIsPlan = installments >= 2 && build > 0;
-  const perInstall = buildIsPlan ? Math.ceil(build / installments) : 0;
+  // Installment plan + MINIMUM DOWN PAYMENT policy.
+  //   MIN_DOWN_PCT (default 25) — min down as % of build.  MIN_DOWN_USD — min in $.
+  // The down payment is charged today; the remainder is split into `installments`
+  // monthly payments. A per-link downPayment can raise (never lower) the minimum.
+  const minDownPct = Math.max(0, Math.min(100, Number(process.env.MIN_DOWN_PCT || 25)));
+  const minDownUsd = Math.max(0, Number(process.env.MIN_DOWN_USD || 0));
+  let downPayment = 0, remainder = 0, perInstall = 0, buildIsPlan = false;
+  if (installments >= 2 && build > 0) {
+    const minDown = Math.max(minDownUsd, Math.round((build * minDownPct) / 100));
+    downPayment = Math.min(build, Math.max(Number(body.downPayment) || 0, minDown));
+    remainder = Math.max(0, build - downPayment);
+    if (remainder > 0) { buildIsPlan = true; perInstall = Math.ceil(remainder / installments); }
+  }
 
   // A friendly, copy-paste message describing every way the client can pay.
   const opts = [];
   if (build > 0) {
     opts.push(buildIsPlan
-      ? `• Website build: ${money(build)} — or split into ${installments} monthly payments of ~${money(perInstall)}`
+      ? `• Website build: ${money(build)} — ${money(downPayment)} down today, then ${installments} monthly payments of ~${money(perInstall)}`
       : `• Website build: ${money(build)} (ask about an installment plan if needed)`);
   }
   if (monthly > 0) opts.push(`• Care plan: ${money(monthly)}/month`);
@@ -89,8 +100,8 @@ export default async function handler(req, res) {
     ? `\n\nPrefer to pay directly? (no card needed — installments welcome, just ask)\n${manualLines.join("\n")}`
     : "";
 
-  // Square hosted link (one-time, for the build or the monthly amount).
-  const squareUrl = await squareLink(name, build > 0 ? build : monthly);
+  // Square hosted link (one-time): the down payment for a plan, else the build/monthly.
+  const squareUrl = await squareLink(name, buildIsPlan && downPayment > 0 ? downPayment : (build > 0 ? build : monthly));
 
   const buildMessage = (stripeUrl) => {
     let m = `Hi ${name}! Here are your payment options:\n\n${opts.join("\n")}`;
@@ -127,6 +138,7 @@ export default async function handler(req, res) {
   p.append("metadata[monthly]", String(monthly));
   p.append("metadata[build]", String(build));
   p.append("metadata[installments]", String(installments));
+  p.append("metadata[downPayment]", String(downPayment));
   p.append("allow_promotion_codes", "true");
   // NOTE: we intentionally do NOT set payment_method_types — Checkout then offers
   // every method enabled in your Stripe Dashboard (card, Cash App Pay, and the
@@ -145,10 +157,18 @@ export default async function handler(req, res) {
   }
   if (build > 0) {
     if (buildIsPlan) {
-      // Installment plan: charge build/installments each month (a subscription).
+      // Down payment today — one-time line item (billed on the first invoice).
+      if (downPayment > 0) {
+        p.append(`line_items[${i}][price_data][currency]`, "usd");
+        p.append(`line_items[${i}][price_data][product_data][name]`, `${name} — Website build (down payment)`);
+        p.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(downPayment * 100)));
+        p.append(`line_items[${i}][quantity]`, "1");
+        i++;
+      }
+      // Remaining balance split into `installments` monthly payments (subscription).
       p.append(`line_items[${i}][price_data][currency]`, "usd");
-      p.append(`line_items[${i}][price_data][product_data][name]`, `${name} — Website build (${installments}-payment plan)`);
-      p.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round((build / installments) * 100)));
+      p.append(`line_items[${i}][price_data][product_data][name]`, `${name} — Build balance (${installments} monthly payments)`);
+      p.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(perInstall * 100)));
       p.append(`line_items[${i}][price_data][recurring][interval]`, "month");
       p.append(`line_items[${i}][quantity]`, "1");
       i++;

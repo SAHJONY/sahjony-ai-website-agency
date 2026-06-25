@@ -195,24 +195,28 @@ function renderSubs(){
     const name=prompt("Client / business name?"); if(!name) return;
     const build=parseFloat(prompt("One-time build price? (USD, 0 to skip)","1299"))||0;
     const monthly=parseFloat(prompt("Monthly care plan? (USD, 0 to skip)","89"))||0;
-    paymentLink(name, build, monthly);
+    const installments=Math.max(1,Math.round(parseFloat(prompt("Can't pay in full? Split the build into how many monthly payments?\n(1 = pay in full)","1"))||1));
+    paymentLink(name, build, monthly, installments);
   };
-  list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0); });
+  list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0, 1); });
   list.querySelectorAll(".sPause").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="paused"; save(); render(); });
   list.querySelectorAll(".sResume").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="active"; save(); render(); });
   list.querySelectorAll(".sCancel").forEach(b=>b.onclick=()=>{ if(confirm("Cancel this subscription?")){ state.subs[+b.dataset.i].status="canceled"; save(); render(); } });
   list.querySelectorAll(".sDel").forEach(b=>b.onclick=()=>{ if(confirm("Delete this subscription record?")){ state.subs.splice(+b.dataset.i,1); save(); render(); } });
 }
 
-async function paymentLink(name, build, monthly){
+async function paymentLink(name, build, monthly, installments){
   try{
-    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly})});
+    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1})});
     const j = await r.json();
-    if(!r.ok){ alert(j.error||"Could not create payment link. Is STRIPE_SECRET_KEY set?"); return; }
-    try{ await navigator.clipboard.writeText(j.url); }catch(_){}
-    window.open(j.url,"_blank");
-    alert("✓ Payment link created & copied — send it to "+name+":\n\n"+j.url);
-  }catch(e){ alert("Network error creating payment link."); }
+    if(!r.ok){ alert(j.error||"Could not create payment options."); return; }
+    // The server returns a ready-to-send message listing every option:
+    // card / Cash App / installments (Stripe), Square, and manual Zelle + Cash App.
+    const msg = j.message || j.url || "";
+    try{ await navigator.clipboard.writeText(msg); }catch(_){}
+    if(j.url) window.open(j.url,"_blank");
+    alert("✓ Payment options copied — paste into a text or email to "+name+":\n\n"+msg);
+  }catch(e){ alert("Network error creating payment options."); }
 }
 
 /* ===================== LEAD FINDER + OUTREACH ===================== */

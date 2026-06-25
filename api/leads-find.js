@@ -36,11 +36,21 @@ export default async function handler(req, res) {
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const lat = Number(body.lat), lng = Number(body.lng);
-  if (!isFinite(lat) || !isFinite(lng)) return res.status(400).json({ error: "lat and lng are required." });
+  const hasGeo = isFinite(lat) && isFinite(lng);
+  const locationText = String(body.locationText || "").slice(0, 120).trim();
+  if (!hasGeo && !locationText) {
+    return res.status(400).json({ error: "Provide either lat/lng or a locationText (city/area)." });
+  }
   const keyword = String(body.keyword || "").slice(0, 60);
   const radius = Math.min(50000, Math.max(500, Number(body.radius) || 4000));
 
-  const textQuery = keyword || "local business";
+  // With GPS we bias by a circle; without it we put the location in the query
+  // text (e.g. "barbershop in Houston, TX") so the finder still works.
+  const baseTerm = keyword || "local business";
+  const textQuery = hasGeo ? baseTerm : `${baseTerm} in ${locationText}`;
+  const reqBody = { textQuery, maxResultCount: 12 };
+  if (hasGeo) reqBody.locationBias = { circle: { center: { latitude: lat, longitude: lng }, radius } };
+
   try {
     const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
@@ -50,11 +60,7 @@ export default async function handler(req, res) {
         // Field mask is REQUIRED by the New API; it also bounds billing/SKU.
         "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating",
       },
-      body: JSON.stringify({
-        textQuery,
-        maxResultCount: 12,
-        locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius } },
-      }),
+      body: JSON.stringify(reqBody),
     });
     const j = await r.json();
     if (!r.ok) {

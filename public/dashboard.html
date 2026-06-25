@@ -217,19 +217,30 @@ async function paymentLink(name, build, monthly){
 
 /* ===================== LEAD FINDER + OUTREACH ===================== */
 function findLeads(){
-  if(!navigator.geolocation){ alert("Geolocation isn't supported on this device."); return; }
-  const kw = prompt("Business type to find nearby? (e.g. barber, bakery, auto repair)\nLeave blank for all.","")||"";
+  const kw = prompt("Business type to find? (e.g. barber, bakery, auto repair)\nLeave blank for all.","")||"";
   const list = document.getElementById("list");
-  list.innerHTML = `<div style="color:#8c8998;padding:20px">📍 Getting your location…</div>`;
-  navigator.geolocation.getCurrentPosition(async (pos)=>{
-    list.innerHTML = `<div style="color:#8c8998;padding:20px">🔎 Searching nearby businesses…</div>`;
+  const run = async (payload)=>{
+    list.innerHTML = `<div style="color:#8c8998;padding:20px">🔎 Searching businesses…</div>`;
     try{
-      const r = await fetch("/api/leads-find",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude,keyword:kw})});
+      const r = await fetch("/api/leads-find",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({keyword:kw,...payload})});
       const j = await r.json();
       if(!r.ok){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">${j.error||"Search failed."}</div>`; return; }
       renderFound(j.leads||[]);
     }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; }
-  }, ()=>{ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Location blocked. Allow location access to find nearby leads.</div>`; }, {timeout:10000});
+  };
+  // Fallback when location is denied/unsupported: let them type a city/area.
+  const askLocation = ()=>{
+    const loc = (prompt("Couldn't use your location. Enter a city or area to search:\n(e.g. \"Houston, TX\" or a ZIP code)","")||"").trim();
+    if(!loc){ list.innerHTML = `<div style="color:#8c8998;padding:20px">No location given. Click “📍 Find leads” to try again.</div>`; return; }
+    run({locationText:loc});
+  };
+  if(!navigator.geolocation){ askLocation(); return; }
+  list.innerHTML = `<div style="color:#8c8998;padding:20px">📍 Getting your location…</div>`;
+  navigator.geolocation.getCurrentPosition(
+    (pos)=> run({lat:pos.coords.latitude,lng:pos.coords.longitude}),
+    ()=> askLocation(),               // blocked/denied -> manual city entry
+    {timeout:10000, enableHighAccuracy:false}
+  );
 }
 function renderFound(leads){
   const list = document.getElementById("list");

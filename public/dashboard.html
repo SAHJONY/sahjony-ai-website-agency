@@ -50,12 +50,12 @@
     <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
     <button class="tab" data-tab="sites" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🌐 Sites</button>
     <button class="tab" data-tab="playbook" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📖 Playbook</button>
+    <button class="tab" data-tab="scripts" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💬 Scripts</button>
     <button class="tab" data-tab="settings" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">⚙️ Settings</button>
     <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0 10px;border-top:1px solid rgba(255,255,255,.07)">
         <a href="/" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">🏠 Home</a>
         <a href="/pricing.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💸 Pricing</a>
-        <a href="/scripts.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💬 Scripts</a>
         <a href="/contact.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">✉️ Contact</a>
       </div>
       <a href="/builder.html" style="text-decoration:none;background:#ff5c38;color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
@@ -116,7 +116,7 @@ async function save(){
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
-const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], playbook:["Playbook","Your A→Z strategy (owner-only)"], scripts:["Scripts","Your sales scripts (owner-only — keep private)"], settings:["Settings","Manage AI engine keys (env secrets)"] };
 
 function render(){
   const [t,s] = TITLES[tab] || TITLES.leads;
@@ -130,6 +130,7 @@ function render(){
   if(tab==="subs"){ renderSubs(); return; }
   if(tab==="sites"){ renderSites(); return; }
   if(tab==="playbook"){ renderPlaybook(); return; }
+  if(tab==="scripts"){ renderScripts(); return; }
   const items = state[tab]||[];
   const list = document.getElementById("list");
   if(!items.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No ${tab} yet. Click “Add”.</div>`; return; }
@@ -393,6 +394,12 @@ async function renderSites(){
 function renderPlaybook(){
   document.getElementById("addBtn").style.display = "none";
   document.getElementById("list").innerHTML = `<iframe src="/playbook.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d0d12"></iframe>`;
+}
+
+/* ===================== SCRIPTS (embedded — owner-only secret sauce) ===================== */
+function renderScripts(){
+  document.getElementById("addBtn").style.display = "none";
+  document.getElementById("list").innerHTML = `<iframe src="/scripts.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d0d12"></iframe>`;
 }
 
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{

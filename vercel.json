@@ -10,7 +10,8 @@
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },
     { "source": "/api/track", "destination": "/api/health" },
-    { "source": "/api/login", "destination": "/api/data?action=login" }
+    { "source": "/api/login", "destination": "/api/data?action=login" },
+    { "source": "/api/telegram", "destination": "/api/contact?tg=1" }
   ],
   "headers": [
     {

@@ -18,6 +18,39 @@ async function loadSecrets() {
   return {};
 }
 
+// Pull the first plausible contact email out of HTML (prefer mailto: links).
+function extractEmail(html) {
+  const out = [];
+  const mailto = html.match(/mailto:([^"'?>\s]+@[^"'?>\s]+)/i);
+  if (mailto) out.push(mailto[1]);
+  const found = html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+  out.push(...found);
+  for (const c of out) {
+    const e = c.toLowerCase().trim().replace(/[.,;]+$/, "");
+    if (/\.(png|jpe?g|gif|webp|svg|css|js|ico)$/.test(e)) continue;        // asset filenames
+    if (/(example|sentry|wixpress|\.wix|@2x|@3x|sentry\.io|godaddy|squarespace|yourdomain|domain\.com|email@|name@|user@)/.test(e)) continue;
+    return e;
+  }
+  return "";
+}
+
+// Fetch a site (homepage, then /contact) and extract a contact email. Bounded so
+// a slow site can't hang the request.
+async function scrapeEmail(website) {
+  const grab = async (u) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3500);
+    try {
+      const r = await fetch(u, { signal: ctrl.signal, redirect: "follow", headers: { "user-agent": "Mozilla/5.0 (compatible; FrontDeskLeadBot/1.0)" } });
+      if (!r.ok) return "";
+      return extractEmail((await r.text()).slice(0, 500000));
+    } catch (_) { return ""; } finally { clearTimeout(t); }
+  };
+  let email = await grab(website);
+  if (!email) { try { email = await grab(new URL(website).origin + "/contact"); } catch (_) {} }
+  return email;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -58,7 +91,7 @@ export default async function handler(req, res) {
         "content-type": "application/json",
         "X-Goog-Api-Key": key,
         // Field mask is REQUIRED by the New API; it also bounds billing/SKU.
-        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating",
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.businessStatus,places.rating,places.userRatingCount",
       },
       body: JSON.stringify(reqBody),
     });
@@ -71,11 +104,21 @@ export default async function handler(req, res) {
     const leads = (j.places || []).map((p) => ({
       name: (p.displayName && p.displayName.text) || "(unnamed)",
       address: p.formattedAddress || "",
-      phone: p.nationalPhoneNumber || "",
+      phone: p.nationalPhoneNumber || p.internationalPhoneNumber || "",
+      email: "",                                  // filled below by scraping the site
       website: p.websiteUri || "",
+      mapsUrl: p.googleMapsUri || "",
+      status: p.businessStatus || "",
       needsSite: !p.websiteUri,
       rating: p.rating || null,
+      reviews: p.userRatingCount || 0,
       placeId: p.id,
+    }));
+
+    // Google doesn't expose emails, so scrape one from each lead's own site
+    // (best-effort, in parallel). No-website prospects simply won't have one.
+    await Promise.all(leads.map(async (l) => {
+      if (l.website) { try { l.email = await scrapeEmail(l.website); } catch (_) {} }
     }));
 
     // Best prospects first (no website).

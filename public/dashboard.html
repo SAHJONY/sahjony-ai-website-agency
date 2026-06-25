@@ -245,17 +245,29 @@ function findLeads(){
 function renderFound(leads){
   const list = document.getElementById("list");
   if(!leads.length){ list.innerHTML = `<div style="color:#8c8998;padding:20px">No businesses found. Try a different keyword. <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px">← Back</button></div>`; document.getElementById("backLeads").onclick=render; return; }
-  list.innerHTML = `<div style="margin-bottom:10px;color:#8c8998;font-size:13px">Found ${leads.length} nearby · 🟢 = no website (best prospects) <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px;margin-left:8px">← Back</button></div>`
-    + leads.map((l,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
-        <div style="min-width:0"><div style="font-weight:700;font-size:14.5px">${l.needsSite?"🟢 ":"⚪ "}${l.name||""}</div><div style="font-size:12px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[l.address,l.phone,l.website?"has site":"NO SITE"].filter(Boolean).join(" · ")}</div></div>
-        <button data-i="${i}" class="addFound" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Add</button>
-      </div>`).join("");
+  const esc=(s)=>String(s||"").replace(/[<>"&]/g,c=>({"<":"&lt;",">":"&gt;",'"':"&quot;","&":"&amp;"}[c]));
+  list.innerHTML = `<div style="margin-bottom:10px;color:#8c8998;font-size:13px">Found ${leads.length} · 🟢 = no website (best prospects) <button id="backLeads" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:8px;margin-left:8px">← Back</button></div>`
+    + leads.map((l,i)=>{
+        const contact=[];
+        if(l.phone) contact.push(`📞 <a href="tel:${esc(l.phone)}" style="color:#b6b2c2;text-decoration:none">${esc(l.phone)}</a>`);
+        if(l.email) contact.push(`✉️ <a href="mailto:${esc(l.email)}" style="color:#b6b2c2;text-decoration:none">${esc(l.email)}</a>`);
+        if(l.website) contact.push(`🌐 <a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#b6b2c2;text-decoration:none">website</a>`);
+        if(l.mapsUrl) contact.push(`📍 <a href="${esc(l.mapsUrl)}" target="_blank" rel="noopener" style="color:#b6b2c2;text-decoration:none">map</a>`);
+        const meta=[l.address, l.rating?`★ ${l.rating} (${l.reviews||0})`:"", l.needsSite?"NO SITE":""].filter(Boolean).join(" · ");
+        return `<div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+          <div style="display:flex;align-items:start;justify-content:space-between;gap:12px">
+            <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:14.5px">${l.needsSite?"🟢 ":"⚪ "}${esc(l.name)}</div>
+            <div style="font-size:12px;color:#8c8998;margin-top:3px">${esc(meta)}</div>
+            <div style="font-size:12.5px;color:#b6b2c2;margin-top:6px;display:flex;flex-wrap:wrap;gap:12px">${contact.join("")||'<span style="color:#6b6877">no public contact info</span>'}</div></div>
+            <button data-i="${i}" class="addFound" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;white-space:nowrap">+ Add</button>
+          </div></div>`;
+      }).join("");
   document.getElementById("backLeads").onclick = render;
-  list.querySelectorAll(".addFound").forEach(b=>b.onclick=()=>{ const l=leads[+b.dataset.i]; state.leads.push({id:Date.now(),name:l.name,type:"",city:l.address||"",phone:l.phone||"",value:l.needsSite?"No website — hot 🔥":"Has site"}); save(); b.textContent="Added ✓"; b.disabled=true; });
+  list.querySelectorAll(".addFound").forEach(b=>b.onclick=()=>{ const l=leads[+b.dataset.i]; state.leads.push({id:Date.now(),name:l.name,type:"",city:l.address||"",phone:l.phone||"",email:l.email||"",website:l.website||"",value:l.needsSite?"No website — hot 🔥":"Has site"}); save(); b.textContent="Added ✓"; b.disabled=true; });
 }
-async function sendOutreach(name, defaultTo){
+async function sendOutreach(name, phone, email){
   const ch = (prompt("Send via — type 'sms' or 'email':","sms")||"").toLowerCase().startsWith("e") ? "email" : "sms";
-  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", defaultTo||"")||""; if(!to) return;
+  const to = prompt(ch==="email"?"Recipient email:":"Recipient phone (+1…):", (ch==="email"?(email||phone):(phone||email))||"")||""; if(!to) return;
   const msg = prompt("Message:", `Hi! I'm local and I build websites for businesses like ${name}. I put together a free sample for you — want me to send it over? No cost, no commitment.`)||""; if(!msg) return;
   try{
     const r = await fetch("/api/outreach",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({channel:ch,to,message:msg})});
@@ -264,7 +276,7 @@ async function sendOutreach(name, defaultTo){
     alert("✓ Sent to "+to);
   }catch(e){ alert("Network error."); }
 }
-function reach(i){ const it = state[tab][i]; if(it) sendOutreach(it.name, it.phone||""); }
+function reach(i){ const it = state[tab][i]; if(it) sendOutreach(it.name, it.phone||"", it.email||""); }
 
 /* ===================== INBOX (free-mockup requests) ===================== */
 const INBOX_KEY = "fda:contact:inbox";

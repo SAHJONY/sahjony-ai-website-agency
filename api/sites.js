@@ -84,7 +84,15 @@ export default async function handler(req, res) {
 
       const slug = body.slug ? slugify(body.slug) : (slugify(name) + "-" + rand4());
       const now = new Date().toISOString();
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now }));
+      // status: "active" (live) | "pending" (built, awaiting down payment) |
+      // "suspended" (offline for non-payment). Default active; the Stripe webhook
+      // flips it on payment events. Preserve existing status on re-save.
+      let status = body.status === "pending" || body.status === "suspended" || body.status === "active" ? body.status : "";
+      if (!status) {
+        const prev = await readJSON("fda:site:" + slug, null);
+        status = (prev && prev.status) || "active";
+      }
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status }));
 
       const existing = index.find((s) => s.slug === slug);
       if (existing) { existing.name = name; existing.at = now; }

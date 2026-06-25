@@ -26,6 +26,14 @@ export default async function handler(req, res) {
     try { rec = JSON.parse(j.result); } catch { return notFound(); }
     if (!rec || !rec.html) return notFound();
 
+    // Payment-gated hosting: a suspended site (missed payment / not yet paid the
+    // down payment) is taken offline until payment is current. Set by the webhook.
+    if (rec.status === "suspended" || rec.status === "pending") {
+      res.status(402).setHeader("content-type", "text/html; charset=utf-8");
+      res.setHeader("cache-control", "no-store");
+      return res.end(`<!doctype html><meta charset="utf-8"><title>${rec.name || "Website"}</title><body style="font-family:system-ui;background:#0d0d12;color:#f0eef2;display:grid;place-items:center;height:100vh;margin:0;text-align:center"><div style="max-width:420px;padding:24px"><div style="font-size:40px">🔒</div><h1 style="font-size:24px;margin:10px 0">This site is paused</h1><p style="color:#aaa7b5;line-height:1.6">${rec.name ? rec.name + "'s" : "This"} website is temporarily offline pending payment. It goes live automatically once payment is complete.</p><a href="/" style="color:#ff8366">frontdeskagents.com</a></div></body>`);
+    }
+
     res.status(200);
     res.setHeader("content-type", "text/html; charset=utf-8");
     res.setHeader("cache-control", "public, max-age=60");

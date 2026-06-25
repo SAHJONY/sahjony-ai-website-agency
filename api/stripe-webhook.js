@@ -32,6 +32,32 @@ async function writePanel(obj) {
   });
 }
 
+// Payment-gated hosting: flip a published site live ("active") or offline
+// ("suspended") based on payment events. The site slug travels in metadata.
+async function setSiteStatus(slug, status) {
+  const s = String(slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+  if (!s) return false;
+  const r = await upstash("/get/" + encodeURIComponent("fda:site:" + s), {});
+  if (!r) return false;
+  const j = await r.json();
+  if (!j || !j.result) return false;
+  let rec; try { rec = JSON.parse(j.result); } catch { return false; }
+  rec.status = status;
+  await upstash("/set/" + encodeURIComponent("fda:site:" + s), {
+    method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(rec),
+  });
+  return true;
+}
+// Resolve the site slug from a subscription's metadata (invoice events carry the sub id).
+async function subSlug(sk, subId) {
+  if (!subId) return "";
+  try {
+    const r = await fetch("https://api.stripe.com/v1/subscriptions/" + encodeURIComponent(subId), { headers: { Authorization: "Bearer " + sk } });
+    const s = await r.json();
+    return (r.ok && s.metadata && s.metadata.slug) || "";
+  } catch { return ""; }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
@@ -56,6 +82,8 @@ export default async function handler(req, res) {
         const paid = r.ok && (s.payment_status === "paid" || s.status === "complete");
         if (paid) {
           const md = s.metadata || {};
+          // Down payment / first payment cleared -> take the site LIVE.
+          if (md.slug) await setSiteStatus(md.slug, "active");
           const name = md.client || s.customer_details?.name || s.customer_email || "New client";
           const monthly = Number(md.monthly) || 0;
           const panel = Object.assign({ leads: [], clients: [], subs: [] }, await readPanel());
@@ -72,6 +100,26 @@ export default async function handler(req, res) {
         }
       }
     }
+
+    // Recurring installment succeeded -> keep/return the site live.
+    else if (event && (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded")) {
+      const inv = event.data && event.data.object || {};
+      const slug = (inv.subscription_details && inv.subscription_details.metadata && inv.subscription_details.metadata.slug) || await subSlug(sk, inv.subscription);
+      if (slug) await setSiteStatus(slug, "active");
+    }
+    // Installment failed -> take the site offline until they're current.
+    else if (event && event.type === "invoice.payment_failed") {
+      const inv = event.data && event.data.object || {};
+      const slug = (inv.subscription_details && inv.subscription_details.metadata && inv.subscription_details.metadata.slug) || await subSlug(sk, inv.subscription);
+      if (slug) await setSiteStatus(slug, "suspended");
+    }
+    // Subscription canceled -> take the site offline.
+    else if (event && event.type === "customer.subscription.deleted") {
+      const sub = event.data && event.data.object || {};
+      const slug = sub.metadata && sub.metadata.slug;
+      if (slug) await setSiteStatus(slug, "suspended");
+    }
+
     return res.status(200).json({ received: true });
   } catch (e) {
     // Always 200 so Stripe doesn't retry forever on our errors.

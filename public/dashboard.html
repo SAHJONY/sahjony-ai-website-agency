@@ -349,16 +349,35 @@ async function renderSites(){
   list.innerHTML = sites.map(s=>{
     const link = "/s/"+s.slug;
     const when = (s.at||"").slice(0,10);
+    const live = (s.status||"active")==="active";
+    const badge = live
+      ? `<span style="font-size:11px;font-weight:700;color:#2fd47f;background:rgba(21,194,107,.12);padding:2px 8px;border-radius:6px;margin-left:4px">● LIVE</span>`
+      : `<span style="font-size:11px;font-weight:700;color:#ffb547;background:rgba(255,181,71,.12);padding:2px 8px;border-radius:6px;margin-left:4px">🔒 PAUSED</span>`;
+    const toggle = live
+      ? `<button data-slug="${s.slug}" data-to="suspended" class="siteStatus" style="background:rgba(255,181,71,.14);color:#ffb547;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Pause</button>`
+      : `<button data-slug="${s.slug}" data-to="active" class="siteStatus" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Go live</button>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
-      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
+      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} ${badge} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(21,194,107,.14);color:#2fd47f;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Open</a>
         <button data-slug="${s.slug}" class="siteCopy" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Copy link</button>
+        ${toggle}
         <button data-slug="${s.slug}" class="siteDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
       </div>
     </div>`;
   }).join("");
 
+  list.querySelectorAll(".siteStatus").forEach(b=>b.onclick=async()=>{
+    const to=b.dataset.to;
+    if(to==="active" && !confirm("Take this site LIVE? (Do this once you've confirmed their Zelle/Cash App payment.)")) return;
+    if(to==="suspended" && !confirm("Pause this site? Visitors will see a 'paused pending payment' page.")) return;
+    b.disabled=true; b.textContent="…";
+    try{
+      const r=await fetch("/api/sites",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({action:"status",slug:b.dataset.slug,status:to})});
+      if(!r.ok){ const j=await r.json(); alert(j.error||"Couldn't update status"); b.disabled=false; return; }
+      renderSites();
+    }catch(e){ alert("Network error"); b.disabled=false; }
+  });
   list.querySelectorAll(".siteCopy").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(location.origin+"/s/"+b.dataset.slug); b.textContent="Copied ✓"; setTimeout(()=>b.textContent="Copy link",1200);}catch(_){}});
   list.querySelectorAll(".siteDel").forEach(b=>b.onclick=async()=>{
     if(!confirm("Unpublish and delete this site?")) return;

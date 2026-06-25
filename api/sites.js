@@ -77,6 +77,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, deleted: slug });
       }
 
+      // Manually take a site live / offline (for Zelle/Cash App — no webhook).
+      if (body.action === "status") {
+        const slug = slugify(body.slug);
+        const st = body.status === "active" ? "active" : "suspended";
+        const rec = await readJSON("fda:site:" + slug, null);
+        if (!rec) return res.status(404).json({ error: "Site not found." });
+        rec.status = st;
+        await writeRaw("fda:site:" + slug, JSON.stringify(rec));
+        const e = index.find((s) => s.slug === slug);
+        if (e) { e.status = st; await writeRaw(INDEX_KEY, JSON.stringify(index)); }
+        return res.status(200).json({ ok: true, slug, status: st });
+      }
+
       const name = String(body.name || "Website").slice(0, 120);
       const html = body.html;
       if (!html || typeof html !== "string") return res.status(400).json({ error: "Missing site html." });
@@ -95,8 +108,8 @@ export default async function handler(req, res) {
       await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status }));
 
       const existing = index.find((s) => s.slug === slug);
-      if (existing) { existing.name = name; existing.at = now; }
-      else index.unshift({ name, slug, at: now });
+      if (existing) { existing.name = name; existing.at = now; existing.status = status; }
+      else index.unshift({ name, slug, at: now, status });
       await writeRaw(INDEX_KEY, JSON.stringify(index));
 
       return res.status(200).json({ ok: true, slug, url: "/s/" + slug });

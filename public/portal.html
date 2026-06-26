@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>My Account — Customer Portal</title>
+<meta name="theme-color" content="#0a0b0e" />
+<link rel="manifest" href="/portal.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#121319; --panel2:#171922; --fg:#f1eff5; --mut:#a3a0b0;
+    --acc:#ff8366; --acc2:#ffb199; --ok:#46d39a; --warn:#ffcf5c; --bad:#ff6b6b;
+    --bd:rgba(255,255,255,.10); --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none}
+  .wrap{max-width:860px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+  .hidden{display:none!important}
+  button{font:inherit;cursor:pointer}
+  .btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1a0d08;border:0;border-radius:12px;padding:13px 18px;font-weight:700;width:100%}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+  .btn.sm{width:auto;padding:9px 14px;font-size:14px}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--bd);color:var(--fg);border-radius:12px;padding:13px 14px;font:inherit}
+  label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:var(--radius);padding:18px 18px}
+  .grid{display:grid;gap:14px}
+  @media(min-width:620px){.grid.two{grid-template-columns:1fr 1fr}}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .muted{color:var(--mut)}
+  .big{font-size:clamp(26px,7vw,38px);font-weight:800;letter-spacing:-.02em}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--bd)}
+  .pill.ok{color:var(--ok);border-color:var(--ok)}
+  .pill.warn{color:var(--warn);border-color:var(--warn)}
+  .pill.bad{color:var(--bad);border-color:var(--bad)}
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--bd)}
+  .kv:last-child{border-bottom:0}.kv .k{color:var(--mut)}.kv .v{font-weight:600;text-align:right}
+  .bar{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+  header.app{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  header.app .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  header.app .brand img{width:34px;height:34px;border-radius:9px}
+  .tabs{display:flex;gap:8px;overflow-x:auto;margin:18px 0;padding-bottom:4px}
+  .tabs button{white-space:nowrap;background:var(--panel);border:1px solid var(--bd);color:var(--mut);border-radius:999px;padding:9px 16px}
+  .tabs button.on{color:#1a0d08;background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;font-weight:700}
+  .ledger{margin-top:8px}
+  .ledger .it{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
+  .ledger .it small{color:var(--mut)}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--bd);padding:12px 18px;border-radius:12px;z-index:50;max-width:90vw}
+  .center{min-height:100svh;display:grid;place-items:center}
+  .logo-lg{width:64px;height:64px;border-radius:16px;margin:0 auto 10px;display:block}
+  .err{color:var(--bad);font-size:14px;margin-top:10px;min-height:18px}
+  .note{font-size:13px;color:var(--mut)}
+  .disclaim{font-size:12px;color:var(--mut);border:1px dashed var(--bd);border-radius:12px;padding:12px;margin-top:16px}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" class="center">
+  <div class="wrap" style="max-width:420px;width:100%">
+    <img src="/icon-192.png" class="logo-lg" alt="" />
+    <h1 style="text-align:center;margin:0 0 4px">My Account</h1>
+    <p class="muted" style="text-align:center;margin:0 0 22px">Sign in to manage your vehicle, financing &amp; payments.</p>
+    <div class="card">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" placeholder="you@email.com" />
+      <label for="code">Access code</label>
+      <input id="code" type="text" autocomplete="one-time-code" placeholder="Given to you by the dealer" />
+      <div class="err" id="loginErr"></div>
+      <button class="btn" id="loginBtn" style="margin-top:14px">Sign in</button>
+      <p class="note" style="text-align:center;margin-top:14px">Don’t have a code? Contact your dealer to get portal access.</p>
+    </div>
+    <button class="btn ghost sm hidden" id="installBtn" style="margin:16px auto 0;display:block">📲 Install this app</button>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section id="app" class="hidden">
+  <div class="wrap">
+    <header class="app">
+      <div class="brand"><img src="/icon-192.png" alt="" /> <span id="dealerName">My Account</span></div>
+      <button class="btn ghost sm" id="logoutBtn">Sign out</button>
+    </header>
+
+    <!-- Hero / balance -->
+    <div class="card" style="background:linear-gradient(160deg,#1a1410,#121319)">
+      <div class="row"><span class="muted">Welcome back</span><span id="acctStatus" class="pill ok">Active</span></div>
+      <div id="custName" class="big" style="margin:2px 0 2px">—</div>
+      <div class="muted" id="vehicleLine">—</div>
+      <div style="margin-top:16px">
+        <div class="row"><span class="muted">Estimated balance remaining</span></div>
+        <div class="big" id="balance" style="font-size:clamp(30px,9vw,46px)">—</div>
+        <div class="bar"><i id="payBar" style="width:0%"></i></div>
+        <div class="row note"><span id="paidLine">—</span><span id="nextDue">—</span></div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <button class="btn" id="payBtn">Make a payment</button>
+        <button class="btn ghost" id="refiBtn">Request refinance</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="overview" class="on">Overview</button>
+      <button data-tab="vehicle">Vehicle</button>
+      <button data-tab="payments">Payments</button>
+      <button data-tab="financial">Financial</button>
+      <button data-tab="requests">Requests</button>
+      <button data-tab="help">Help</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab" data-pane="overview">
+      <div class="card">
+        <h3 style="margin:0 0 6px">Financing summary</h3>
+        <div id="contractKV"></div>
+      </div>
+    </div>
+
+    <!-- VEHICLE -->
+    <div class="tab hidden" data-pane="vehicle">
+      <div class="card"><h3 style="margin:0 0 6px">Your vehicle</h3><div id="vehicleKV"></div></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="tab hidden" data-pane="payments">
+      <div class="card">
+        <div class="row"><h3 style="margin:0">Payment history</h3><button class="btn sm" id="payBtn2">Make a payment</button></div>
+        <div class="ledger" id="ledger"></div>
+      </div>
+    </div>
+
+    <!-- FINANCIAL -->
+    <div class="tab hidden" data-pane="financial">
+      <div class="card">
+        <h3 style="margin:0 0 4px">Financial profile</h3>
+        <p class="note">Keep this current to speed up refinance &amp; approval decisions.</p>
+        <label>Annual income (USD)</label><input id="f_income" type="number" inputmode="numeric" />
+        <label>Employer</label><input id="f_employer" type="text" />
+        <label>Years employed</label><input id="f_years" type="number" inputmode="numeric" />
+        <label>Phone</label><input id="f_phone" type="tel" />
+        <label>Address</label><input id="f_address" type="text" />
+        <label>Notes for your dealer</label><textarea id="f_notes" rows="3"></textarea>
+        <button class="btn" id="saveFin" style="margin-top:14px">Save profile</button>
+        <p class="disclaim">🔒 Your financial information is stored securely and shared only with your dealer for servicing your account.</p>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="tab hidden" data-pane="requests">
+      <div class="card">
+        <div class="row"><h3 style="margin:0">Your requests</h3><button class="btn sm" id="msgBtn">Message dealer</button></div>
+        <div class="ledger" id="reqList"></div>
+      </div>
+    </div>
+
+    <!-- HELP -->
+    <div class="tab hidden" data-pane="help">
+      <div class="card">
+        <h3 style="margin:0 0 6px">State requirements &amp; your rights</h3>
+        <p class="note">Select your state to see the auto-finance and refinance rules that apply.</p>
+        <label>State</label>
+        <select id="stateSel"></select>
+        <div id="stateReq" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODAL ============ -->
+<div id="modal" class="center hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;padding:16px">
+  <div class="card" style="max-width:420px;width:100%">
+    <div class="row"><h3 id="mTitle" style="margin:0">Action</h3><button class="btn ghost sm" id="mClose">✕</button></div>
+    <div id="mBody" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script src="/data/state-requirements.js"></script>
+<script>
+(function(){
+  "use strict";
+  var API = "/api/data";
+  var $ = function(s,r){return (r||document).querySelector(s);};
+  var $$ = function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+  var TOKEN = localStorage.getItem("portalToken") || "";
+  var CUST = null;
+
+  function money(n){ n = Number(n); if(!isFinite(n)) return "—"; return "$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function toast(msg){ var t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){t.remove();},2600); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  async function call(action, opts){
+    opts = opts || {};
+    var url = API + "?action=" + action;
+    var headers = {"Content-Type":"application/json"};
+    if(TOKEN) headers["x-portal-token"] = TOKEN;
+    var res = await fetch(url, { method: opts.method||"GET", headers: headers, body: opts.body?JSON.stringify(opts.body):undefined });
+    var j = await res.json().catch(function(){return {};});
+    if(!res.ok) throw new Error(j.error || ("Request failed ("+res.status+")"));
+    return j;
+  }
+
+  /* ---------- LOGIN ---------- */
+  async function doLogin(){
+    var email = $("#email").value.trim(), code = $("#code").value.trim();
+    $("#loginErr").textContent = "";
+    if(!email || !code){ $("#loginErr").textContent="Enter your email and access code."; return; }
+    $("#loginBtn").disabled = true; $("#loginBtn").textContent = "Signing in…";
+    try{
+      var j = await call("portal-login", { method:"POST", body:{ email: email, code: code } });
+      TOKEN = j.token; localStorage.setItem("portalToken", TOKEN);
+      CUST = j.customer; render();
+    }catch(e){ $("#loginErr").textContent = e.message; }
+    $("#loginBtn").disabled = false; $("#loginBtn").textContent = "Sign in";
+  }
+
+  function logout(){ localStorage.removeItem("portalToken"); TOKEN=""; CUST=null; location.reload(); }
+
+  /* ---------- COMPUTE ---------- */
+  function summary(c){
+    var ct = c.contract||{}, pays = Array.isArray(c.payments)?c.payments:[];
+    var paid = pays.reduce(function(s,p){return s + (Number(p.amount)||0);},0);
+    var financed = Number(ct.amountFinanced)|| (Number(ct.salePrice)||0) - (Number(ct.downPayment)||0);
+    var monthly = Number(ct.monthlyPayment)||0, term = Number(ct.termMonths)||0;
+    var totalOfPayments = monthly && term ? monthly*term : (financed||0);
+    var balance = ct.payoffAmount!=null ? Number(ct.payoffAmount) : Math.max(0, totalOfPayments - paid);
+    var pct = totalOfPayments>0 ? Math.min(100, Math.round(paid/totalOfPayments*100)) : 0;
+    // next due = first due + number of payments made (rough monthly schedule)
+    var next = "—";
+    if(ct.firstDueDate){
+      var d = new Date(ct.firstDueDate);
+      if(!isNaN(d)){ d.setMonth(d.getMonth() + pays.length); next = d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }
+    }
+    return { paid:paid, financed:financed, monthly:monthly, term:term, total:totalOfPayments, balance:balance, pct:pct, next:next, count:pays.length };
+  }
+
+  /* ---------- RENDER ---------- */
+  function render(){
+    $("#login").classList.add("hidden");
+    $("#app").classList.remove("hidden");
+    var c = CUST||{}, s = summary(c);
+    var v = c.vehicle||{}, ct = c.contract||{};
+    $("#dealerName").textContent = c.dealerName || "My Account";
+    $("#custName").textContent = c.name || "Customer";
+    $("#vehicleLine").textContent = [v.year,v.make,v.model,v.trim].filter(Boolean).join(" ") || "Vehicle on file";
+    $("#balance").textContent = money(s.balance);
+    $("#payBar").style.width = s.pct + "%";
+    $("#paidLine").textContent = money(s.paid) + " paid of " + money(s.total);
+    $("#nextDue").textContent = s.next!=="—" ? ("Next due "+s.next) : "";
+    var status = (ct.status||c.status||"active").toLowerCase();
+    var sp = $("#acctStatus"); sp.textContent = status.charAt(0).toUpperCase()+status.slice(1);
+    sp.className = "pill " + (status==="active"?"ok":(status==="suspended"?"bad":"warn"));
+
+    // contract KV
+    $("#contractKV").innerHTML = kvRows([
+      ["Sale price", money(ct.salePrice)],
+      ["Down payment", money(ct.downPayment)],
+      ["Amount financed", money(s.financed)],
+      ["APR", ct.apr!=null ? (Number(ct.apr).toFixed(2)+"%") : "—"],
+      ["Term", s.term ? (s.term+" months") : "—"],
+      ["Monthly payment", money(s.monthly)],
+      ["Payments made", s.count + (s.term?(" of "+s.term):"")],
+      ["Estimated payoff", money(s.balance)],
+      ["First payment", ct.firstDueDate ? new Date(ct.firstDueDate).toLocaleDateString() : "—"],
+    ]);
+    // vehicle KV
+    $("#vehicleKV").innerHTML = kvRows([
+      ["Year / Make / Model", [v.year,v.make,v.model].filter(Boolean).join(" ")||"—"],
+      ["Trim", v.trim||"—"], ["VIN", v.vin||"—"], ["Color", v.color||"—"],
+      ["Mileage", v.mileage!=null?Number(v.mileage).toLocaleString()+" mi":"—"], ["Stock #", v.stock||"—"],
+    ]);
+    // ledger
+    var pays = Array.isArray(c.payments)?c.payments.slice().reverse():[];
+    $("#ledger").innerHTML = pays.length ? pays.map(function(p){
+      return '<div class="it"><div><strong>'+money(p.amount)+'</strong><br><small>'+esc(p.method||"Payment")+'</small></div>'+
+             '<div style="text-align:right"><small>'+esc(p.date? new Date(p.date).toLocaleDateString() : "")+'</small>'+
+             (p.note?'<br><small>'+esc(p.note)+'</small>':'')+'</div></div>';
+    }).join("") : '<p class="note">No payments recorded yet.</p>';
+    // financial form
+    var f = c.financial||{};
+    $("#f_income").value = f.income||""; $("#f_employer").value = f.employer||"";
+    $("#f_years").value = f.employmentYears||""; $("#f_phone").value = c.phone||"";
+    $("#f_address").value = c.address||""; $("#f_notes").value = f.notes||"";
+    // requests
+    renderRequests();
+    // state requirements
+    buildStateSelect(c);
+  }
+
+  function kvRows(rows){
+    return rows.map(function(r){ return '<div class="kv"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>'; }).join("");
+  }
+
+  function renderRequests(){
+    var rs = (CUST&&Array.isArray(CUST.requests))?CUST.requests:[];
+    $("#reqList").innerHTML = rs.length ? rs.map(function(r){
+      var cls = r.status==="closed"?"ok":(r.status==="declined"?"bad":"warn");
+      return '<div class="it"><div><strong>'+esc((r.type||"message").replace(/^\w/,function(m){return m.toUpperCase();}))+'</strong>'+
+             (r.amount?' · '+money(r.amount):'')+'<br><small>'+esc(r.message||"")+'</small></div>'+
+             '<div style="text-align:right"><span class="pill '+cls+'">'+esc(r.status||"open")+'</span><br><small>'+esc(r.at?new Date(r.at).toLocaleDateString():"")+'</small></div></div>';
+    }).join("") : '<p class="note">No requests yet.</p>';
+  }
+
+  function buildStateSelect(c){
+    if(!window.StateReq) return;
+    var sel = $("#stateSel"); if(sel.options.length===0){
+      window.StateReq.states().forEach(function(s){ var o=document.createElement("option"); o.value=s.code; o.textContent=s.name; sel.appendChild(o); });
+      sel.addEventListener("change", function(){ showState(sel.value); });
+    }
+    var def = (c.contract&&c.contract.state) || c.state || "CA";
+    sel.value = def; showState(sel.value);
+    window.StateReq.injectCSS();
+  }
+  function showState(code){ $("#stateReq").innerHTML = window.StateReq ? window.StateReq.render(code,"autoSales") : ""; }
+
+  /* ---------- ACTIONS ---------- */
+  function modal(title, html){ $("#mTitle").textContent=title; $("#mBody").innerHTML=html; $("#modal").classList.remove("hidden"); }
+  function closeModal(){ $("#modal").classList.add("hidden"); }
+
+  function payModal(){
+    var s = summary(CUST||{});
+    modal("Make a payment",
+      '<label>Amount (USD)</label><input id="m_amt" type="number" inputmode="decimal" value="'+(s.monthly||"")+'" />'+
+      '<label>Preferred method</label><select id="m_method"><option>Card / online link</option><option>Cash App</option><option>Zelle</option><option>Bank transfer</option><option>Cash in person</option></select>'+
+      '<label>Note (optional)</label><input id="m_note" type="text" placeholder="e.g. June payment" />'+
+      '<button class="btn" id="m_go" style="margin-top:14px">Submit payment request</button>'+
+      '<p class="note" style="margin-top:10px">Your dealer reviews the request and, for card/online, sends you a secure payment link. Cash App / Zelle / cash payments are confirmed and recorded by your dealer.</p>');
+    $("#m_go").onclick = async function(){
+      var amount = Number($("#m_amt").value), method = $("#m_method").value, note = $("#m_note").value;
+      if(!amount || amount<=0){ toast("Enter a valid amount"); return; }
+      $("#m_go").disabled=true;
+      try{
+        await call("portal-request",{method:"POST",body:{ type:"payment", amount:amount, method:method, message:note }});
+        toast("Payment request sent to your dealer"); closeModal(); await refresh();
+      }catch(e){ toast(e.message); $("#m_go").disabled=false; }
+    };
+  }
+
+  function refiModal(){
+    modal("Request refinance",
+      '<p class="note">Tell your dealer what you’re looking for — a lower rate, lower payment, or shorter term. They’ll review your account and respond.</p>'+
+      '<label>Goal</label><select id="m_goal"><option>Lower my monthly payment</option><option>Lower my interest rate (APR)</option><option>Pay off faster</option><option>Other</option></select>'+
+      '<label>Details (optional)</label><textarea id="m_msg" rows="3"></textarea>'+
+      '<button class="btn" id="m_go" style="margin-top:14px">Send refinance request</button>');
+    $("#m_go").onclick = async function(){
+      var msg = $("#m_goal").value + ($("#m_msg").value?(" — "+$("#m_msg").value):"");
+      $("#m_go").disabled=true;
+      try{ await call("portal-request",{method:"POST",body:{ type:"refinance", message: msg }}); toast("Refinance request sent"); closeModal(); await refresh(); }
+      catch(e){ toast(e.message); $("#m_go").disabled=false; }
+    };
+  }
+
+  function msgModal(){
+    modal("Message your dealer",
+      '<label>Message</label><textarea id="m_msg" rows="4" placeholder="Type your message…"></textarea>'+
+      '<button class="btn" id="m_go" style="margin-top:14px">Send</button>');
+    $("#m_go").onclick = async function(){
+      var msg = $("#m_msg").value.trim(); if(!msg){toast("Type a message");return;}
+      $("#m_go").disabled=true;
+      try{ await call("portal-request",{method:"POST",body:{ type:"message", message: msg }}); toast("Message sent"); closeModal(); await refresh(); }
+      catch(e){ toast(e.message); $("#m_go").disabled=false; }
+    };
+  }
+
+  async function saveFinancial(){
+    var updates = {
+      phone: $("#f_phone").value, address: $("#f_address").value,
+      financial: { income: Number($("#f_income").value)||null, employer: $("#f_employer").value,
+                   employmentYears: Number($("#f_years").value)||null, notes: $("#f_notes").value }
+    };
+    try{ var j = await call("portal-save",{method:"POST",body:{updates:updates}}); CUST=j.customer; toast("Profile saved"); }
+    catch(e){ toast(e.message); }
+  }
+
+  async function refresh(){ try{ var j = await call("portal-get"); CUST=j.customer; render(); }catch(e){} }
+
+  /* ---------- TABS ---------- */
+  function initTabs(){
+    $$("#tabs button").forEach(function(b){
+      b.onclick = function(){
+        $$("#tabs button").forEach(function(x){x.classList.remove("on");}); b.classList.add("on");
+        $$(".tab").forEach(function(p){ p.classList.toggle("hidden", p.getAttribute("data-pane")!==b.getAttribute("data-tab")); });
+      };
+    });
+  }
+
+  /* ---------- PWA install ---------- */
+  var deferredPrompt=null;
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferredPrompt=e; $("#installBtn").classList.remove("hidden"); });
+  function tryInstall(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; $("#installBtn").classList.add("hidden"); } }
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").catch(function(){}); }
+
+  /* ---------- WIRE ---------- */
+  $("#loginBtn").onclick = doLogin;
+  $("#code").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+  $("#logoutBtn").onclick = logout;
+  $("#payBtn").onclick = payModal; $("#payBtn2").onclick = payModal;
+  $("#refiBtn").onclick = refiModal; $("#msgBtn").onclick = msgModal;
+  $("#saveFin").onclick = saveFinancial;
+  $("#mClose").onclick = closeModal;
+  $("#modal").addEventListener("click", function(e){ if(e.target.id==="modal") closeModal(); });
+  $("#installBtn").onclick = tryInstall;
+  initTabs();
+
+  // Auto-resume session.
+  if(TOKEN){ call("portal-get").then(function(j){ CUST=j.customer; render(); }).catch(function(){ localStorage.removeItem("portalToken"); TOKEN=""; }); }
+
+  // Stripe success redirect back to portal -> refresh.
+  if(location.search.indexOf("paid=1")>-1){ toast("Payment received — thank you!"); }
+})();
+</script>
+</body>
+</html>

@@ -49,6 +49,8 @@
     <button class="tab" data-tab="inbox" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📨 Inbox</button>
     <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
     <button class="tab" data-tab="sites" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🌐 Sites</button>
+    <button class="tab" data-tab="customers" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🚗 Customers</button>
+    <button class="tab" data-tab="statereq" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📋 State Rules</button>
     <button class="tab" data-tab="playbook" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📖 Playbook</button>
     <button class="tab" data-tab="scripts" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💬 Scripts</button>
     <button class="tab" data-tab="settings" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">⚙️ Settings</button>
@@ -117,19 +119,21 @@ async function save(){
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
-const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], playbook:["Playbook","Your A→Z strategy (owner-only)"], scripts:["Scripts","Your sales scripts (owner-only — keep private)"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+const TITLES = { leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Free-mockup requests from your site"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], customers:["Customers","Vehicles, financing, payments & portal access"], statereq:["State Rules","Auto-finance & refinance requirements by state — review & edit"], playbook:["Playbook","Your A→Z strategy (owner-only)"], scripts:["Scripts","Your sales scripts (owner-only — keep private)"], settings:["Settings","Manage AI engine keys (env secrets)"] };
 
 function render(){
   const [t,s] = TITLES[tab] || TITLES.leads;
   document.getElementById("pTitle").textContent = t;
   document.getElementById("pSub").textContent = s;
-  document.getElementById("addBtn").style.display = tab==="settings" ? "none" : "block";
-  document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : "＋ Add";
+  document.getElementById("addBtn").style.display = (tab==="settings"||tab==="statereq") ? "none" : "block";
+  document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : (tab==="customers" ? "＋ Add customer" : "＋ Add");
   document.getElementById("findBtn").style.display = tab==="leads" ? "block" : "none";
   if(tab==="settings"){ renderSettings(); return; }
   if(tab==="inbox"){ renderInbox(); return; }
   if(tab==="subs"){ renderSubs(); return; }
   if(tab==="sites"){ renderSites(); return; }
+  if(tab==="customers"){ renderCustomers(); return; }
+  if(tab==="statereq"){ renderStateReq(); return; }
   if(tab==="playbook"){ renderPlaybook(); return; }
   if(tab==="scripts"){ renderScripts(); return; }
   const items = state[tab]||[];
@@ -413,6 +417,7 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
 document.getElementById("findBtn").onclick = findLeads;
 
 document.getElementById("addBtn").onclick=()=>{
+  if(tab==="customers"){ newCustomer(); return; }
   if(tab==="subs"){
     const name=prompt("Client / business name?"); if(!name) return;
     const price=parseFloat(prompt("Monthly price? (USD)","89"))||89;
@@ -426,6 +431,212 @@ document.getElementById("addBtn").onclick=()=>{
   state[tab].push({id:Date.now(),name,type,city,value: tab==="leads"?"$1,299 build":"Live · $89/mo"});
   save(); render();
 };
+
+/* ===================== CUSTOMERS — vehicles, financing, payments ===================== */
+let custIndex = [];            // [{id,name,email,status,vehicle}]
+let curCust = null;            // full record being edited
+const CUST_INDEX_KEY = "fda:cust:index";
+function normEmail(e){ return String(e||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,80); }
+function genCode(){ return Math.random().toString(36).slice(2,7).toUpperCase().replace(/[O0I1]/g,"X"); }
+function newId(){ return "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function moneyD(n){ n=Number(n); return isFinite(n)?("$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})):"—"; }
+function dealerName(){ return (state.clients&&state.clients[0]&&state.clients[0].name) || "Your Dealership"; }
+function portalURL(){ return location.origin + "/portal.html"; }
+
+async function kvGet(key){ const r=await fetch("/api/data?key="+encodeURIComponent(key),{headers:authHeaders()}); const j=await r.json(); return j.value; }
+async function kvSet(key,val){ const r=await fetch("/api/data?key="+encodeURIComponent(key),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(val)}); if(!r.ok) throw new Error("Save failed"); }
+
+async function loadCustIndex(){ try{ custIndex = (await kvGet(CUST_INDEX_KEY)) || []; }catch(e){ custIndex=[]; } if(!Array.isArray(custIndex)) custIndex=[]; }
+
+function balanceOf(c){
+  const ct=c.contract||{}, pays=Array.isArray(c.payments)?c.payments:[];
+  const paid=pays.reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const monthly=Number(ct.monthlyPayment)||0, term=Number(ct.termMonths)||0;
+  const total = monthly&&term ? monthly*term : (Number(ct.amountFinanced)||0);
+  return ct.payoffAmount!=null ? Number(ct.payoffAmount) : Math.max(0,total-paid);
+}
+
+async function renderCustomers(){
+  const list=document.getElementById("list");
+  list.innerHTML = `<div style="color:#8c8998;padding:20px">Loading customers…</div>`;
+  await loadCustIndex();
+  if(curCust){ return renderCustomerDetail(); }
+  if(!custIndex.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No customers yet. Click “Add customer” to create one and issue them a portal login.</div>`; return; }
+  list.innerHTML = custIndex.map(c=>{
+    const v=c.vehicle||{}; const veh=[v.year,v.make,v.model].filter(Boolean).join(" ")||"—";
+    const st=(c.status||"active");
+    const sc = st==="active"?["#2fd47f","rgba(21,194,107,.14)"]:(st==="suspended"?["#ff7a6e","rgba(255,90,77,.14)"]:["#e8b13a","rgba(232,177,58,.14)"]);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+      <div><div style="font-weight:700;font-size:15px">${c.name||"Customer"} <span style="font-size:11px;font-weight:700;color:${sc[0]};background:${sc[1]};padding:2px 9px;border-radius:999px;margin-left:6px;text-transform:capitalize">${st}</span></div>
+      <div style="font-size:12.5px;color:#8c8998;margin-top:3px">${veh}${c.email?(" · "+c.email):""}</div></div>
+      <div style="display:flex;gap:8px"><button data-id="${c.id}" class="cOpen" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Open →</button></div>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".cOpen").forEach(b=>b.onclick=()=>openCustomer(b.dataset.id));
+}
+
+async function openCustomer(id){
+  const list=document.getElementById("list"); list.innerHTML=`<div style="color:#8c8998;padding:20px">Loading…</div>`;
+  curCust = await kvGet("fda:cust:"+id) || null;
+  if(!curCust){ alert("Could not load customer."); curCust=null; return renderCustomers(); }
+  renderCustomerDetail();
+}
+
+function field(label,id,val,type,ph){ return `<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">${label}</label><input id="${id}" type="${type||"text"}" value="${val!=null?String(val).replace(/"/g,"&quot;"):""}" placeholder="${ph||""}" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">`; }
+
+function renderCustomerDetail(){
+  const c=curCust, v=c.vehicle||{}, ct=c.contract||{}, f=c.financial||{};
+  const list=document.getElementById("list");
+  const stateOpts = (window.StateReq?window.StateReq.states():[]).map(s=>`<option value="${s.code}" ${ (ct.state||c.state)===s.code?"selected":"" }>${s.name}</option>`).join("");
+  const pays = Array.isArray(c.payments)?c.payments.slice().reverse():[];
+  const reqs = Array.isArray(c.requests)?c.requests:[];
+  const card = (title,inner)=>`<div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${title}</div>${inner}</div>`;
+  const grid = (h)=>`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px">${h}</div>`;
+
+  list.innerHTML =
+    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+       <button id="cBack" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">← All customers</button>
+       <div style="display:flex;gap:8px"><button id="cDel" style="background:rgba(255,90,77,.12);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Delete</button><button id="cSave" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save</button></div>
+     </div>` +
+
+    card("👤 Customer & portal access", grid(
+      field("Full name","cd_name",c.name)+field("Email (portal login)","cd_email",c.email,"email")+field("Phone","cd_phone",c.phone)+
+      field("Status (active / suspended / pending)","cd_status",c.status||"active")
+    ) + `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding:12px;background:#0f0f16;border-radius:10px">
+        <div style="font-size:13px"><span style="color:#8c8998">Access code:</span> <b style="font-family:monospace;font-size:16px;letter-spacing:1px">${c.accessCode||"— not set —"}</b></div>
+        <button id="cCode" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">${c.accessCode?"Reset code":"Issue code"}</button>
+        <button id="cCopy" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">📋 Copy portal invite</button>
+       </div>`) +
+
+    card("🚗 Vehicle", grid(
+      field("Year","cd_v_year",v.year,"number")+field("Make","cd_v_make",v.make)+field("Model","cd_v_model",v.model)+field("Trim","cd_v_trim",v.trim)+
+      field("VIN","cd_v_vin",v.vin)+field("Color","cd_v_color",v.color)+field("Mileage","cd_v_mileage",v.mileage,"number")+field("Stock #","cd_v_stock",v.stock)
+    )) +
+
+    card("💵 Financing contract", grid(
+      field("Sale price","cd_c_price",ct.salePrice,"number")+field("Down payment","cd_c_down",ct.downPayment,"number")+field("Amount financed","cd_c_fin",ct.amountFinanced,"number")+
+      field("APR %","cd_c_apr",ct.apr,"number")+field("Term (months)","cd_c_term",ct.termMonths,"number")+field("Monthly payment","cd_c_monthly",ct.monthlyPayment,"number")+
+      field("First payment date","cd_c_first",ct.firstDueDate,"date")+field("Payoff amount (optional)","cd_c_payoff",ct.payoffAmount,"number")
+    ) + `<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">State (for disclosures)</label><select id="cd_c_state" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${stateOpts}</select>
+       <div style="margin-top:10px;font-size:13px;color:#8c8998">Estimated balance: <b style="color:#ff8366">${moneyD(balanceOf(c))}</b></div>`) +
+
+    card(`💳 Payments (${pays.length})`, `<button id="cPay" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;margin-bottom:10px">＋ Record payment</button>` +
+      (pays.length? pays.map((p,idx)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)"><div><b>${moneyD(p.amount)}</b> <span style="color:#8c8998;font-size:12px">${(p.method||"Payment")}</span></div><div style="text-align:right;font-size:12px;color:#8c8998">${p.date?new Date(p.date).toLocaleDateString():""} <button data-pi="${pays.length-1-idx}" class="cPayDel" style="background:none;border:none;color:#ff7a6e;cursor:pointer;font-weight:700">✕</button></div></div>`).join("") : `<div style="color:#8c8998;font-size:13px">No payments recorded.</div>`)) +
+
+    card("🧑‍💼 Financial profile (from customer)", grid(
+      field("Annual income","cd_f_income",f.income,"number")+field("Employer","cd_f_employer",f.employer)+field("Years employed","cd_f_years",f.employmentYears,"number")
+    ) + (f.notes?`<div style="margin-top:8px;font-size:13px;color:#b6b2c2">Notes: ${String(f.notes).replace(/</g,"&lt;")}</div>`:"")) +
+
+    card(`📨 Requests (${reqs.length})`, reqs.length? reqs.map((r,idx)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)"><div><b style="text-transform:capitalize">${r.type||"message"}</b>${r.amount?(" · "+moneyD(r.amount)):""}<div style="font-size:12px;color:#8c8998">${(r.message||"").replace(/</g,"&lt;")}</div></div><div style="text-align:right"><span style="font-size:11px;color:${r.status==="closed"?"#2fd47f":"#e8b13a"}">${r.status||"open"}</span><br>${r.status!=="closed"?`<button data-ri="${idx}" class="cReqClose" style="background:none;border:none;color:#7aa2ff;cursor:pointer;font-size:12px;font-weight:700">Mark done</button>`:""}</div></div>`).join("") : `<div style="color:#8c8998;font-size:13px">No requests from this customer.</div>`);
+
+  // wiring
+  document.getElementById("cBack").onclick=()=>{ curCust=null; renderCustomers(); };
+  document.getElementById("cSave").onclick=saveCurCust;
+  document.getElementById("cDel").onclick=deleteCurCust;
+  document.getElementById("cCode").onclick=()=>{ curCust.accessCode=genCode(); renderCustomerDetail(); };
+  document.getElementById("cCopy").onclick=()=>{
+    const code=document.getElementById("cd_name")&&curCust.accessCode;
+    const msg = `Manage your vehicle, payments & financing in our app:\n${portalURL()}\n\nEmail: ${curCust.email||"(your email)"}\nAccess code: ${curCust.accessCode||"(issue a code first)"}\n\nTip: open the link on your phone and tap “Add to Home Screen” to install it as an app.`;
+    navigator.clipboard.writeText(msg).then(()=>alert("Portal invite copied — paste it to your customer (text/email)."),()=>prompt("Copy this:",msg));
+  };
+  document.getElementById("cPay").onclick=()=>{
+    const amt=parseFloat(prompt("Payment amount (USD)?",String(curCust.contract&&curCust.contract.monthlyPayment||"")))||0;
+    if(!amt) return; const method=prompt("Method? (Cash, Card, Zelle, Cash App, Bank)","Cash")||"Payment";
+    curCust.payments=Array.isArray(curCust.payments)?curCust.payments:[];
+    curCust.payments.push({date:new Date().toISOString().slice(0,10),amount:amt,method:method});
+    renderCustomerDetail();
+  };
+  list.querySelectorAll(".cPayDel").forEach(b=>b.onclick=()=>{ curCust.payments.splice(+b.dataset.pi,1); renderCustomerDetail(); });
+  list.querySelectorAll(".cReqClose").forEach(b=>b.onclick=()=>{ curCust.requests[+b.dataset.ri].status="closed"; renderCustomerDetail(); });
+}
+
+function collectCust(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:undefined;};
+  const num=id=>{const v=g(id);return v===""||v==null?null:Number(v);};
+  curCust.name=g("cd_name"); curCust.email=g("cd_email"); curCust.phone=g("cd_phone"); curCust.status=(g("cd_status")||"active").trim().toLowerCase();
+  curCust.dealerName=dealerName();
+  curCust.vehicle={year:num("cd_v_year"),make:g("cd_v_make"),model:g("cd_v_model"),trim:g("cd_v_trim"),vin:g("cd_v_vin"),color:g("cd_v_color"),mileage:num("cd_v_mileage"),stock:g("cd_v_stock")};
+  curCust.contract={salePrice:num("cd_c_price"),downPayment:num("cd_c_down"),amountFinanced:num("cd_c_fin"),apr:num("cd_c_apr"),termMonths:num("cd_c_term"),monthlyPayment:num("cd_c_monthly"),firstDueDate:g("cd_c_first"),payoffAmount:num("cd_c_payoff"),state:g("cd_c_state"),status:curCust.status};
+  curCust.state=g("cd_c_state");
+  const f=curCust.financial||{};
+  curCust.financial={income:num("cd_f_income"),employer:g("cd_f_employer"),employmentYears:num("cd_f_years"),notes:f.notes};
+}
+
+async function saveCurCust(){
+  collectCust();
+  if(!curCust.email){ alert("An email is required (it's the customer's portal login)."); return; }
+  if(!curCust.id) curCust.id=newId();
+  const btn=document.getElementById("cSave"); btn.disabled=true; btn.textContent="Saving…";
+  try{
+    await kvSet("fda:cust:"+curCust.id, curCust);
+    await kvSet("fda:custmap:"+normEmail(curCust.email), {id:curCust.id});   // email -> id (portal login lookup); object form so /api/data doesn't mangle it
+    await loadCustIndex();
+    const summary={id:curCust.id,name:curCust.name,email:curCust.email,status:curCust.status,vehicle:{year:curCust.vehicle.year,make:curCust.vehicle.make,model:curCust.vehicle.model}};
+    const ix=custIndex.findIndex(x=>x.id===curCust.id);
+    if(ix>=0) custIndex[ix]=summary; else custIndex.push(summary);
+    await kvSet(CUST_INDEX_KEY, custIndex);
+    document.getElementById("cloudDot").textContent="Cloud: saved ✓"; document.getElementById("cloudDot").style.color="#2fd47f";
+    alert("Saved. Customer can sign in at "+portalURL()+" with their email + access code.");
+  }catch(e){ alert("Save failed: "+e.message); }
+  btn.disabled=false; btn.textContent="Save";
+}
+
+async function deleteCurCust(){
+  if(!curCust.id){ curCust=null; return renderCustomers(); }
+  if(!confirm("Delete this customer and their portal access?")) return;
+  try{
+    await fetch("/api/data?key="+encodeURIComponent("fda:cust:"+curCust.id),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:"{}"});
+    if(curCust.email) await fetch("/api/data?key="+encodeURIComponent("fda:custmap:"+normEmail(curCust.email)),{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:"{}"});
+    await loadCustIndex(); custIndex=custIndex.filter(x=>x.id!==curCust.id); await kvSet(CUST_INDEX_KEY,custIndex);
+  }catch(e){}
+  curCust=null; renderCustomers();
+}
+
+function newCustomer(){
+  curCust={ id:newId(), name:"", email:"", status:"active", accessCode:genCode(), dealerName:dealerName(), vehicle:{}, contract:{state:"CA"}, payments:[], financial:{}, requests:[] };
+  renderCustomerDetail();
+}
+
+/* ===================== STATE REQUIREMENTS — review & edit ===================== */
+const STATEREQ_KEY = "fda:statereq:overrides";
+let stateOverrides = null;
+async function renderStateReq(){
+  const list=document.getElementById("list");
+  if(!window.StateReq){ list.innerHTML=`<div style="color:#8c8998;padding:20px">Requirements engine not loaded.</div>`; return; }
+  if(stateOverrides===null){ try{ stateOverrides = (await kvGet(STATEREQ_KEY))||{}; }catch(e){ stateOverrides={}; } }
+  const opts=window.StateReq.states().map(s=>`<option value="${s.code}">${s.name}</option>`).join("");
+  list.innerHTML=`
+    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="srState" style="flex:1;min-width:180px;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${opts}</select>
+        <button id="srEdit" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px">✎ Edit / verify</button>
+      </div>
+      <p style="font-size:12.5px;color:#8c8998;margin:10px 0 0">⚠️ This is a commonly-cited baseline, <b>not legal advice</b>. Have your attorney verify each state before relying on it. Edits are saved to your account and used in the customer portal.</p>
+    </div>
+    <div id="srView"></div>`;
+  const sel=document.getElementById("srState");
+  const show=()=>{ document.getElementById("srView").innerHTML=window.StateReq.render(sel.value,"autoSales",{overrides:stateOverrides}); window.StateReq.injectCSS(); };
+  sel.onchange=show; show();
+  document.getElementById("srEdit").onclick=()=>editState(sel.value);
+}
+function editState(code){
+  const base=window.StateReq.get(code,"autoSales",stateOverrides).state;
+  const fields=[["dealerLicense","Dealer licensing"],["salesTax","Sales / titling tax"],["docFee","Documentary / processing fee"],["coolingOff","Right to cancel"],["retailInstallment","Retail-installment / finance law"],["usury","Interest-rate (usury) limits"],["gap","GAP / debt-cancellation"],["refinance","Refinancing"]];
+  const list=document.getElementById("list");
+  list.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><button id="srBack" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">← Back</button><button id="srSave" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save ${code}</button></div>
+    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px"><div style="font-weight:700;margin-bottom:6px">${base.name} — edit requirements</div>`+
+    `<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">State regulator</label><input id="sr_regulator" value="${(base.regulator||"").replace(/"/g,"&quot;")}" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">`+
+    fields.map(f=>`<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">${f[1]}</label><textarea id="sr_${f[0]}" rows="2" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${(base[f[0]]||"").replace(/</g,"&lt;")}</textarea>`).join("")+
+    `<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:#b6b2c2"><input type="checkbox" id="sr_verified" ${base.verified?"checked":""} style="width:auto"> I (or my counsel) have verified this state is accurate</label></div>`;
+  document.getElementById("srBack").onclick=renderStateReq;
+  document.getElementById("srSave").onclick=async()=>{
+    const o={regulator:document.getElementById("sr_regulator").value};
+    fields.forEach(f=>{ o[f[0]]=document.getElementById("sr_"+f[0]).value; });
+    o.verified=document.getElementById("sr_verified").checked;
+    stateOverrides=stateOverrides||{}; stateOverrides[code]=Object.assign({},stateOverrides[code],o);
+    try{ await kvSet(STATEREQ_KEY,stateOverrides); alert(code+" saved."); renderStateReq(); }catch(e){ alert("Save failed: "+e.message); }
+  };
+}
 
 /* ===================== SETTINGS — env secrets manager ===================== */
 function adminToken(){ return sessionStorage.getItem("fda_admin") || ""; }
@@ -561,6 +772,7 @@ document.getElementById("logoutBtn").onclick = ()=>{ sessionStorage.removeItem("
 if(sessionStorage.getItem("fda_auth")==="1"){ enterApp(); }
 else { document.getElementById("loginPw").focus(); }
 </script>
+<script src="/data/state-requirements.js"></script>
 <script src="/i18n.js"></script>
 </body>
 </html>

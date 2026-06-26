@@ -207,6 +207,7 @@
   #builder input::placeholder,#builder textarea::placeholder{color:#9aa0aa}
 </style>
 
+<script src="/data/state-requirements.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let mode = "auto";
@@ -510,9 +511,19 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   }
   const seoHead = `<meta name="description" content="${esc(seoDesc)}"><meta property="og:title" content="${esc(name)}"><meta property="og:description" content="${esc(seoDesc)}"><meta property="og:type" content="website">${/^https?:/.test(heroImg)?`<meta property="og:image" content="${heroImg}">`:""}<meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">${JSON.stringify(ld).replace(/</g,"\\u003c")}<\/script>`;
 
+  // ---- Auto-sales: financing + state requirements + customer portal ----
+  // These point at our hosted apps (absolute), so they keep working even when
+  // the site is downloaded or published on the client's own domain.
+  const ORIGIN = location.origin;
+  const isAuto = /\b(auto|cars?|vehicles?|dealer|dealership|motors?|automotive|trucks?|pre-?owned|used cars?|buy here pay here|bhph)\b/i.test((type||"")+" "+(name||""));
+  const stateCode = (window.StateReq ? window.StateReq.codeFromText(full||city||addr) : "") || "";
+  const portalUrl = ORIGIN + "/portal.html";
+  const reqUrl = ORIGIN + "/requirements.html" + (stateCode ? ("?state="+stateCode) : "");
+
   // Reusable cinematic bits.
   const eyebrow = (t)=>`<div class="reveal cine-eyebrow">${t||""}</div>`;
-  const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" class="cnav-link">${l}</a>`).join("");
+  const navExtra = (isAuto?`<a href="#g-financing" class="cnav-link">${L.financingNav||"Financing"}</a>`:"") + `<a href="${portalUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`;
+  const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" class="cnav-link">${l}</a>`).join("") + navExtra;
   const langOptions = (()=>{ const have=CINE_LANGS.some(([v])=>v===lang); const list=have?CINE_LANGS:[[lang,lang],...CINE_LANGS]; return list.map(([v,n])=>`<option value="${v}"${v===lang?" selected":""}>${n}</option>`).join(""); })();
   const svcHtml = svc.map((s,i)=>`<div class="ccard reveal" style="padding:34px 30px"><div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:${acc};letter-spacing:.1em;margin-bottom:18px">${String(i+1).padStart(2,"0")}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${acc};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:var(--muted);margin-top:10px;line-height:1.6">${s.desc||""}</div></div>`).join("");
   const galHtml = gal.map(u=>`<div class="gphoto reveal"><img class="cimg" src="${u}" loading="lazy" alt=""></div>`).join("");
@@ -523,6 +534,20 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // when we have real photos, so they don't repeat the hero placeholder.
   const featureHtml = (photos.length>=2 ? svc.slice(0,2) : []).map((s,i)=>`
   <section class="gsec cine-panel"><img class="panel-img" src="${photos[(i+1)%photos.length]}" loading="lazy" alt=""><div class="cine-panel-grad"></div><div class="cine-panel-inner"><div class="reveal cine-eyebrow" style="color:rgba(255,255,255,.85)">${L.servicesKicker||"Featured"}</div><h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,5vw,60px);font-weight:700;letter-spacing:-.02em;line-height:1.02;color:#fff;margin-bottom:18px">${s.name||""}</h2><p class="reveal" style="font-size:clamp(16px,1.6vw,19px);color:rgba(255,255,255,.85);max-width:560px;margin:0 auto 28px;line-height:1.6">${s.desc||""}</p><div class="reveal"><a class="cbtn cbtnA" href="#g-services">${L.heroCta2||"Explore"}</a></div></div></section>`).join("");
+
+  // ---- Financing & State Requirements section (auto-sales businesses) ----
+  const financeSection = isAuto ? `
+  <section id="g-financing" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)">
+    <style>${window.StateReq?window.StateReq.css:""}</style>
+    <div style="max-width:1180px;margin:0 auto;padding:14vh 28px">
+      <div style="text-align:center;margin-bottom:42px">${eyebrow(L.financingKicker||"Financing & Compliance")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.financingTitle||"Financing & State Requirements"}</h2><p class="reveal" style="font-size:18px;line-height:1.7;color:var(--muted);max-width:640px;margin:16px auto 0">Transparent, compliant financing — including every federal disclosure and the rules that apply${stateCode?(" in "+(window.STATE_REQUIREMENTS.states[stateCode]||{}).name):""}. Already a customer? Manage your payments and account in our app.</p></div>
+      <div class="reveal">${(window.StateReq&&stateCode)?window.StateReq.render(stateCode,"autoSales"):'<p style="text-align:center;color:var(--muted)">Choose your state to see the full requirements.</p>'}</div>
+      <div class="reveal" style="text-align:center;margin-top:34px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a class="cbtn cbtnA" href="${reqUrl}" target="_blank" rel="noopener">${L.reqCta||"View full state requirements"}</a>
+        <a class="cbtn cbtnB" href="${portalUrl}" target="_blank" rel="noopener">${L.portalCta||"My Account — manage payments"}</a>
+      </div>
+    </div>
+  </section>` : "";
 
   // Optional media sections — only render when the client provided them.
   const videoSection = M.video ? `
@@ -646,6 +671,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-reviews" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("Reviews")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.reviewsTitle||"What People Say"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">${revHtml}</div></div></section>
   <section id="g-faq" class="gsec" style="max-width:880px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("FAQ")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,4.5vw,48px);font-weight:700;letter-spacing:-.02em">${L.faqTitle||"Questions"}</h2></div><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
   ${postsSection}
+  ${financeSection}
   <section id="g-contact" class="gsec" style="position:relative;border-top:1px solid var(--line);overflow:hidden">
     <div style="position:absolute;inset:0;background:radial-gradient(70% 60% at 82% 18%,${hexToRgba(acc,.18)},transparent)"></div>
     <div style="position:relative;max-width:1180px;margin:0 auto;padding:14vh 28px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">

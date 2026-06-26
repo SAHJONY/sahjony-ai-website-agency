@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>State Requirements — Auto Sales & Financing</title>
+<meta name="description" content="Look up auto-sales, financing, and refinancing requirements for any U.S. state, plus the federal rules that apply nationwide." />
+<style>
+  :root{--bg:#0a0b0e;--panel:#121319;--fg:#f1eff5;--mut:#a3a0b0;--acc:#ff8366;--bd:rgba(255,255,255,.10)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+  a{color:var(--acc)}
+  .top{position:sticky;top:0;z-index:10;background:rgba(10,11,14,.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd)}
+  .top .in{max-width:1000px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{font-weight:800;display:flex;align-items:center;gap:10px}
+  .brand img{width:30px;height:30px;border-radius:8px}
+  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 60px}
+  h1{font-size:clamp(26px,5vw,40px);letter-spacing:-.02em;margin:.2em 0}
+  .lead{color:var(--mut);max-width:640px}
+  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:22px 0 8px}
+  select,.btn{font:inherit;background:var(--panel);color:var(--fg);border:1px solid var(--bd);border-radius:12px;padding:12px 16px}
+  select{min-width:220px}
+  .btn{background:linear-gradient(135deg,var(--acc),#ffb199);color:#1a0d08;border:0;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+  #out{margin-top:18px}
+</style>
+</head>
+<body>
+<div class="top"><div class="in">
+  <a class="brand" href="/" style="text-decoration:none;color:var(--fg)"><img src="/icon-192.png" alt="" /> frontdeskagents</a>
+  <a class="btn" href="/portal.html">My Account →</a>
+</div></div>
+
+<div class="wrap">
+  <h1>State requirements for auto sales &amp; financing</h1>
+  <p class="lead">Pick a state to see dealer-licensing, fee, finance, and refinancing rules — plus the federal requirements that apply in every state. A clear starting point for buyers and dealers alike.</p>
+
+  <div class="controls">
+    <label for="state" style="color:var(--mut);font-size:14px">State:</label>
+    <select id="state" aria-label="State"></select>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script src="/data/state-requirements.js"></script>
+<script>
+(function(){
+  var sel=document.getElementById("state"), out=document.getElementById("out");
+  if(!window.StateReq){ out.textContent="Requirements engine failed to load."; return; }
+  window.StateReq.states().forEach(function(s){ var o=document.createElement("option"); o.value=s.code; o.textContent=s.name; sel.appendChild(o); });
+  window.StateReq.injectCSS();
+  function show(){ out.innerHTML=window.StateReq.render(sel.value,"autoSales"); history.replaceState(null,"","?state="+sel.value); }
+  sel.addEventListener("change",show);
+  // Honor ?state=XX deep link (used by generated dealer sites).
+  var q=(location.search.match(/state=([A-Za-z]{2})/)||[])[1];
+  sel.value=(q&&q.toUpperCase()) || "CA";
+  if(!sel.value) sel.value="CA";
+  show();
+})();
+</script>
+</body>
+</html>

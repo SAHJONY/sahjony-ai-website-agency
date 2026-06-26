@@ -75,8 +75,22 @@
       <p style="font-size:16px;color:#aaa7b5;line-height:1.6;margin-bottom:26px">Fill the basics — AI writes every section and assembles a full, ready-to-launch site.</p>
 
       <div style="display:flex;gap:8px;background:#16161e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:5px;margin-bottom:18px">
-        <button id="mFresh" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:#ff5c38;color:#0d0d12">✨ Start fresh</button>
-        <button id="mUrl" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">🔄 Redesign a site</button>
+        <button id="mAuto" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:#ff5c38;color:#0d0d12">🤖 Auto</button>
+        <button id="mFresh" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">✨ Start fresh</button>
+        <button id="mUrl" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">🔄 Redesign</button>
+      </div>
+
+      <!-- ===== AUTONOMOUS MODE: name + address only — we research the rest ===== -->
+      <div id="autoPanel" style="display:flex;flex-direction:column;gap:15px">
+        <div style="background:#16161e;border:1px solid rgba(255,92,56,.25);border-radius:13px;padding:16px 18px">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">🤖 Autonomous build</div>
+          <div style="font-size:13.5px;color:#aaa7b5;line-height:1.55">Just the business <b>name</b> and <b>address</b>. We look it up on Google, pull its category, phone, hours, rating &amp; real reviews — then the AI designs the whole site for you.</div>
+        </div>
+        <div><label class="lbl">Business name *</label><input id="aName" placeholder="e.g. Maria's Bakery"></div>
+        <div><label class="lbl">Address *</label><input id="aAddr" placeholder="123 Main St, Houston, TX, USA"></div>
+        <button id="autoBtn" style="margin-top:4px;background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">🤖 Research &amp; build automatically</button>
+        <div id="autoErr" style="color:#ff8366;font-size:14px;text-align:center;display:none"></div>
+        <div style="font-size:13px;color:#8c8998;text-align:center">Powered by Google Places + SAHJONY AI™. Sign in to your Dashboard first so the research call is authorized.</div>
       </div>
 
       <div id="urlWrap" style="display:none;margin-bottom:14px">
@@ -84,7 +98,7 @@
         <input id="fUrl" placeholder="oldwebsite.com" style="width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,92,56,.3);background:#16161e;color:#f0eef2;font-size:16px">
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:15px">
+      <div id="manualForm" style="display:flex;flex-direction:column;gap:15px">
         <div style="background:#16161e;border:1px solid rgba(255,92,56,.25);border-radius:13px;padding:15px 16px">
           <label class="lbl" style="color:#ff8366">📋 Paste any business info (optional — fastest way)</label>
           <textarea id="fPaste" rows="4" placeholder="Paste anything: an About blurb, services & prices, hours, menu, reviews, a Google listing, or the text from their old site. The AI reads it and builds the site from it — you can leave the fields below blank."></textarea>
@@ -149,6 +163,7 @@
               <input id="sYoutube" placeholder="YouTube URL" style="padding:9px 12px;font-size:14px">
               <input id="sX" placeholder="X / Twitter URL" style="padding:9px 12px;font-size:14px">
               <input id="sWhatsapp" placeholder="WhatsApp link/number" style="padding:9px 12px;font-size:14px">
+              <input id="sLinkedin" placeholder="LinkedIn URL" style="padding:9px 12px;font-size:14px">
             </div>
           </div>
 
@@ -194,18 +209,29 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let mode = "fresh";
+let mode = "auto";
 
 const CHIPS = ["Home","About","Services","Gallery","Reviews","FAQ","Hours","Map","Contact","Social links","Click-to-call","Footer"];
 $("#chips").innerHTML = CHIPS.map(c=>`<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#d6d3df;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px">${c}</div>`).join("");
 
-$("#mFresh").onclick = ()=>{ mode="fresh"; $("#mFresh").style.background="#ff5c38";$("#mFresh").style.color="#0d0d12";$("#mUrl").style.background="transparent";$("#mUrl").style.color="#aaa7b5";$("#urlWrap").style.display="none"; };
-$("#mUrl").onclick = ()=>{ mode="url"; $("#mUrl").style.background="#ff5c38";$("#mUrl").style.color="#0d0d12";$("#mFresh").style.background="transparent";$("#mFresh").style.color="#aaa7b5";$("#urlWrap").style.display="block"; };
+// Three modes: auto (name+address → we research), fresh (manual form), url (redesign).
+function setMode(m){
+  mode = m;
+  const map = { auto:"#mAuto", fresh:"#mFresh", url:"#mUrl" };
+  for(const k in map){ const b=$(map[k]); if(!b) continue; const on=(k===m); b.style.background=on?"#ff5c38":"transparent"; b.style.color=on?"#0d0d12":"#aaa7b5"; }
+  $("#autoPanel").style.display = (m==="auto") ? "flex" : "none";
+  $("#manualForm").style.display = (m==="auto") ? "none" : "flex";
+  $("#urlWrap").style.display = (m==="url") ? "block" : "none";
+}
+$("#mAuto").onclick = ()=>setMode("auto");
+$("#mFresh").onclick = ()=>setMode("fresh");
+$("#mUrl").onclick = ()=>setMode("url");
+setMode("auto");
 
 // prefill from ?mode=url&url=
 const qp = new URLSearchParams(location.search);
-if(qp.get("mode")==="url"){ $("#mUrl").click(); }
-if(qp.get("url")){ $("#fUrl").value = qp.get("url"); $("#mUrl").click(); }
+if(qp.get("mode")==="url"){ setMode("url"); }
+if(qp.get("url")){ $("#fUrl").value = qp.get("url"); setMode("url"); }
 
 function val(id){ return ($("#"+id).value||"").trim(); }
 function deriveName(u){ try{ const h=u.replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0].split(".")[0]; return h.charAt(0).toUpperCase()+h.slice(1); }catch(e){ return "Your Business"; } }
@@ -222,6 +248,8 @@ function loadFonts(href){ if(document.querySelector('link[data-genfont="'+href+'
 
 /* ===================== MEDIA & SOCIAL ===================== */
 const media = { photos:[], videoData:"", audioData:"" };
+// Extra researched data (multi-location chains) carried into the generated site.
+const autoData = { locations:[] };
 
 function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
 
@@ -248,12 +276,14 @@ function collectMedia(){
     photos: media.photos.slice(),
     video: val("fVideo") || media.videoData || "",
     audio: val("fAudio") || media.audioData || "",
-    social: { facebook:val("sFacebook"), instagram:val("sInstagram"), tiktok:val("sTiktok"), youtube:val("sYoutube"), x:val("sX"), whatsapp:val("sWhatsapp") },
+    social: { facebook:val("sFacebook"), instagram:val("sInstagram"), tiktok:val("sTiktok"), youtube:val("sYoutube"), x:val("sX"), whatsapp:val("sWhatsapp"), linkedin:val("sLinkedin") },
     posts: val("fPosts").split(/\n+/).map(s=>s.trim()).filter(Boolean),
+    locations: (autoData.locations||[]).slice(),
+    biz: autoData.biz || null,
   };
 }
 
-const SOCIAL_META = { facebook:["Facebook","📘"], instagram:["Instagram","📷"], tiktok:["TikTok","🎵"], youtube:["YouTube","▶️"], x:["X","𝕏"], whatsapp:["WhatsApp","💬"] };
+const SOCIAL_META = { facebook:["Facebook","📘"], instagram:["Instagram","📷"], tiktok:["TikTok","🎵"], youtube:["YouTube","▶️"], x:["X","𝕏"], whatsapp:["WhatsApp","💬"], linkedin:["LinkedIn","in"] };
 function socialHref(k,v){ if(k==="whatsapp" && /^[0-9+ ()-]+$/.test(v)) return "https://wa.me/"+v.replace(/[^0-9]/g,""); return /^https?:\/\//.test(v)?v:("https://"+v); }
 function socialLinksHtml(social, color, size){
   const items = Object.entries(social||{}).filter(([k,v])=>v && v.trim());
@@ -322,7 +352,8 @@ ART DIRECTION: choose a bold, cohesive color palette and a tasteful Google-Font 
 Heading fonts: Space Grotesk, Sora, Poppins, Montserrat, Playfair Display, Fraunces, DM Serif Display, Bricolage Grotesque, Outfit, Syne, Unbounded, Manrope.
 Body fonts: Inter, DM Sans, Manrope, Work Sans, Nunito Sans, Mulish, Figtree, Rubik.
 Copy must be specific and vivid — sensory, local, confident. No filler.
-Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
+MENU/PRODUCTS: if this is a restaurant, cafe, bakery, bar, food truck, or a retail/product business, also return a "menu" array of 6-14 REAL items with prices, grouped by category (e.g. Starters, Mains, Drinks, or product collections). Extract real item names & prices from the SOURCE INFORMATION when present; otherwise create realistic ones typical for this business. For pure service businesses (law, salon, repair, etc.) return "menu":[].
+Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"menu":[{"name":"","desc":"<=8 words","price":"e.g. $12","category":"short group name"}] 6-14 items WITH prices for food/retail businesses else empty array,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","menuKicker":"Menu","menuTitle":"Our Menu","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
   // Try the AI brain; retry once before giving up. Only fall back to the built-in
@@ -403,6 +434,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const ld = {"@context":"https://schema.org","@type":"LocalBusiness","name":name,"description":seoDesc,"telephone":phone,"email":email,"address":{"@type":"PostalAddress","streetAddress":addr||"","addressLocality":city},"areaServed":city};
   if(sameAs.length) ld.sameAs=sameAs;
   if(/^https?:/.test(heroImg)) ld.image=heroImg;
+  // Bake in everything else we researched: geo, Google rating, hours, all branches.
+  const _b = M.biz || {};
+  if(_b.website) ld.url=_b.website;
+  if(_b.lat && _b.lng) ld.geo={"@type":"GeoCoordinates","latitude":_b.lat,"longitude":_b.lng};
+  if(_b.rating && _b.reviewsCount) ld.aggregateRating={"@type":"AggregateRating","ratingValue":_b.rating,"reviewCount":_b.reviewsCount};
+  if(_b.hours && _b.hours.length) ld.openingHours=_b.hours;
+  if((M.locations||[]).length>1){
+    ld.location=(M.locations||[]).map(l=>({"@type":"LocalBusiness","name":l.name||name,"address":l.address,"telephone":l.phone||undefined}));
+  }
   const seoHead = `<meta name="description" content="${esc(seoDesc)}"><meta property="og:title" content="${esc(name)}"><meta property="og:description" content="${esc(seoDesc)}"><meta property="og:type" content="website">${/^https?:/.test(heroImg)?`<meta property="og:image" content="${heroImg}">`:""}<meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">${JSON.stringify(ld).replace(/</g,"\\u003c")}<\/script>`;
 
   const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" style="color:#1d2129;text-decoration:none;font-size:14px;font-weight:600;opacity:.8">${l}</a>`).join("");
@@ -419,6 +459,20 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-audio" class="gsec" style="max-width:760px;margin:0 auto;padding:60px 28px;text-align:center"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">Listen</div><audio src="${M.audio}" controls style="width:100%"></audio></section>` : "";
   const postsSection = (M.posts&&M.posts.length) ? `
   <section id="g-social" class="gsec" style="max-width:1040px;margin:0 auto;padding:84px 28px"><div style="text-align:center;margin-bottom:40px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">Social</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.02em">Follow us</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">${M.posts.map(p=>postCard(p,primary)).join("")}</div>${socialNav?`<div style="display:flex;gap:12px;justify-content:center;margin-top:32px">${socialLinksHtml(M.social, primary+"1a", 46)}</div>`:""}</section>` : "";
+
+  // ---- Menu / products: real items WITH photos + prices, grouped by category ----
+  const menuItems = (gen.menu||[]).filter(m=>m&&m.name).slice(0,14);
+  const menuImg = (i)=> (photos.length?photos[i%photos.length]:"") || `https://loremflickr.com/600/400/${kw},food?lock=${40+i}`;
+  const menuCats = [];
+  menuItems.forEach((m,i)=>{ const c=((m.category||"").trim())||(L.menuTitle||"Menu"); let g=menuCats.find(x=>x.cat===c); if(!g){ g={cat:c,items:[]}; menuCats.push(g); } g.items.push(Object.assign({_i:i}, m)); });
+  const itemCard = (m)=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;overflow:hidden;display:flex;flex-direction:column"><div style="aspect-ratio:4/3;overflow:hidden"><img src="${menuImg(m._i)}" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div><div style="padding:18px 20px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px">${m.name||""}</div><div style="font-weight:700;color:${primary};white-space:nowrap">${m.price||""}</div></div>${m.desc?`<div style="font-size:14px;color:#5c6270;margin-top:6px;line-height:1.5">${m.desc}</div>`:""}</div></div>`;
+  const menuSection = menuItems.length ? `
+  <section id="g-menu" class="gsec" style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:44px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.menuKicker||"Menu"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${L.menuTitle||"Our Menu"}</h2></div>${menuCats.map(g=>`<div style="margin-bottom:42px">${menuCats.length>1?`<h3 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin-bottom:22px;border-bottom:2px solid ${primary};display:inline-block;padding-bottom:6px">${g.cat}</h3>`:""}<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px">${g.items.map(itemCard).join("")}</div></div>`).join("")}</section>` : "";
+
+  // ---- Locations: every branch when the business has more than one location ----
+  const locs = (M.locations||[]).filter(l=>l&&l.address);
+  const locationsSection = (locs.length>1) ? `
+  <section id="g-locations" class="gsec" style="background:#f6f7f9"><div style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:44px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.find||"Locations"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${locs.length} ${(L.find&&/location/i.test(L.find))?L.find:"Locations"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px">${locs.map(l=>`<div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:24px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px">${l.name||name}</div><div style="font-size:15px;color:#5c6270;line-height:1.5;margin-bottom:10px">${l.address}</div>${l.phone?`<a href="tel:${(l.phone||"").replace(/[^0-9+]/g,"")}" style="display:block;font-size:15px;color:${primary};text-decoration:none;font-weight:600;margin-bottom:10px">${l.phone}</a>`:""}${(l.hours&&l.hours.length)?`<div style="font-size:12.5px;color:#5c6270;line-height:1.7;margin-bottom:12px">${l.hours.slice(0,7).join("<br>")}</div>`:""}${l.mapsUrl?`<a href="${l.mapsUrl}" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:${primary};text-decoration:none">Directions →</a>`:""}</div>`).join("")}</div></div></section>` : "";
 
   const siteHtml = `
   <style>.genroot{font-family:'${bodyFont}',system-ui,sans-serif}.genroot [style*="Space Grotesk"]{font-family:'${headingFont}',system-ui,sans-serif!important}</style>
@@ -445,8 +499,10 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   </section>
   <section id="g-services" class="gsec" style="background:#f6f7f9"><div style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:50px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.servicesKicker||"What We Offer"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${L.servicesTitle||"Our Services"}</h2></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">${svcHtml}</div></div></section>
   <section id="g-gallery" class="gsec" style="max-width:1180px;margin:0 auto;padding:90px 28px"><div style="text-align:center;margin-bottom:44px"><div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${primary};margin-bottom:12px">${L.galleryKicker||"Gallery"}</div><h2 style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.02em">${L.galleryTitle||"Take a Look"}</h2></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">${galHtml}</div></section>
+  ${menuSection}
   ${videoSection}
   ${audioSection}
+  ${locationsSection}
   <section id="g-reviews" class="gsec" style="background:#f6f7f9"><div style="max-width:1180px;margin:0 auto;padding:90px 28px"><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:48px">${L.reviewsTitle||"What People Say"}</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">${revHtml}</div></div></section>
   <section id="g-faq" class="gsec" style="max-width:860px;margin:0 auto;padding:90px 28px"><h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:44px">${L.faqTitle||"FAQ"}</h2><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
   ${postsSection}
@@ -511,6 +567,104 @@ function downloadSite(name, inner, fontsHref, seoHead){
 }
 
 $("#buildBtn").onclick = generate;
+
+/* ===================== AUTONOMOUS BUILD ===================== */
+// Turn the researched Google data into a rich SOURCE blob the AI treats as the
+// primary source of truth (the generate() prompt already extracts services,
+// hours, story & reviews from pasted source info).
+function buildSourceBlob(b){
+  const L = [];
+  L.push("Business name: " + b.name);
+  if(b.type) L.push("Type / category: " + b.type);
+  if(b.address) L.push("Address: " + b.address);
+  if(b.phone) L.push("Phone: " + b.phone);
+  if(b.email) L.push("Email: " + b.email);
+  if(b.website) L.push("Their current website: " + b.website);
+  if(b.rating) L.push("Google rating: " + b.rating + "★ from " + (b.reviewsCount||0) + " reviews");
+  if(b.summary) L.push("Google summary: " + b.summary);
+  if(b.about) L.push("From their website: " + b.about);
+  if(b.hours && b.hours.length) L.push("Opening hours:\n" + b.hours.join("\n"));
+  if(b.reviews && b.reviews.length){
+    L.push("Real customer reviews (use these, lightly trimmed — do not invent others):");
+    b.reviews.forEach(r=>L.push('- "' + r.text.replace(/\s+/g," ").slice(0,240) + '" — ' + (r.author||"Customer") + (r.rating?(" ("+r.rating+"★)"):"")));
+  }
+  if(b.locations && b.locations.length>1){
+    L.push("This business has " + b.locations.length + " locations — feature ALL of them:");
+    b.locations.forEach((l,i)=>L.push((i+1)+". " + (l.name||b.name) + " — " + l.address + (l.phone?(" · "+l.phone):"")));
+  }
+  return L.join("\n");
+}
+
+async function autoBuild(){
+  const ae = $("#autoErr"); ae.style.display="none";
+  const name = val("aName"), address = val("aAddr");
+  if(!name || !address){ ae.textContent="Enter both the business name and the address."; ae.style.display="block"; return; }
+
+  $("#idlePane").style.display="none"; $("#loadPane").style.display="block";
+  const ab = $("#autoBtn"); ab.disabled=true; ab.textContent="Researching…";
+  const lm = $("#loadMsg"); if(lm) lm.textContent="🔎 Looking the business up on Google…";
+
+  const token = getCookie("fda_auth");
+  let biz=null, lookupErr=null;
+  try{
+    const r = await fetch("/api/leads-find",{ method:"POST",
+      headers: Object.assign({"content-type":"application/json"}, token?{"x-admin-token":token}:{}),
+      body: JSON.stringify({ lookup:true, name, address }) });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error || ("Research returned "+r.status));
+    biz = j.business;
+  }catch(e){ lookupErr = e.message || "research failed"; }
+
+  // Feed everything we learned into the manual fields so generate() runs as usual.
+  if(biz){
+    $("#fName").value  = biz.name || name;
+    $("#fType").value  = biz.type || "local business";
+    $("#fCity").value  = biz.city || (address.split(",").slice(1).join(",").trim());
+    $("#fPhone").value = biz.phone || "";
+    $("#fEmail").value = biz.email || "";
+    $("#fAddr").value  = biz.address || address;
+    $("#fPaste").value = buildSourceBlob(biz);
+
+    // Keep the full researched record so renderSite can bake real geo / rating /
+    // hours / all locations into the site's SEO structured data.
+    autoData.locations = (biz.locations||[]).slice();
+    autoData.biz = biz;
+
+    // Real photos (Google + their site) → the gallery/hero. Only fall back to an
+    // AI hero image when research found no usable photos at all.
+    const pics = (biz.photos||[]).filter(Boolean);
+    media.photos = pics.slice(0, 8);
+    renderThumbs();
+    if($("#fAIimg")) $("#fAIimg").checked = (pics.length === 0);
+
+    // Video, audio and every social profile we found.
+    if(biz.video) $("#fVideo").value = biz.video;
+    if(biz.audio) $("#fAudio").value = biz.audio;
+    const S = biz.social || {};
+    const setSocial = (id,v)=>{ if(v && $(id)) $(id).value = v; };
+    setSocial("#sFacebook",  S.facebook);
+    setSocial("#sInstagram", S.instagram);
+    setSocial("#sTiktok",    S.tiktok);
+    setSocial("#sYoutube",   S.youtube);
+    setSocial("#sX",         S.x);
+    setSocial("#sWhatsapp",  S.whatsapp);
+    setSocial("#sLinkedin",  S.linkedin);
+  } else {
+    // Couldn't reach Google — still build from just the name + address given.
+    autoData.locations = []; autoData.biz = null;
+    $("#fName").value  = name;
+    $("#fType").value  = "local business";
+    $("#fAddr").value  = address;
+    $("#fCity").value  = address.split(",").slice(1).join(",").trim();
+    if($("#fAIimg")) $("#fAIimg").checked = true;
+    if(lookupErr){ ae.textContent="⚠ Couldn't fetch Google details ("+lookupErr+") — designing from the name & address you gave. Tip: sign into the Dashboard so research is authorized."; ae.style.display="block"; }
+  }
+
+  if(lm) lm.textContent="✦ SAHJONY AI™ is designing the site…";
+  try{ await generate(); }
+  finally{ ab.disabled=false; ab.textContent="🤖 Research & build automatically"; }
+}
+$("#autoBtn").onclick = autoBuild;
 </script>
 <script src="/i18n.js"></script>
 </body>

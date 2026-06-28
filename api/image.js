@@ -41,9 +41,17 @@ function pickUrl(data) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // GET ?videoJob=<id> — poll a running OpenMontage render job (the builder
+  // submits a brief, then polls this until the finished video URL is ready).
+  if (req.method === "GET") {
+    const id = req.query && req.query.videoJob;
+    if (!id) return res.status(400).json({ error: "Use POST (or GET ?videoJob=<id>)." });
+    return openMontagePoll(res, String(id));
+  }
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
   let body = req.body;
@@ -58,11 +66,22 @@ export default async function handler(req, res) {
   const secrets = await loadSecrets();
   const getKey = (name) => process.env[name] || secrets[name] || "";
 
-  // VIDEO mode (Higgsfield is the video engine). Folded into this function to
-  // stay under the Hobby 12-function cap. Pass { mode:"video", inputImage? }.
+  // VIDEO mode. Folded into this function to stay under the Hobby 12-function cap.
+  // Two engines: "openmontage" = full agentic production (Python/FFmpeg/Remotion)
+  // via an external render worker (OPENMONTAGE_URL); "higgsfield" = a quick
+  // cinematic clip. Default = OpenMontage when a worker is configured, else
+  // Higgsfield. OpenMontage is async → returns a jobId the builder polls; on any
+  // worker failure we transparently fall back to a Higgsfield clip.
   if (mode === "video") {
+    const omUrl = getKey("OPENMONTAGE_URL");
+    const engine = String((body && body.engine) || (omUrl ? "openmontage" : "higgsfield")).toLowerCase();
+    if (engine === "openmontage" && omUrl) {
+      const submitted = await openMontageSubmit(omUrl, getKey("OPENMONTAGE_TOKEN"), prompt, body || {});
+      if (submitted && submitted.jobId) return res.status(202).json({ jobId: submitted.jobId, provider: "openmontage", pending: true });
+      // fall through to Higgsfield if the worker couldn't accept the job
+    }
     const vkey = higgsfieldCred(getKey);
-    if (!vkey) return res.status(500).json({ error: "Higgsfield not configured. Set HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET (or HIGGSFIELD_API_KEY) to generate video." });
+    if (!vkey) return res.status(500).json({ error: "No video engine configured. Set OPENMONTAGE_URL (full production) or HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET (quick clip)." });
     return higgsfieldVideo(res, vkey, prompt, body || {});
   }
 
@@ -173,6 +192,52 @@ function cinematicImagePrompt(s) {
 function cinematicVideoPrompt(s) {
   s = String(s || "premium local service business").trim();
   return /cinematic 8K ultra-premium/i.test(s) ? s : (s + ". " + CINEMATIC_VIDEO_STYLE + ".");
+}
+
+// ---- OpenMontage (full agentic video production) — async render worker -------
+// OpenMontage is Python/FFmpeg/Remotion and can't run in a serverless function,
+// so it lives behind an external worker (OPENMONTAGE_URL) that speaks a small
+// job contract:
+//   POST  {OPENMONTAGE_URL}/jobs   { brief } -> { jobId }
+//   GET   {OPENMONTAGE_URL}/jobs/<id>        -> { state:"queued|running|done|error", url?, progress?, error? }
+// The builder submits a production brief, gets a jobId, and polls /api/image
+// ?videoJob=<id> (which proxies the worker) until the finished video URL is ready.
+function omHeaders(token) {
+  const h = { "content-type": "application/json" };
+  if (token) h.authorization = "Bearer " + token;
+  return h;
+}
+async function openMontageSubmit(baseUrl, token, prompt, body) {
+  try {
+    const brief = {
+      prompt,
+      business: body.business || "",
+      type: body.type || "",
+      city: body.city || "",
+      durationSec: Math.max(5, Math.min(90, Number(body.durationSec) || 20)),
+      aspect: body.aspect || "16:9",
+      heroImage: body.inputImage || "",
+      photos: Array.isArray(body.photos) ? body.photos.slice(0, 12) : [],
+      style: "cinematic 8K Tesla/Apple flagship brand film",
+    };
+    const r = await fetch(baseUrl.replace(/\/$/, "") + "/jobs", { method: "POST", headers: omHeaders(token), body: JSON.stringify({ brief }) });
+    if (!r.ok) return null;
+    const j = await r.json().catch(() => ({}));
+    const jobId = j.jobId || j.id || (j.job && j.job.id);
+    return jobId ? { jobId } : null;
+  } catch (_) { return null; }
+}
+async function openMontagePoll(res, id) {
+  const baseUrl = process.env.OPENMONTAGE_URL;
+  if (!baseUrl) return res.status(400).json({ error: "OpenMontage is not configured (OPENMONTAGE_URL unset)." });
+  try {
+    const r = await fetch(baseUrl.replace(/\/$/, "") + "/jobs/" + encodeURIComponent(id), { headers: omHeaders(process.env.OPENMONTAGE_TOKEN) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return res.status(502).json({ state: "error", error: (j && j.error) || ("worker HTTP " + r.status) });
+    return res.status(200).json({ state: j.state || j.status || "running", url: j.url || (j.video && j.video.url) || "", progress: j.progress || null, error: j.error || null, provider: "openmontage" });
+  } catch (e) {
+    return res.status(502).json({ state: "error", error: e.message || "worker unreachable" });
+  }
 }
 
 // ---- Higgsfield video (text-to-video, or image-to-video with inputImage) -----

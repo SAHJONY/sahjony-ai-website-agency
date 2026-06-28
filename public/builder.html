@@ -279,16 +279,31 @@ $("#fAudioFile").onchange = async (e)=>{ const f=e.target.files[0]; if(!f) retur
 // Generate a cinematic background video via Higgsfield (POST /api/image mode:video).
 // Returns the video URL (and fills the #fVideo field), or "" on failure. Reused by
 // the button and the auto-on-build path. inputImage (first photo) → image-to-video.
-async function generateCinematicVideo(){
+// Generate a cinematic video for the site. The backend picks the engine:
+// OpenMontage (full agentic production) when a render worker is configured, else
+// a Higgsfield clip. OpenMontage is async (returns a jobId) → we poll until the
+// finished video URL is ready; Higgsfield returns the URL directly. onProgress is
+// an optional status callback.
+async function generateCinematicVideo(onProgress){
   const name=(val("fName")||val("aName")||"this business");
   const type=(val("fType")||"local business");
   const city=val("fCity");
   const prompt=`Cinematic flagship brand film for a ${type} named "${name}"${city?(" in "+city):""}. Slow, smooth dolly/orbit camera, dramatic volumetric lighting, glossy reflective surfaces, shallow depth of field, Tesla/Apple commercial aesthetic, seamless loop, color-graded, 8k. No text, no watermark.`;
-  const r=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"video",prompt,inputImage:media.photos[0]||"",aspect:"16:9",durationSec:5})});
+  const r=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"video",prompt,inputImage:media.photos[0]||"",photos:media.photos.slice(0,12),business:name,type,city,aspect:"16:9",durationSec:20})});
   const j=await r.json();
-  if(!r.ok || !j.url) throw new Error(j.error||"video generation failed");
-  $("#fVideo").value=j.url;
-  return j.url;
+  if(r.ok && j.url){ $("#fVideo").value=j.url; return j.url; }           // Higgsfield: direct
+  if(r.status===202 && j.jobId){                                          // OpenMontage: poll
+    const deadlineMs=Date.now()+6*60*1000;                               // up to 6 min
+    while(Date.now()<deadlineMs){
+      await new Promise(s=>setTimeout(s,5000));
+      let p; try{ p=await (await fetch("/api/image?videoJob="+encodeURIComponent(j.jobId))).json(); }catch(_){ continue; }
+      if(onProgress) onProgress(p.progress||p.state||"rendering");
+      if(p.state==="done" && p.url){ $("#fVideo").value=p.url; return p.url; }
+      if(p.state==="error") throw new Error(p.error||"OpenMontage render failed");
+    }
+    throw new Error("OpenMontage render timed out");
+  }
+  throw new Error(j.error||"video generation failed");
 }
 
 $("#genVideo").onclick = async ()=>{

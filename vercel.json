@@ -5,9 +5,12 @@
   "functions": {
     "api/image.js": { "maxDuration": 60 },
     "api/generate.js": { "maxDuration": 60 },
-    "api/leads-find.js": { "maxDuration": 30 },
+    "api/leads-find.js": { "maxDuration": 60 },
     "api/contact.js": { "maxDuration": 30 }
   },
+  "crons": [
+    { "path": "/api/leads-find?sweep=1", "schedule": "0 13 * * *" }
+  ],
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },
     { "source": "/api/track", "destination": "/api/health" },

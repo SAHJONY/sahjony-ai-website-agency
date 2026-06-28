@@ -48,43 +48,54 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
-  const prompt = body && body.prompt;
+  const rawPrompt = body && body.prompt;
   const size = (body && body.size) || "1024x1024";
-  if (!prompt || typeof prompt !== "string") return res.status(400).json({ error: "Body must include a 'prompt' string." });
+  const mode = (body && String(body.mode || "image")).toLowerCase();
+  if (!rawPrompt || typeof rawPrompt !== "string") return res.status(400).json({ error: "Body must include a 'prompt' string." });
+  // Auto-enrich every prompt into the cinematic 8K / Tesla-grade house style.
+  const prompt = (mode === "video" ? cinematicVideoPrompt : cinematicImagePrompt)(rawPrompt);
 
   const secrets = await loadSecrets();
   const getKey = (name) => process.env[name] || secrets[name] || "";
 
-  // Resolve provider. Set IMAGE_PROVIDER (env or dashboard secret) to pin one,
-  // e.g. IMAGE_PROVIDER=higgsfield, regardless of which other keys are present.
-  const force = (getKey("IMAGE_PROVIDER") || "").toLowerCase();
+  // VIDEO mode (Higgsfield is the video engine). Folded into this function to
+  // stay under the Hobby 12-function cap. Pass { mode:"video", inputImage? }.
+  if (mode === "video") {
+    const vkey = higgsfieldCred(getKey);
+    if (!vkey) return res.status(500).json({ error: "Higgsfield not configured. Set HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET (or HIGGSFIELD_API_KEY) to generate video." });
+    return higgsfieldVideo(res, vkey, prompt, body || {});
+  }
+
+  // Resolve image provider. Higgsfield is PRIMARY (auto-preferred when its keys
+  // are present); IMAGE_PROVIDER can still force any one. Per the brain policy,
+  // OpenAI Images is the last-resort fallback engine.
+  const hasHiggs = !!higgsfieldCred(getKey);
+  const HIGGS_URL = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
+  const force = (getKey("IMAGE_PROVIDER") || (hasHiggs ? "higgsfield" : "")).toLowerCase();
   let url, key, model, provider;
-  if (force === "fal" && getKey("FAL_API_KEY")) {
+  if (force === "higgsfield" && hasHiggs) {
+    url = HIGGS_URL; key = higgsfieldCred(getKey); provider = "higgsfield";
+  } else if (force === "fal" && getKey("FAL_API_KEY")) {
     url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";
     key = getKey("FAL_API_KEY"); model = ""; provider = "fal";
   } else if (force === "custom" && getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
     url = getKey("IMAGE_API_URL"); key = getKey("IMAGE_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "custom";
   } else if (force === "openai" && getKey("OPENAI_API_KEY")) {
     url = "https://api.openai.com/v1/images/generations"; key = getKey("OPENAI_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "openai";
-  } else
-  if (force === "higgsfield" && higgsfieldCred(getKey)) {
-    url = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
-    key = higgsfieldCred(getKey); provider = "higgsfield";
+  } else if (hasHiggs) {
+    // Higgsfield (platform.higgsfield.ai) is ASYNC: POST the model endpoint -> a
+    // request_id + status_url, then poll until status=completed. See pollHiggsfield.
+    url = HIGGS_URL; key = higgsfieldCred(getKey); provider = "higgsfield";
   } else if (getKey("FAL_API_KEY")) {
     // Black Forest Labs FLUX 1.1 [pro] via fal.ai — top-tier photoreal quality.
     url = process.env.FAL_IMAGE_URL || "https://fal.run/fal-ai/flux-pro/v1.1";
     key = getKey("FAL_API_KEY"); model = ""; provider = "fal";
   } else if (getKey("IMAGE_API_URL") && getKey("IMAGE_API_KEY")) {
     url = getKey("IMAGE_API_URL"); key = getKey("IMAGE_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "custom";
-  } else if (higgsfieldCred(getKey)) {
-    // Higgsfield (platform.higgsfield.ai) is ASYNC: POST the model endpoint -> a
-    // request_id + status_url, then poll until status=completed. See pollHiggsfield.
-    url = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
-    key = higgsfieldCred(getKey); provider = "higgsfield";
   } else if (getKey("OPENAI_API_KEY")) {
     url = "https://api.openai.com/v1/images/generations"; key = getKey("OPENAI_API_KEY"); model = process.env.IMAGE_MODEL || "gpt-image-1"; provider = "openai";
   } else {
-    return res.status(500).json({ error: "No image provider configured. Set FAL_API_KEY (recommended), IMAGE_API_URL/IMAGE_API_KEY, HIGGSFIELD_API_KEY (or HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET), or OPENAI_API_KEY." });
+    return res.status(500).json({ error: "No image provider configured. Set HIGGSFIELD_KEY_ID + HIGGSFIELD_KEY_SECRET (primary), FAL_API_KEY, IMAGE_API_URL/IMAGE_API_KEY, or OPENAI_API_KEY." });
   }
 
   const [w, h] = String(size).toLowerCase().split("x").map(Number);
@@ -145,6 +156,57 @@ export default async function handler(req, res) {
   }
 }
 
+// ---- Cinematic / Tesla-grade house style ------------------------------------
+const CINEMATIC_IMAGE_STYLE =
+  "cinematic 8K ultra-premium commercial photography, hyper-detailed, photorealistic, " +
+  "dramatic volumetric lighting, shallow depth of field, rich contrast, deep blacks, " +
+  "polished reflective surfaces, Tesla/Apple advertising aesthetic, sleek minimal composition, " +
+  "color-graded, award-winning, editorial, no text, no watermark, no logo";
+const CINEMATIC_VIDEO_STYLE =
+  "cinematic 8K ultra-premium product film, slow smooth camera motion (dolly/orbit), " +
+  "dramatic volumetric lighting, glossy reflective surfaces, shallow depth of field, " +
+  "Tesla/Apple commercial aesthetic, seamless loop, color-graded, no text, no watermark";
+function cinematicImagePrompt(s) {
+  s = String(s || "premium local service business").trim();
+  return /cinematic 8K ultra-premium/i.test(s) ? s : (s + ". " + CINEMATIC_IMAGE_STYLE + ".");
+}
+function cinematicVideoPrompt(s) {
+  s = String(s || "premium local service business").trim();
+  return /cinematic 8K ultra-premium/i.test(s) ? s : (s + ". " + CINEMATIC_VIDEO_STYLE + ".");
+}
+
+// ---- Higgsfield video (text-to-video, or image-to-video with inputImage) -----
+async function higgsfieldVideo(res, key, prompt, body) {
+  const url = process.env.HIGGSFIELD_VIDEO_URL || "https://platform.higgsfield.ai/text-to-video";
+  const aspect = String(body.aspect || "16:9");
+  const duration = Math.max(3, Math.min(10, Number(body.durationSec) || 5));
+  const payload = { prompt, aspect_ratio: aspect, duration, safety_tolerance: 2 };
+  if (body.inputImage) payload.image_url = body.inputImage; // image-to-video
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", Authorization: "Key " + key }, body: JSON.stringify(payload) });
+    const raw = await r.text();
+    let data = {}; try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+    if (!r.ok) {
+      const detail = (data && data.error && (data.error.message || data.error)) || (data && (data.message || data.detail)) || (raw || "").slice(0, 300) || "Video API error";
+      return res.status(r.status).json({ error: String(detail), provider: "higgsfield", status: r.status });
+    }
+    let out = higgsUrl(data);
+    if (!out) {
+      const id = data.request_id || data.id;
+      let statusUrl = data.status_url;
+      if (!statusUrl && id) { try { statusUrl = new URL(url).origin + "/requests/" + encodeURIComponent(id) + "/status"; } catch (_) {} }
+      if (!statusUrl) return res.status(502).json({ error: "Higgsfield returned no request id or status_url for the video." });
+      // Video renders are slow — poll up to the configured budget (stay < maxDuration).
+      out = await pollHiggsfield(statusUrl, key, Number(process.env.HIGGSFIELD_VIDEO_POLL_MS || 55000));
+    }
+    if (out === "__NSFW__") return res.status(422).json({ error: "Higgsfield flagged the prompt as unsafe; try a different description." });
+    if (!out) return res.status(504).json({ error: "Higgsfield video failed or timed out before it finished rendering." });
+    return res.status(200).json({ url: out, provider: "higgsfield" });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "Video request failed" });
+  }
+}
+
 // Higgsfield credential is "KEY_ID:KEY_SECRET". Accept it either as a single
 // HIGGSFIELD_API_KEY already in that form, or as separate ID + SECRET vars.
 function higgsfieldCred(getKey) {
@@ -165,8 +227,8 @@ function higgsUrl(j) {
 
 // Poll Higgsfield's status_url until the job completes (or we run out of budget —
 // must stay under the function's maxDuration of 60s).
-async function pollHiggsfield(statusUrl, key) {
-  const deadline = Date.now() + Number(process.env.HIGGSFIELD_POLL_MS || 48000);
+async function pollHiggsfield(statusUrl, key, ms) {
+  const deadline = Date.now() + Number(ms || process.env.HIGGSFIELD_POLL_MS || 48000);
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 2500));
     let j;

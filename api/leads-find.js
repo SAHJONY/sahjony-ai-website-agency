@@ -283,23 +283,215 @@ async function lookupBusiness(key, name, address, res) {
   return res.status(200).json({ business });
 }
 
+// ---- Outdated-website detector ----------------------------------------------
+// Fetch a prospect's own homepage and decide whether the site is outdated/poor
+// enough to pitch a rebuild. Returns { reachable, outdated, staleness(0-100),
+// reasons[] }. This is what lets the engine find not just no-website businesses
+// but businesses whose site is old/broken.
+const LEGACY_PATTERNS = [
+  ["Flash content", /\.swf\b|application\/x-shockwave-flash|<embed[^>]+flash/i],
+  ["Table-based layout", /<table[^>]*>[\s\S]*?<table/i],
+  ["Deprecated <font>/<center> tags", /<font\b|<center\b|<marquee\b|<blink\b/i],
+  ["FrontPage / legacy generator", /FrontPage|Microsoft Word|Dreamweaver|GeoCities|Joomla! 1\.|WordPress 3\.|WordPress 4\./i],
+  ["Ancient jQuery", /jquery[-.]?1\.[0-9]+(\.[0-9]+)?(\.min)?\.js/i],
+  ["XHTML/HTML4 doctype", /<!DOCTYPE\s+html\s+PUBLIC/i],
+];
+const BOOKING_HINTS = /(book|booking|schedule|appointment|reserve|reservation|order online|contact form|request a quote|get a quote|calendly|squareup|opentable|resy|acuity)/i;
+const PARKED_HINTS = /(domain (is )?for sale|buy this domain|parked( free)?|godaddy\.com\/forsale|this domain is parked|under construction|coming soon|website coming soon|sedo\.com|hugedomains)/i;
+
+async function auditSite(website) {
+  const url = String(website || "").trim();
+  if (!url) return { reachable: false, outdated: false, staleness: 100, reasons: ["No website on record"] };
+  let finalUrl = url, html = "", ok = false;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, redirect: "follow", headers: { "user-agent": "Mozilla/5.0 (compatible; FrontDeskLeadBot/1.0)" } });
+    finalUrl = r.url || url; ok = r.ok;
+    if (r.ok) html = (await r.text()).slice(0, 600000);
+  } catch (_) { ok = false; } finally { clearTimeout(t); }
+
+  if (!ok || html.length < 200) return { reachable: false, outdated: true, staleness: 95, reasons: [ok ? "Site returns almost no content" : "Website is unreachable / down"] };
+  if (PARKED_HINTS.test(html)) return { reachable: true, outdated: true, staleness: 90, reasons: ["Parked / placeholder domain (no real site)"] };
+
+  const reasons = [];
+  let staleness = 0;
+  const https = /^https:/i.test(finalUrl);
+  if (!/<meta[^>]+name=["']viewport["']/i.test(html)) { staleness += 30; reasons.push("No mobile viewport (not responsive)"); }
+  if (!https) { staleness += 15; reasons.push("No HTTPS / insecure"); }
+  for (const [label, rx] of LEGACY_PATTERNS) { if (rx.test(html)) { staleness += 12; reasons.push(label); } }
+  const yr = new Date().getUTCFullYear();
+  const years = (html.match(/(?:©|&copy;|copyright)\s*(?:&copy;\s*)?((?:19|20)\d{2})/gi) || [])
+    .map((m) => parseInt((m.match(/((?:19|20)\d{2})/) || [])[1] || "0", 10)).filter((y) => y >= 1995 && y <= yr);
+  if (years.length) { const newest = Math.max(...years), age = yr - newest;
+    if (age >= 4) { staleness += 20; reasons.push("Copyright last updated " + newest + " (" + age + "y old)"); }
+    else if (age >= 2) { staleness += 10; reasons.push("Copyright " + newest); } }
+  if (!/<meta[^>]+property=["']og:/i.test(html)) { staleness += 8; reasons.push("No Open Graph / social metadata"); }
+  if (!BOOKING_HINTS.test(html)) { staleness += 10; reasons.push("No online booking / contact automation"); }
+  const textLen = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+  if (textLen < 600) { staleness += 10; reasons.push("Very little page content"); }
+  staleness = Math.max(0, Math.min(100, staleness));
+  const noViewport = !/<meta[^>]+name=["']viewport["']/i.test(html);
+  return { reachable: true, outdated: noViewport || staleness >= 35, staleness, reasons };
+}
+
+// ---- Compact lead scorer (0-100) --------------------------------------------
+const HOT_INDUSTRIES = /(dental|dentist|orthodont|legal|law|attorney|lawyer|medical|clinic|doctor|chiro|plumb|hvac|roof|electric|construction|landscap|pest|contractor|real estate|realtor|broker|auto|mechanic|repair|hotel|restaurant|salon|spa|insurance|account|consult|financial|advisor|veterinar)/i;
+function scoreLead(o) {
+  let s = 0; const why = [];
+  if (o.needsSite) { s += 40; why.push("No website (+40)"); }
+  else if (o.outdated) { s += Math.min(35, 15 + Math.round((o.staleness || 0) * 0.2)); why.push("Outdated site (+" + Math.min(35, 15 + Math.round((o.staleness || 0) * 0.2)) + ")"); }
+  if (HOT_INDUSTRIES.test(String(o.industry || ""))) { s += 30; why.push("High-value industry (+30)"); }
+  if ((o.reviews || 0) >= 25) { s += 15; why.push("Established (reviews) (+15)"); }
+  else if ((o.reviews || 0) >= 5) { s += 8; }
+  s = Math.max(0, Math.min(100, s));
+  const tier = s >= 80 ? "hot" : s >= 60 ? "qualified" : s >= 40 ? "marketing" : "cold";
+  return { score: s, tier, reasons: why };
+}
+
+// ---- Upstash KV (sweep cursor + discovered leads) ---------------------------
+async function kv(getCmdPath) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  try {
+    const r = await fetch(url.replace(/\/$/, "") + getCmdPath, { headers: { Authorization: "Bearer " + token } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) { return null; }
+}
+async function kvGetJson(key, fallback) {
+  const j = await kv("/get/" + encodeURIComponent(key));
+  if (j && j.result) { try { return JSON.parse(j.result); } catch { return fallback; } }
+  return fallback;
+}
+async function kvSetJson(key, value) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return;
+  try {
+    await fetch(url.replace(/\/$/, "") + "/set/" + encodeURIComponent(key), {
+      method: "POST", headers: { Authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(value),
+    });
+  } catch (_) {}
+}
+
+// ---- Worldwide autonomous sweep ---------------------------------------------
+const METROS = [
+  "New York, USA", "Los Angeles, USA", "Chicago, USA", "Houston, USA", "Miami, USA", "Toronto, Canada", "Mexico City, Mexico", "Monterrey, Mexico",
+  "São Paulo, Brazil", "Buenos Aires, Argentina", "Bogotá, Colombia", "Lima, Peru", "Santiago, Chile",
+  "London, UK", "Manchester, UK", "Madrid, Spain", "Barcelona, Spain", "Paris, France", "Berlin, Germany", "Rome, Italy", "Milan, Italy", "Amsterdam, Netherlands", "Lisbon, Portugal", "Warsaw, Poland",
+  "Dubai, UAE", "Riyadh, Saudi Arabia", "Istanbul, Turkey", "Cairo, Egypt", "Lagos, Nigeria", "Nairobi, Kenya", "Johannesburg, South Africa", "Cape Town, South Africa",
+  "Mumbai, India", "Delhi, India", "Bengaluru, India", "Singapore", "Bangkok, Thailand", "Jakarta, Indonesia", "Manila, Philippines", "Kuala Lumpur, Malaysia", "Ho Chi Minh City, Vietnam", "Tokyo, Japan", "Seoul, South Korea",
+  "Sydney, Australia", "Melbourne, Australia", "Auckland, New Zealand",
+];
+const INDUSTRIES = ["dentist", "law firm", "plumber", "HVAC contractor", "roofing contractor", "electrician", "auto repair shop", "real estate agency", "hair salon", "med spa", "chiropractor", "landscaping company", "pest control", "restaurant", "veterinary clinic", "accounting firm", "insurance agency"];
+const GRID = METROS.length * INDUSTRIES.length;
+function cellAt(i) { i = ((i % GRID) + GRID) % GRID; return { location: METROS[Math.floor(i / INDUSTRIES.length)], industry: INDUSTRIES[i % INDUSTRIES.length] }; }
+
+// One paginated Places text search (≈20/page via nextPageToken).
+async function searchTextPaged(key, textQuery, maxPages) {
+  const out = []; let pageToken;
+  for (let page = 0; page < Math.max(1, maxPages); page++) {
+    const body = { textQuery, maxResultCount: 20 };
+    if (pageToken) body.pageToken = pageToken;
+    let j;
+    try {
+      const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "nextPageToken,places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.businessStatus,places.rating,places.userRatingCount" },
+        body: JSON.stringify(body),
+      });
+      j = await r.json();
+      if (!r.ok) break;
+    } catch (_) { break; }
+    for (const p of j.places || []) out.push(p);
+    pageToken = j.nextPageToken;
+    if (!pageToken) break;
+  }
+  return out;
+}
+
+// Run one batch of the worldwide sweep: process N (metro × industry) cells from
+// the persisted cursor, keep only no-site/outdated prospects, score + dedupe,
+// persist to Redis (fda:sweep:leads), advance the cursor.
+async function runSweep(key, opts) {
+  const cells = Math.max(1, Math.min(6, Number(opts.cells) || 2));
+  const maxPages = Math.max(1, Math.min(3, Number(opts.pages) || 2));
+  const state = (await kvGetJson("fda:sweep:state", null)) || { cursor: 0, runs: 0, lastRunAt: null, totalScanned: 0, totalFound: 0, totalSaved: 0 };
+  const stored = (await kvGetJson("fda:sweep:leads", [])) || [];
+  const seen = new Set(stored.map((l) => l.placeId).filter(Boolean));
+  const cellResults = []; let scanned = 0, found = 0, saved = 0;
+  const stamp = new Date().toISOString();
+
+  for (let n = 0; n < cells; n++) {
+    const { location, industry } = cellAt(state.cursor + n);
+    const places = await searchTextPaged(key, industry + " in " + location, maxPages);
+    scanned += places.length;
+    let cellFound = 0, cellSaved = 0;
+    for (const p of places) {
+      const website = p.websiteUri || "";
+      const needsSite = !website;
+      const audit = website ? await auditSite(website).catch(() => null) : null;
+      const outdated = needsSite ? false : !!(audit && audit.outdated);
+      if (!needsSite && !outdated) continue; // only no-site / outdated prospects
+      cellFound++;
+      const placeId = p.id || "";
+      if (placeId && seen.has(placeId)) continue;
+      const name = (p.displayName && p.displayName.text) || "(unnamed)";
+      const email = outdated ? await scrapeEmail(website).catch(() => "") : "";
+      const sc = scoreLead({ industry, needsSite, outdated, staleness: audit ? audit.staleness : 100, reviews: p.userRatingCount || 0 });
+      const note = needsSite ? "No website — prime rebuild target" : ("Outdated site (" + (audit ? audit.staleness : 0) + "/100): " + ((audit && audit.reasons.slice(0, 2).join("; ")) || ""));
+      stored.unshift({ placeId, name, phone: p.nationalPhoneNumber || p.internationalPhoneNumber || "", email, website, address: p.formattedAddress || "", mapsUrl: p.googleMapsUri || "", location, industry, needsSite, outdated, staleness: audit ? audit.staleness : 100, score: sc.score, tier: sc.tier, note, source: "worldwide-sweep", at: stamp });
+      if (placeId) seen.add(placeId);
+      cellSaved++;
+    }
+    found += cellFound; saved += cellSaved;
+    cellResults.push({ location, industry, scanned: places.length, found: cellFound, saved: cellSaved });
+  }
+
+  const next = { cursor: (state.cursor + cells) % GRID, runs: (state.runs || 0) + 1, lastRunAt: stamp, totalScanned: (state.totalScanned || 0) + scanned, totalFound: (state.totalFound || 0) + found, totalSaved: (state.totalSaved || 0) + saved };
+  await kvSetJson("fda:sweep:state", next);
+  await kvSetJson("fda:sweep:leads", stored.slice(0, 1000));
+  return { ok: true, ranCells: cells, scanned, found, saved, cells: cellResults, cursor: next.cursor, gridSize: GRID, coverage: { metros: METROS.length, industries: INDUSTRIES.length, cyclePercent: Math.round((next.cursor / GRID) * 100) } };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
-
-  const admin = process.env.ADMIN_PASSWORD;
-  if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
 
   const secrets = await loadSecrets();
   const key = process.env.GOOGLE_PLACES_API_KEY || secrets.GOOGLE_PLACES_API_KEY;
   if (!key) return res.status(500).json({ error: "Set GOOGLE_PLACES_API_KEY to use the lead finder." });
 
+  // GET = autonomous sweep (Vercel Cron). Gated by CRON_SECRET when set:
+  //   GET /api/leads-find?sweep=1   (Authorization: Bearer $CRON_SECRET)
+  if (req.method === "GET") {
+    if ((req.query && (req.query.sweep || req.query.action === "sweep"))) {
+      const cs = process.env.CRON_SECRET;
+      if (cs && req.headers.authorization !== "Bearer " + cs) return res.status(401).json({ error: "Unauthorized." });
+      const out = await runSweep(key, { cells: req.query.cells, pages: req.query.pages });
+      return res.status(200).json(out);
+    }
+    // GET status: cursor + coverage (owner can poll the sweep progress).
+    const state = (await kvGetJson("fda:sweep:state", null)) || { cursor: 0, runs: 0 };
+    return res.status(200).json({ state, coverage: { gridSize: GRID, metros: METROS.length, industries: INDUSTRIES.length, cyclePercent: Math.round(((state.cursor || 0) / GRID) * 100) } });
+  }
+
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+
+  const admin = process.env.ADMIN_PASSWORD;
+  if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
+
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
+
+  // SWEEP mode (manual owner trigger): run one worldwide batch right now.
+  if (body.sweep) {
+    const out = await runSweep(key, { cells: body.cells, pages: body.pages });
+    return res.status(200).json(out);
+  }
 
   // LOOKUP mode (autonomous builder): research one named business by name+address.
   if (body.lookup || (body.name && body.address && !body.keyword && body.lat == null && body.lng == null)) {
@@ -356,14 +548,24 @@ export default async function handler(req, res) {
       placeId: p.id,
     }));
 
-    // Google doesn't expose emails, so scrape one from each lead's own site
-    // (best-effort, in parallel). No-website prospects simply won't have one.
+    // Google doesn't expose emails, so scrape one from each lead's own site and
+    // AUDIT it for staleness (best-effort, in parallel). This surfaces not just
+    // no-website prospects but businesses with OUTDATED sites worth rebuilding.
     await Promise.all(leads.map(async (l) => {
-      if (l.website) { try { l.email = await scrapeEmail(l.website); } catch (_) {} }
+      if (!l.website) { l.outdated = false; l.staleness = 100; return; }
+      try { l.email = await scrapeEmail(l.website); } catch (_) {}
+      try {
+        const a = await auditSite(l.website);
+        l.outdated = a.outdated; l.staleness = a.staleness; l.auditReasons = a.reasons;
+      } catch (_) { l.outdated = false; l.staleness = 0; }
     }));
 
-    // Best prospects first (no website).
-    leads.sort((a, b) => (a.needsSite === b.needsSite ? 0 : a.needsSite ? -1 : 1));
+    // Score + tier every lead; need-a-site/outdated prospects float to the top.
+    for (const l of leads) {
+      const sc = scoreLead({ industry: keyword, needsSite: l.needsSite, outdated: l.outdated, staleness: l.staleness, reviews: l.reviews });
+      l.score = sc.score; l.tier = sc.tier;
+    }
+    leads.sort((a, b) => (b.needsSite ? 1 : 0) - (a.needsSite ? 1 : 0) || (b.outdated ? 1 : 0) - (a.outdated ? 1 : 0) || (b.score || 0) - (a.score || 0));
     return res.status(200).json({ leads });
   } catch (e) {
     return res.status(500).json({ error: e.message || "Request failed" });

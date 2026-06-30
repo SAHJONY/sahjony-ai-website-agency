@@ -1,0 +1,55 @@
+/* ============================================================================
+   FrontDesk-Agents design system — ported to plain CSS and blended into the
+   platform. Luxury "ink" navy + gold + teal, Fraunces display + Inter body,
+   glassmorphism, gold-gradient text, and elegant motion.
+   Source aesthetic: github.com/SAHJONY/FrontDesk-Agents (app/globals.css)
+   ============================================================================ */
+:root{
+  --ink:#04080f; --ink-2:#08101d; --ink-3:#0d1a2d;
+  --teal:#2dd4bf; --gold:#e8c476; --gold-deep:#b8924a; --gold-light:#f6dba2;
+  --text:#e8eef7; --muted:#9fb3c9; --line:rgba(45,212,191,.16);
+}
+
+.fd-body{background:radial-gradient(120% 80% at 50% -10%,#0a1626 0%,var(--ink) 60%);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fd-display{font-family:'Fraunces',Georgia,serif;font-weight:600;letter-spacing:-.02em}
+.text-gradient{background:linear-gradient(100deg,var(--gold-light),var(--gold) 45%,var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* Glass panels */
+.glass{background:rgba(13,26,45,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:18px}
+.glass-gold{background:linear-gradient(160deg,rgba(232,196,118,.14),rgba(8,16,29,.62));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(232,196,118,.34);border-radius:20px}
+.glass:hover,.glass-gold:hover{transform:translateY(-5px);box-shadow:0 26px 60px rgba(0,0,0,.5)}
+.glass,.glass-gold{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;border:none;cursor:pointer;border-radius:999px;transition:transform .16s ease,box-shadow .22s ease,background .2s ease,filter .2s ease}
+.btn-gold{background:linear-gradient(180deg,var(--gold-light),var(--gold));color:#1a1206;box-shadow:0 12px 34px rgba(232,196,118,.28)}
+.btn-gold:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 18px 48px rgba(232,196,118,.45)}
+.btn-ghost{border:1px solid rgba(45,212,191,.5);color:#cdeee9;background:rgba(45,212,191,.04)}
+.btn-ghost:hover{transform:translateY(-2px);background:rgba(45,212,191,.12);border-color:var(--teal)}
+.btn:active{transform:translateY(0) scale(.985)}
+
+/* Chips / eyebrow */
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--gold);background:rgba(232,196,118,.1);border:1px solid rgba(232,196,118,.28);padding:8px 16px;border-radius:999px}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#cbd8e6;background:rgba(255,255,255,.04);border:1px solid var(--line);padding:8px 14px;border-radius:999px}
+
+/* Focus a11y */
+a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+
+/* Motion */
+@keyframes rise-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.rise{opacity:0;animation:rise-in .7s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes float-y{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.float-y{animation:float-y 7s ease-in-out infinite}
+@keyframes pulse-glow{0%,100%{opacity:.55}50%{opacity:1}}
+.pulse-glow{animation:pulse-glow 2.4s ease-in-out infinite}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-track{display:inline-flex;gap:40px;white-space:nowrap;animation:ticker 26s linear infinite}
+.ticker-wrap:hover .ticker-track{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.rise,.float-y,.pulse-glow,.ticker-track{animation:none}.rise{opacity:1}}
+
+/* Gold selection + teal scrollbar */
+::selection{background:rgba(232,196,118,.3);color:#fff}
+*{scrollbar-color:var(--teal) transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:linear-gradient(var(--teal),var(--gold-deep));border-radius:999px}
+*::-webkit-scrollbar-track{background:transparent}

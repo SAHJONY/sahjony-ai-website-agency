@@ -191,6 +191,35 @@ export default async function handler(req, res) {
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
+
+  // ===== AVA — AI receptionist (chat) =====
+  // POST { ava:true, business?, messages:[{role,content}], lang? } -> { reply, engine }
+  // Reuses the same engine rotation; multilingual; concise; captures intent.
+  if (body && body.ava) {
+    const biz = String(body.business || "this business").slice(0, 120);
+    const msgs = Array.isArray(body.messages) ? body.messages.slice(-12) : [];
+    const convo = msgs.map((m) => (m && m.role === "assistant" ? "Ava" : "Customer") + ": " + String((m && m.content) || "").slice(0, 800)).join("\n");
+    const sys =
+      `You are Ava, the warm, professional AI receptionist for ${biz}. ` +
+      `Reply in the SAME language the customer writes in — you speak 100+ languages. ` +
+      `Keep replies to 1–3 short sentences. Be friendly and genuinely helpful. ` +
+      `Answer questions about services, hours, pricing, and location; offer to book an appointment or take a message. ` +
+      `When booking or taking a message, collect the customer's name and a phone or email and confirm it back. ` +
+      `Never invent specific facts you weren't given — instead offer to have the team follow up. Greet warmly on the first message.`;
+    const avaPrompt = sys + "\n\nConversation so far:\n" + (convo || "Customer: (started the chat)") + "\nAva:";
+    requestDeadline = Date.now() + REQUEST_BUDGET_MS;
+    const secrets = await loadSecrets();
+    const getKey = (name) => process.env[name] || secrets[name] || "";
+    for (const engine of [tryClaude, tryOpenAI, tryGemini, tryGrok, tryGLM, tryNvidia]) {
+      try {
+        const r = await engine(avaPrompt, 400, getKey);
+        if (!r) continue;
+        return res.status(200).json({ reply: String(r.text || "").trim().replace(/^Ava:\s*/i, ""), engine: r.engine });
+      } catch (_) { /* roll to next engine */ }
+    }
+    return res.status(200).json({ reply: "I'm sorry — I'm having a little trouble right now. Please leave your name and number and the team will get right back to you!", engine: "fallback" });
+  }
+
   const prompt = body && body.prompt;
   const maxTokens = (body && body.maxTokens) || 2000;
   if (!prompt || typeof prompt !== "string") {

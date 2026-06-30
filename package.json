@@ -2,12 +2,13 @@
   "name": "frontdeskagents-website-factory",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Full-stack AI website factory — sell premium websites to local businesses.",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   }
 }

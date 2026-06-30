@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Owner Dashboard — frontdeskagents.com</title>
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#04080f">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-180.png">
@@ -13,10 +13,10 @@
 <meta name="apple-mobile-web-app-title" content="frontdesk">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0a0f;color:#e9e7ef}
+  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#04080f;color:#e9e7ef}
   input,button{font-family:inherit}
   a{color:inherit}
   @media(max-width:760px){
@@ -29,13 +29,13 @@
 <body data-i18n-auto>
 
 <!-- ===== LOGIN GATE ===== -->
-<div id="loginGate" style="position:fixed;inset:0;z-index:1000;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:24px">
-  <div style="width:100%;max-width:380px;background:#14141c;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px 28px;text-align:center">
-    <div style="width:46px;height:46px;border-radius:11px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px">⚡</div>
-    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px">Owner login</div>
+<div id="loginGate" style="position:fixed;inset:0;z-index:1000;background:#04080f;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:380px;background:#122236;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px 28px;text-align:center">
+    <div style="width:46px;height:46px;border-radius:11px;background:#e8c476;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px">⚡</div>
+    <div style="font-family:'Fraunces',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px">Owner login</div>
     <div style="font-size:13.5px;color:#8c8998;margin-bottom:22px">Enter your password to open the dashboard.</div>
-    <input id="loginPw" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#0a0a0f;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:13px 15px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
-    <button id="loginBtn" style="width:100%;background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:13px;border-radius:11px">Log in</button>
+    <input id="loginPw" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;background:#04080f;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:13px 15px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
+    <button id="loginBtn" style="width:100%;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:13px;border-radius:11px">Log in</button>
     <div id="loginMsg" style="display:none;font-size:13px;color:#ff7a6e;margin-top:12px"></div>
     <div style="font-size:12px;color:#5c5c66;margin-top:16px;line-height:1.5">Protected by your <b>ADMIN_PASSWORD</b>. Not set yet? You'll be let in with a reminder to add one.</div>
   </div>
@@ -43,8 +43,8 @@
 
 <div class="dgrid" style="display:grid;grid-template-columns:240px 1fr;min-height:100vh;display:none">
   <aside style="background:#101017;border-right:1px solid rgba(255,255,255,.07);padding:22px 16px;display:flex;flex-direction:column;gap:6px">
-    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
-    <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(255,92,56,.14);color:#ff8366">🎯 Leads</button>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#e8c476;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Fraunces',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
+    <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(232,196,118,.14);color:#2dd4bf">🎯 Leads</button>
     <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
     <button class="tab" data-tab="inbox" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📨 Inbox</button>
     <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
@@ -60,7 +60,7 @@
         <a href="/pricing.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💸 Pricing</a>
         <a href="/contact.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">✉️ Contact</a>
       </div>
-      <a href="/builder.html" style="text-decoration:none;background:#ff5c38;color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
+      <a href="/builder.html" style="text-decoration:none;background:#e8c476;color:#04080f;font-weight:700;font-size:14px;padding:12px 13px;border-radius:10px;text-align:center">⚡ New build</a>
       <select data-lang-select data-no-i18n aria-label="Language" style="background:rgba(255,255,255,.06);color:#b6b2c2;border:1px solid rgba(255,255,255,.12);font-size:12.5px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer"></select>
       <button id="logoutBtn" style="background:transparent;color:#8c8998;border:1px solid rgba(255,255,255,.12);cursor:pointer;font-size:12.5px;font-weight:600;padding:8px;border-radius:9px">🔒 Log out</button>
       <div id="cloudDot" style="font-size:12px;color:#8c8998;text-align:center">Cloud: checking…</div>
@@ -69,10 +69,10 @@
 
   <main style="padding:28px 32px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
-      <div><div id="pTitle" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700">Leads</div><div id="pSub" style="font-size:13px;color:#8c8998">New business in your pipeline</div></div>
+      <div><div id="pTitle" style="font-family:'Fraunces',sans-serif;font-size:24px;font-weight:700">Leads</div><div id="pSub" style="font-size:13px;color:#8c8998">New business in your pipeline</div></div>
       <div style="display:flex;gap:8px">
         <button id="findBtn" style="display:none;background:rgba(47,212,127,.16);color:#2fd47f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 16px;border-radius:10px">📍 Find leads</button>
-        <button id="addBtn" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
+        <button id="addBtn" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px 18px;border-radius:10px">＋ Add</button>
       </div>
     </div>
     <div id="list" data-no-i18n style="display:flex;flex-direction:column;gap:10px"></div>
@@ -140,7 +140,7 @@ function render(){
   const list = document.getElementById("list");
   if(!items.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No ${tab} yet. Click “Add”.</div>`; return; }
   list.innerHTML = items.map((it,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px">
       <div><div style="font-weight:700;font-size:15px">${it.name||""}</div><div style="font-size:12.5px;color:#8c8998">${(it.type||"")}${it.city?(" · "+it.city):""}${it.value?(" · "+it.value):""}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button data-i="${i}" class="reach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">✉️ Reach</button>
@@ -171,10 +171,10 @@ function renderSubs(){
 
   const summary = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
-      <div style="background:linear-gradient(160deg,#1f1626,#14141c);border:1px solid rgba(255,92,56,.3);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Monthly recurring (MRR)</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#ff8366">${money(mrr)}</div></div>
-      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Yearly (ARR)</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700">${money(mrr*12)}</div></div>
-      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Active</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#2fd47f">${active.length}</div></div>
-      <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Paused · Canceled</div><div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700">${paused} · ${canceled}</div></div>
+      <div style="background:linear-gradient(160deg,#1f1626,#122236);border:1px solid rgba(232,196,118,.3);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Monthly recurring (MRR)</div><div style="font-family:'Fraunces',sans-serif;font-size:28px;font-weight:700;color:#2dd4bf">${money(mrr)}</div></div>
+      <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Yearly (ARR)</div><div style="font-family:'Fraunces',sans-serif;font-size:28px;font-weight:700">${money(mrr*12)}</div></div>
+      <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Active</div><div style="font-family:'Fraunces',sans-serif;font-size:28px;font-weight:700;color:#2fd47f">${active.length}</div></div>
+      <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px"><div style="font-size:12px;color:#8c8998">Paused · Canceled</div><div style="font-family:'Fraunces',sans-serif;font-size:28px;font-weight:700">${paused} · ${canceled}</div></div>
     </div>`;
 
   if(!subs.length){ list.innerHTML = summary + `<div style="color:#8c8998;font-size:14px;padding:20px">No subscriptions yet. Mark a lead “Won” or click “Add subscription”.</div>`; return; }
@@ -188,14 +188,14 @@ function renderSubs(){
       ? `<button data-i="${i}" class="sResume" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Resume</button>`
       : `<button data-i="${i}" class="sResume" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Reactivate</button>`;
     const cancelBtn = s.status!=="canceled" ? `<button data-i="${i}" class="sCancel" style="background:rgba(255,90,77,.1);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Cancel</button>` : "";
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
       <div><div style="font-weight:700;font-size:15px">${s.name||""} <span style="display:inline-block;font-size:11px;font-weight:700;color:${c};background:${bg};padding:2px 9px;border-radius:999px;margin-left:6px;text-transform:capitalize">${s.status}</span></div>
       <div style="font-size:12.5px;color:#8c8998;margin-top:3px">${money(s.price)}/mo · ${s.plan||"Care plan"}${s.since?(" · since "+s.since):""}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button data-i="${i}" class="sLink" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">💳 Link</button>${toggle}${cancelBtn}<button data-i="${i}" class="sDel" style="background:rgba(255,255,255,.06);color:#8c8998;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button></div>
     </div>`;
   }).join("");
 
-  const toolbar = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button id="payLinkBtn" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px">💳 Create payment link</button></div>`;
+  const toolbar = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button id="payLinkBtn" style="background:rgba(232,196,118,.16);color:#2dd4bf;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 15px;border-radius:9px">💳 Create payment link</button></div>`;
   list.innerHTML = summary + toolbar + rows;
   document.getElementById("payLinkBtn").onclick = ()=>{
     const name=prompt("Client / business name?"); if(!name) return;
@@ -267,12 +267,12 @@ function renderFound(leads){
         if(l.website) contact.push(`🌐 <a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#b6b2c2;text-decoration:none">website</a>`);
         if(l.mapsUrl) contact.push(`📍 <a href="${esc(l.mapsUrl)}" target="_blank" rel="noopener" style="color:#b6b2c2;text-decoration:none">map</a>`);
         const meta=[l.address, l.rating?`★ ${l.rating} (${l.reviews||0})`:"", l.needsSite?"NO SITE":""].filter(Boolean).join(" · ");
-        return `<div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        return `<div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:8px">
           <div style="display:flex;align-items:start;justify-content:space-between;gap:12px">
             <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:14.5px">${l.needsSite?"🟢 ":"⚪ "}${esc(l.name)}</div>
             <div style="font-size:12px;color:#8c8998;margin-top:3px">${esc(meta)}</div>
             <div style="font-size:12.5px;color:#b6b2c2;margin-top:6px;display:flex;flex-wrap:wrap;gap:12px">${contact.join("")||'<span style="color:#6b6877">no public contact info</span>'}</div></div>
-            <button data-i="${i}" class="addFound" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;white-space:nowrap">+ Add</button>
+            <button data-i="${i}" class="addFound" style="background:rgba(232,196,118,.16);color:#2dd4bf;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;white-space:nowrap">+ Add</button>
           </div></div>`;
       }).join("");
   document.getElementById("backLeads").onclick = render;
@@ -305,9 +305,9 @@ async function renderInbox(){
     inboxCache = Array.isArray(j.value) ? j.value.slice().reverse() : []; // newest first
   }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;padding:20px">Network error.</div>`; return; }
 
-  if(!inboxCache.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No requests yet. They arrive here when someone submits the <a href="/contact.html" style="color:#ff8366">contact form</a>.</div>`; return; }
+  if(!inboxCache.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No requests yet. They arrive here when someone submits the <a href="/contact.html" style="color:#2dd4bf">contact form</a>.</div>`; return; }
   list.innerHTML = inboxCache.map((m,i)=>`
-    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:10px">
+    <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div style="min-width:0"><div style="font-weight:700;font-size:15px">${m.name||"(no name)"} <span style="color:#8c8998;font-weight:500;font-size:13px">· ${m.type||""}</span></div>
         <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${m.contact||""}${m.city?(" · "+m.city):""}</div>
@@ -315,7 +315,7 @@ async function renderInbox(){
         ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${m.notes}”</div>`:""}
         <div style="font-size:11.5px;color:#5c5c66;margin-top:6px">${(m.at||"").slice(0,16).replace("T"," ")}</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
-          <button data-i="${i}" class="ibLead" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Lead</button>
+          <button data-i="${i}" class="ibLead" style="background:rgba(232,196,118,.16);color:#2dd4bf;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">+ Lead</button>
           <button data-i="${i}" class="ibReach" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">✉️ Reach</button>
           <button data-i="${i}" class="ibDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
         </div>
@@ -350,7 +350,7 @@ async function renderSites(){
   }catch(e){ list.innerHTML = `<div style="color:#ff7a6e;font-size:14px;padding:20px">Network error.</div>`; return; }
 
   const sites = data.sites || [];
-  if(!sites.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No published sites yet. Build one in the <a href="/builder.html" style="color:#ff8366">builder</a>, then hit <b>🚀 Save &amp; Publish</b>.</div>`; return; }
+  if(!sites.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No published sites yet. Build one in the <a href="/builder.html" style="color:#2dd4bf">builder</a>, then hit <b>🚀 Save &amp; Publish</b>.</div>`; return; }
 
   list.innerHTML = sites.map(s=>{
     const link = "/s/"+s.slug;
@@ -362,7 +362,7 @@ async function renderSites(){
     const toggle = live
       ? `<button data-slug="${s.slug}" data-to="suspended" class="siteStatus" style="background:rgba(255,181,71,.14);color:#ffb547;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Pause</button>`
       : `<button data-slug="${s.slug}" data-to="active" class="siteStatus" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Go live</button>`;
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
       <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} ${badge} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(21,194,107,.14);color:#2fd47f;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Open</a>
@@ -398,19 +398,19 @@ async function renderSites(){
 /* ===================== PLAYBOOK (embedded) ===================== */
 function renderPlaybook(){
   document.getElementById("addBtn").style.display = "none";
-  document.getElementById("list").innerHTML = `<iframe src="/playbook.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d0d12"></iframe>`;
+  document.getElementById("list").innerHTML = `<iframe src="/playbook.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#04080f"></iframe>`;
 }
 
 /* ===================== SCRIPTS (embedded — owner-only secret sauce) ===================== */
 function renderScripts(){
   document.getElementById("addBtn").style.display = "none";
-  document.getElementById("list").innerHTML = `<iframe src="/scripts.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d0d12"></iframe>`;
+  document.getElementById("list").innerHTML = `<iframe src="/scripts.html" style="width:100%;height:calc(100vh - 150px);border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#04080f"></iframe>`;
 }
 
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   tab=t.dataset.tab;
   document.querySelectorAll(".tab").forEach(x=>{x.style.background="transparent";x.style.color="#b6b2c2";});
-  t.style.background="rgba(255,92,56,.14)";t.style.color="#ff8366";
+  t.style.background="rgba(232,196,118,.14)";t.style.color="#2dd4bf";
   render();
 });
 
@@ -466,10 +466,10 @@ async function renderCustomers(){
     const v=c.vehicle||{}; const veh=[v.year,v.make,v.model].filter(Boolean).join(" ")||"—";
     const st=(c.status||"active");
     const sc = st==="active"?["#2fd47f","rgba(21,194,107,.14)"]:(st==="suspended"?["#ff7a6e","rgba(255,90,77,.14)"]:["#e8b13a","rgba(232,177,58,.14)"]);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
       <div><div style="font-weight:700;font-size:15px">${c.name||"Customer"} <span style="font-size:11px;font-weight:700;color:${sc[0]};background:${sc[1]};padding:2px 9px;border-radius:999px;margin-left:6px;text-transform:capitalize">${st}</span></div>
       <div style="font-size:12.5px;color:#8c8998;margin-top:3px">${veh}${c.email?(" · "+c.email):""}</div></div>
-      <div style="display:flex;gap:8px"><button data-id="${c.id}" class="cOpen" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Open →</button></div>
+      <div style="display:flex;gap:8px"><button data-id="${c.id}" class="cOpen" style="background:rgba(232,196,118,.16);color:#2dd4bf;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Open →</button></div>
     </div>`;
   }).join("");
   list.querySelectorAll(".cOpen").forEach(b=>b.onclick=()=>openCustomer(b.dataset.id));
@@ -490,13 +490,13 @@ function renderCustomerDetail(){
   const stateOpts = (window.StateReq?window.StateReq.states():[]).map(s=>`<option value="${s.code}" ${ (ct.state||c.state)===s.code?"selected":"" }>${s.name}</option>`).join("");
   const pays = Array.isArray(c.payments)?c.payments.slice().reverse():[];
   const reqs = Array.isArray(c.requests)?c.requests:[];
-  const card = (title,inner)=>`<div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${title}</div>${inner}</div>`;
+  const card = (title,inner)=>`<div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${title}</div>${inner}</div>`;
   const grid = (h)=>`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px">${h}</div>`;
 
   list.innerHTML =
     `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
        <button id="cBack" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">← All customers</button>
-       <div style="display:flex;gap:8px"><button id="cDel" style="background:rgba(255,90,77,.12);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Delete</button><button id="cSave" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save</button></div>
+       <div style="display:flex;gap:8px"><button id="cDel" style="background:rgba(255,90,77,.12);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">Delete</button><button id="cSave" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save</button></div>
      </div>` +
 
     card("👤 Customer & portal access", grid(
@@ -518,7 +518,7 @@ function renderCustomerDetail(){
       field("APR %","cd_c_apr",ct.apr,"number")+field("Term (months)","cd_c_term",ct.termMonths,"number")+field("Monthly payment","cd_c_monthly",ct.monthlyPayment,"number")+
       field("First payment date","cd_c_first",ct.firstDueDate,"date")+field("Payoff amount (optional)","cd_c_payoff",ct.payoffAmount,"number")
     ) + `<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">State (for disclosures)</label><select id="cd_c_state" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${stateOpts}</select>
-       <div style="margin-top:10px;font-size:13px;color:#8c8998">Estimated balance: <b style="color:#ff8366">${moneyD(balanceOf(c))}</b></div>`) +
+       <div style="margin-top:10px;font-size:13px;color:#8c8998">Estimated balance: <b style="color:#2dd4bf">${moneyD(balanceOf(c))}</b></div>`) +
 
     card(`💳 Payments (${pays.length})`, `<button id="cPay" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;margin-bottom:10px">＋ Record payment</button>` +
       (pays.length? pays.map((p,idx)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)"><div><b>${moneyD(p.amount)}</b> <span style="color:#8c8998;font-size:12px">${(p.method||"Payment")}</span></div><div style="text-align:right;font-size:12px;color:#8c8998">${p.date?new Date(p.date).toLocaleDateString():""} <button data-pi="${pays.length-1-idx}" class="cPayDel" style="background:none;border:none;color:#ff7a6e;cursor:pointer;font-weight:700">✕</button></div></div>`).join("") : `<div style="color:#8c8998;font-size:13px">No payments recorded.</div>`)) +
@@ -606,7 +606,7 @@ async function renderStateReq(){
   if(stateOverrides===null){ try{ stateOverrides = (await kvGet(STATEREQ_KEY))||{}; }catch(e){ stateOverrides={}; } }
   const opts=window.StateReq.states().map(s=>`<option value="${s.code}">${s.name}</option>`).join("");
   list.innerHTML=`
-    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px">
+    <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:14px">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="srState" style="flex:1;min-width:180px;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${opts}</select>
         <button id="srEdit" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px">✎ Edit / verify</button>
@@ -623,8 +623,8 @@ function editState(code){
   const base=window.StateReq.get(code,"autoSales",stateOverrides).state;
   const fields=[["dealerLicense","Dealer licensing"],["salesTax","Sales / titling tax"],["docFee","Documentary / processing fee"],["coolingOff","Right to cancel"],["retailInstallment","Retail-installment / finance law"],["usury","Interest-rate (usury) limits"],["gap","GAP / debt-cancellation"],["refinance","Refinancing"]];
   const list=document.getElementById("list");
-  list.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><button id="srBack" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">← Back</button><button id="srSave" style="background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save ${code}</button></div>
-    <div style="background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px"><div style="font-weight:700;margin-bottom:6px">${base.name} — edit requirements</div>`+
+  list.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><button id="srBack" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#b6b2c2;cursor:pointer;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px">← Back</button><button id="srSave" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px">Save ${code}</button></div>
+    <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px"><div style="font-weight:700;margin-bottom:6px">${base.name} — edit requirements</div>`+
     `<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">State regulator</label><input id="sr_regulator" value="${(base.regulator||"").replace(/"/g,"&quot;")}" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">`+
     fields.map(f=>`<label style="display:block;font-size:12px;color:#8c8998;margin:10px 0 5px">${f[1]}</label><textarea id="sr_${f[0]}" rows="2" style="width:100%;background:#0f0f16;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 12px;color:#e9e7ef;font-size:14px">${(base[f[0]]||"").replace(/</g,"&lt;")}</textarea>`).join("")+
     `<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:#b6b2c2"><input type="checkbox" id="sr_verified" ${base.verified?"checked":""} style="width:auto"> I (or my counsel) have verified this state is accurate</label></div>`;
@@ -646,11 +646,11 @@ async function renderSettings(){
   const list = document.getElementById("list");
   if(!adminToken()){
     list.innerHTML = `
-      <div style="max-width:480px;background:#14141c;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:24px">
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px">🔒 Unlock secrets manager</div>
+      <div style="max-width:480px;background:#122236;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:24px">
+        <div style="font-family:'Fraunces',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px">🔒 Unlock secrets manager</div>
         <div style="font-size:13.5px;color:#8c8998;line-height:1.55;margin-bottom:16px">Enter your admin password (the <b>ADMIN_PASSWORD</b> env var). It's kept only in this browser tab and sent over HTTPS to manage your AI keys.</div>
-        <input id="adminPw" type="password" placeholder="Admin password" style="width:100%;background:#0a0a0f;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
-        <button id="unlockBtn" style="width:100%;background:#ff5c38;color:#0a0a0f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:12px;border-radius:10px">Unlock</button>
+        <input id="adminPw" type="password" placeholder="Admin password" style="width:100%;background:#04080f;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#e9e7ef;font-size:15px;margin-bottom:12px">
+        <button id="unlockBtn" style="width:100%;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:12px;border-radius:10px">Unlock</button>
         <div id="setMsg" style="display:none;font-size:13px;margin-top:12px"></div>
       </div>`;
     document.getElementById("unlockBtn").onclick = async ()=>{
@@ -689,9 +689,9 @@ async function loadSecrets(){
     const tag = it.source==="env" ? "from environment" : it.source==="db" ? "stored • "+it.masked : "not set";
     const actions = it.source==="env"
       ? `<span style="font-size:12px;color:#7aa2ff">env-locked</span>`
-      : `<button data-name="${it.name}" class="setKey" style="background:rgba(255,92,56,.16);color:#ff8366;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">${it.source==="db"?"Update":"Add"}</button>`
+      : `<button data-name="${it.name}" class="setKey" style="background:rgba(232,196,118,.16);color:#2dd4bf;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">${it.source==="db"?"Update":"Add"}</button>`
         + (it.source==="db" ? ` <button data-name="${it.name}" class="delKey" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px">Delete</button>` : "");
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#14141c;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
         <div><div style="font-weight:700;font-size:14.5px">${it.label} <span style="color:#8c8998;font-weight:500">· ${it.name}</span></div>
         <div style="font-size:12.5px;color:#8c8998;margin-top:3px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot};margin-right:6px"></span>${tag}</div></div>
         <div style="display:flex;gap:8px;white-space:nowrap">${actions}</div>

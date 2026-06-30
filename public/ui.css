@@ -1,0 +1,34 @@
+/* Shared UI/UX polish — additive, layered over each page's existing styles.
+   Uses class hooks already present (.btn, .nav-link, .card, .sec, .tiers, header).
+   Safe-by-design: if ui.js never runs, nothing is hidden (reveal-init is JS-added). */
+:root{ --ui-accent:#ff5c38; }
+
+a,button,.btn,.nav-link,.card,select{
+  transition:transform .16s ease, box-shadow .22s ease, background .2s ease, border-color .2s ease, color .18s ease, filter .2s ease;
+}
+
+/* Accessible keyboard focus everywhere */
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--ui-accent); outline-offset:3px; border-radius:8px;
+}
+
+/* Button physics */
+.btn{ will-change:transform; }
+.btn:hover{ transform:translateY(-2px); filter:brightness(1.04); }
+.btn:active{ transform:translateY(0) scale(.985); }
+
+/* Links */
+.nav-link:hover{ color:#fff; }
+
+/* Cards lift on hover */
+.card{ will-change:transform; }
+.card:hover{ transform:translateY(-5px); box-shadow:0 22px 55px rgba(0,0,0,.45); }
+
+/* Scroll-aware sticky header (class toggled by ui.js) */
+header{ transition:background .25s ease, box-shadow .25s ease, border-color .25s ease; }
+header.ui-scrolled{ box-shadow:0 8px 28px rgba(0,0,0,.38); }
+
+/* Reveal-on-scroll (reveal-init is added by ui.js only — no JS ⇒ fully visible) */
+.reveal-init{ opacity:0; transform:translateY(16px); }
+.reveal-in{ opacity:1; transform:none; transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
+@media(prefers-reduced-motion:reduce){ .reveal-init{opacity:1;transform:none} .reveal-in{transition:none} }

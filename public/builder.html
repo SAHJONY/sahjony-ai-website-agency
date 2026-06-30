@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Website Studio — frontdeskagents.com</title>
-<meta name="theme-color" content="#0d0d12">
+<meta name="theme-color" content="#04080f">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-180.png">
@@ -22,7 +22,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0d0d12;color:#f0eef2}
+  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#04080f;color:#f0eef2}
   @keyframes spin{to{transform:rotate(360deg)}}
   input,textarea,select{font-family:inherit}
   a{color:inherit}
@@ -54,8 +54,8 @@
   <header style="border-bottom:1px solid rgba(255,255,255,.08)">
     <div style="max-width:1140px;margin:0 auto;padding:18px 28px;display:flex;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:11px">
-        <div style="width:32px;height:32px;border-radius:8px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px">frontdeskagents<span style="color:#ff5c38">.com</span> · Studio</div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#e8c476;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px">frontdeskagents<span style="color:#e8c476">.com</span> · Studio</div>
       </div>
       <div style="display:flex;align-items:center;gap:20px">
         <a href="/" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600">Home</a>
@@ -70,37 +70,37 @@
   <div class="bgrid" style="display:grid;grid-template-columns:1.05fr .95fr;min-height:calc(100vh - 61px)">
     <!-- FORM -->
     <div class="bform" style="padding:48px 52px;max-width:640px;margin-left:auto;width:100%">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,56,.12);color:#ff8366;font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;margin-bottom:20px">✦ SAHJONY™ · any country · any language</div>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(232,196,118,.12);color:#2dd4bf;font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;margin-bottom:20px">✦ SAHJONY™ · any country · any language</div>
       <h1 style="font-family:'Space Grotesk',sans-serif;font-size:40px;line-height:1.05;font-weight:700;letter-spacing:-.02em;margin-bottom:12px">Build a complete website.</h1>
       <p style="font-size:16px;color:#aaa7b5;line-height:1.6;margin-bottom:26px">Fill the basics — every section is written and assembled into a full, ready-to-launch site.</p>
 
-      <div style="display:flex;gap:8px;background:#16161e;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:5px;margin-bottom:18px">
-        <button id="mAuto" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:#ff5c38;color:#0d0d12">🤖 Auto</button>
+      <div style="display:flex;gap:8px;background:#0d1a2d;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:5px;margin-bottom:18px">
+        <button id="mAuto" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:#e8c476;color:#04080f">🤖 Auto</button>
         <button id="mFresh" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">✨ Start fresh</button>
         <button id="mUrl" style="flex:1;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:11px;border-radius:9px;background:transparent;color:#aaa7b5">🔄 Redesign</button>
       </div>
 
       <!-- ===== AUTONOMOUS MODE: name + address only — we research the rest ===== -->
       <div id="autoPanel" style="display:flex;flex-direction:column;gap:15px">
-        <div style="background:#16161e;border:1px solid rgba(255,92,56,.25);border-radius:13px;padding:16px 18px">
+        <div style="background:#0d1a2d;border:1px solid rgba(232,196,118,.25);border-radius:13px;padding:16px 18px">
           <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">🤖 Autonomous build</div>
           <div style="font-size:13.5px;color:#aaa7b5;line-height:1.55">Just the business <b>name</b> and <b>address</b>. We research it automatically — category, contact, hours, rating &amp; reviews — then design the whole site for you.</div>
         </div>
         <div><label class="lbl">Business name *</label><input id="aName" placeholder="e.g. Maria's Bakery"></div>
         <div><label class="lbl">Address *</label><input id="aAddr" placeholder="123 Main St, Houston, TX, USA"></div>
-        <button id="autoBtn" style="margin-top:4px;background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">🤖 Research &amp; build automatically</button>
-        <div id="autoErr" style="color:#ff8366;font-size:14px;text-align:center;display:none"></div>
+        <button id="autoBtn" style="margin-top:4px;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">🤖 Research &amp; build automatically</button>
+        <div id="autoErr" style="color:#2dd4bf;font-size:14px;text-align:center;display:none"></div>
         <div style="font-size:13px;color:#8c8998;text-align:center">Powered by SAHJONY™. Sign in to your Dashboard first so the research is authorized.</div>
       </div>
 
       <div id="urlWrap" style="display:none;margin-bottom:14px">
-        <label style="display:block;font-size:13px;font-weight:700;color:#ff8366;margin-bottom:7px">Paste the current website URL</label>
-        <input id="fUrl" placeholder="oldwebsite.com" style="width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,92,56,.3);background:#16161e;color:#f0eef2;font-size:16px">
+        <label style="display:block;font-size:13px;font-weight:700;color:#2dd4bf;margin-bottom:7px">Paste the current website URL</label>
+        <input id="fUrl" placeholder="oldwebsite.com" style="width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(232,196,118,.3);background:#0d1a2d;color:#f0eef2;font-size:16px">
       </div>
 
       <div id="manualForm" style="display:flex;flex-direction:column;gap:15px">
-        <div style="background:#16161e;border:1px solid rgba(255,92,56,.25);border-radius:13px;padding:15px 16px">
-          <label class="lbl" style="color:#ff8366">📋 Paste any business info (optional — fastest way)</label>
+        <div style="background:#0d1a2d;border:1px solid rgba(232,196,118,.25);border-radius:13px;padding:15px 16px">
+          <label class="lbl" style="color:#2dd4bf">📋 Paste any business info (optional — fastest way)</label>
           <textarea id="fPaste" rows="4" placeholder="Paste anything: an About blurb, services & prices, hours, menu, reviews, or the text from their old site. We read it and build the site from it — you can leave the fields below blank."></textarea>
           <div style="font-size:12px;color:#8c8998;margin-top:7px">Tip: paste it all and hit build. Fill the fields below only to override or add details.</div>
         </div>
@@ -118,19 +118,19 @@
         <div><label class="lbl">Anything special? (optional)</label><textarea id="fNotes" rows="2" placeholder="Family-owned since 1990, vegan options, open 7 days…"></textarea></div>
 
         <!-- ===== MEDIA & SOCIAL ===== -->
-        <div style="background:#16161e;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:16px">
+        <div style="background:#0d1a2d;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:16px">
           <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700">🎬 Media &amp; social <span style="color:#8c8998;font-weight:500;font-size:13px">(optional — adds the client's real content)</span></div>
 
           <!-- Photos -->
           <div>
             <label class="lbl">📷 Photos (gallery &amp; hero)</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-              <label style="cursor:pointer;background:rgba(255,92,56,.16);color:#ff8366;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload photos<input id="fPhotoFile" type="file" accept="image/*" multiple style="display:none"></label>
+              <label style="cursor:pointer;background:rgba(232,196,118,.16);color:#2dd4bf;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload photos<input id="fPhotoFile" type="file" accept="image/*" multiple style="display:none"></label>
               <input id="fPhotoUrl" placeholder="…or paste an image URL" style="flex:1;min-width:160px;padding:9px 12px;font-size:14px">
               <button type="button" id="addPhotoUrl" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);cursor:pointer;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">Add</button>
             </div>
             <div id="photoThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIimg" type="checkbox" style="width:auto;accent-color:#ff5c38"> ✨ Generate a stunning hero image (when no photos are added)</label>
+            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIimg" type="checkbox" style="width:auto;accent-color:#e8c476"> ✨ Generate a stunning hero image (when no photos are added)</label>
           </div>
 
           <!-- Video -->
@@ -138,10 +138,10 @@
             <label class="lbl">🎥 Video</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <input id="fVideo" placeholder="YouTube / Vimeo / .mp4 URL" style="flex:1;min-width:160px;padding:9px 12px;font-size:14px">
-              <label style="cursor:pointer;background:rgba(255,92,56,.16);color:#ff8366;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload<input id="fVideoFile" type="file" accept="video/*" style="display:none"></label>
+              <label style="cursor:pointer;background:rgba(232,196,118,.16);color:#2dd4bf;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload<input id="fVideoFile" type="file" accept="video/*" style="display:none"></label>
               <button type="button" id="genVideo" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);cursor:pointer;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">🎬 Generate cinematic video</button>
             </div>
-            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIvid" type="checkbox" style="width:auto;accent-color:#ff5c38"> ✨ Auto-generate a cinematic Higgsfield video when none is added</label>
+            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIvid" type="checkbox" style="width:auto;accent-color:#e8c476"> ✨ Auto-generate a cinematic Higgsfield video when none is added</label>
             <div id="videoNote" style="font-size:12px;color:#8c8998;margin-top:6px"></div>
           </div>
 
@@ -150,7 +150,7 @@
             <label class="lbl">🎵 Audio</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <input id="fAudio" placeholder="Audio file URL (.mp3 / .m4a)" style="flex:1;min-width:160px;padding:9px 12px;font-size:14px">
-              <label style="cursor:pointer;background:rgba(255,92,56,.16);color:#ff8366;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload<input id="fAudioFile" type="file" accept="audio/*" style="display:none"></label>
+              <label style="cursor:pointer;background:rgba(232,196,118,.16);color:#2dd4bf;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload<input id="fAudioFile" type="file" accept="audio/*" style="display:none"></label>
             </div>
             <div id="audioNote" style="font-size:12px;color:#8c8998;margin-top:6px"></div>
           </div>
@@ -177,21 +177,21 @@
           </div>
         </div>
 
-        <button id="buildBtn" style="margin-top:4px;background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
-        <div id="err" style="color:#ff8366;font-size:14px;text-align:center;display:none"></div>
+        <button id="buildBtn" style="margin-top:4px;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
+        <div id="err" style="color:#2dd4bf;font-size:14px;text-align:center;display:none"></div>
         <div style="font-size:13px;color:#8c8998;text-align:center">Runs on your own Claude key via the secure backend.</div>
       </div>
     </div>
 
     <!-- VISUAL -->
-    <div style="background:linear-gradient(160deg,#1a1622,#16161e);border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;padding:48px">
+    <div style="background:linear-gradient(160deg,#1a1622,#0d1a2d);border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;padding:48px">
       <div id="idlePane" style="text-align:center;max-width:380px">
         <div style="font-size:64px;margin-bottom:20px">🌎</div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:23px;font-weight:700">A full website, every section included.</div>
         <div id="chips" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px"></div>
       </div>
       <div id="loadPane" style="display:none;text-align:center">
-        <div style="width:60px;height:60px;border:4px solid rgba(255,92,56,.2);border-top-color:#ff5c38;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 24px"></div>
+        <div style="width:60px;height:60px;border:4px solid rgba(232,196,118,.2);border-top-color:#e8c476;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 24px"></div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">Building your website…</div>
         <div id="loadMsg" style="font-size:13px;color:#e8916b;font-weight:700;margin-top:6px">✦ SAHJONY™ is crafting every word</div>
       </div>
@@ -205,7 +205,7 @@
 
 <style>
   .lbl{display:block;font-size:13px;font-weight:700;color:#d6d3df;margin-bottom:7px}
-  #builder input,#builder textarea{width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#16161e;color:#f0eef2;font-size:16px}
+  #builder input,#builder textarea{width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#0d1a2d;color:#f0eef2;font-size:16px}
   #builder input::placeholder,#builder textarea::placeholder{color:#9aa0aa}
 </style>
 
@@ -221,7 +221,7 @@ $("#chips").innerHTML = CHIPS.map(c=>`<div style="background:rgba(255,255,255,.0
 function setMode(m){
   mode = m;
   const map = { auto:"#mAuto", fresh:"#mFresh", url:"#mUrl" };
-  for(const k in map){ const b=$(map[k]); if(!b) continue; const on=(k===m); b.style.background=on?"#ff5c38":"transparent"; b.style.color=on?"#0d0d12":"#aaa7b5"; }
+  for(const k in map){ const b=$(map[k]); if(!b) continue; const on=(k===m); b.style.background=on?"#e8c476":"transparent"; b.style.color=on?"#04080f":"#aaa7b5"; }
   $("#autoPanel").style.display = (m==="auto") ? "flex" : "none";
   $("#manualForm").style.display = (m==="auto") ? "none" : "flex";
   $("#urlWrap").style.display = (m==="url") ? "block" : "none";
@@ -455,7 +455,7 @@ function hexToRgba(hex, a){
   hex=String(hex||"").replace('#','');
   if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
   const n=parseInt(hex,16);
-  if(hex.length!==6 || isNaN(n)) return 'rgba(255,92,56,'+a+')';
+  if(hex.length!==6 || isNaN(n)) return 'rgba(232,196,118,'+a+')';
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
 }
 
@@ -744,12 +744,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   </div>`;
 
   document.getElementById("site").innerHTML = `
-    <div style="background:#0d0d12;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="background:#04080f;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div style="font-size:13px;color:#b3b0bd"> <b style="color:#fff">${name}</b> · ${lang}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
         <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🚀 Save & Publish</button>
-        <button id="dlBtn" style="background:#ff5c38;color:#0d0d12;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
+        <button id="dlBtn" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
       </div>
     </div></div>
     <div id="siteRoot" style="background:#0a0b0e;color:#f5f6f8">${siteHtml}</div>`;

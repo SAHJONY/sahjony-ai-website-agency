@@ -276,15 +276,78 @@ function postCard(url, primary){
   return `<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid rgba(0,0,0,.09);border-radius:14px;padding:18px 20px;text-decoration:none;color:#1d2129"><div style="font-size:26px">${icon}</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">${label}</div><div style="font-size:13px;color:#5c6270;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${url}</div></div><div style="color:${primary};font-weight:700">→</div></a>`;
 }
 
-function fallback(type){
+function fallback(type, name, city){
+  name = name || "Your Business"; city = city || "your area";
+  const t = (type||"").toLowerCase();
+  const S = (a)=>a.map(x=>({name:x[0],desc:x[1],price:x[2]||""}));
+  const sets = [
+    [/barber|barbershop/, {
+      tag:`Sharp cuts. Real ${city} barbers.`,
+      a1:`At ${name}, every cut is dialed in by barbers who actually care about your look.`,
+      a2:`Walk out feeling fresh — clean fades, crisp lines, hot-towel finishes.`,
+      svc:S([["Classic Cut","Timeless, clean, your style.","$30"],["Skin / Taper Fade","Blended to perfection.","$35"],["Beard Trim & Line-up","Crisp edges every time.","$20"],["Hot Towel Shave","Old-school, close, smooth.","$35"],["Kids' Cut","Patient and quick.","$25"],["Wash & Style","Fresh finish before you go.","$15"]]),
+    }],
+    [/bakery|bread|cake|pastr|donut|dessert/, {
+      tag:`Baked fresh every morning in ${city}.`,
+      a1:`${name} bakes everything from scratch — real butter, real time, real flavor.`,
+      a2:`From morning loaves to celebration cakes, it's the taste your neighborhood remembers.`,
+      svc:S([["Fresh Breads","Baked daily, still warm.",""],["Custom Cakes","For every celebration.",""],["Pastries & Croissants","Flaky, buttery, perfect.",""],["Cupcakes","By the dozen.",""],["Coffee & Espresso","To go with your treat.",""],["Catering Trays","For the whole office.",""]]),
+    }],
+    [/auto|mechanic|repair|tire|oil|brake/, {
+      tag:`Honest auto care ${city} trusts.`,
+      a1:`${name} keeps your car safe and running right — no upsells, no surprises.`,
+      a2:`Certified techs, fair prices, and work explained in plain English.`,
+      svc:S([["Oil & Filter Change","In and out fast.","$49"],["Brake Service","Stop safely, every time.",""],["Tire Rotation & Balance","Even wear, smooth ride.",""],["Engine Diagnostics","We find the real issue.",""],["A/C Service","Cold air, fast.",""],["Pre-Trip Inspection","Drive with confidence.",""]]),
+    }],
+    [/nail|salon|spa|beauty|lash|wax|skin/, {
+      tag:`Look good. Feel better. ${city}.`,
+      a1:`${name} is your escape — relaxing, spotless, and all about you.`,
+      a2:`Skilled hands, premium products, results you'll show off.`,
+      svc:S([["Manicure","Polished and pristine.",""],["Pedicure","Treat your feet.",""],["Gel & Acrylics","Long-lasting, flawless.",""],["Facials","Glow restored.",""],["Lash & Brow","Frame your face.",""],["Waxing","Smooth and quick.",""]]),
+    }],
+    [/restaurant|taco|taqueria|grill|pizza|cafe|coffee|kitchen|food|diner|bbq|bar/, {
+      tag:`${city}'s favorite table.`,
+      a1:`${name} serves food made with heart — fresh ingredients, bold flavor, generous plates.`,
+      a2:`Come hungry, leave happy. Dine in, take out, or let us cater.`,
+      svc:S([["Signature Dishes","What we're known for.",""],["Daily Specials","Fresh every day.",""],["Catering","We bring the feast.",""],["Takeout & Delivery","Your favorites, to go.",""],["Drinks & Desserts","Save room.",""],["Private Events","Book the room.",""]]),
+    }],
+    [/plant|flower|florist|garden|nursery/, {
+      tag:`Fresh blooms & green things, ${city}.`,
+      a1:`${name} brings life to every room and every occasion.`,
+      a2:`Hand-picked plants and arrangements, cared for like our own.`,
+      svc:S([["Bouquets","For any occasion.",""],["Houseplants","Hand-picked & healthy.",""],["Event Florals","Weddings & parties.",""],["Same-Day Delivery","Fresh to their door.",""],["Plant Care","We keep them thriving.",""],["Custom Arrangements","Tell us the vibe.",""]]),
+    }],
+    [/gym|fitness|yoga|train|pilates|crossfit|martial/, {
+      tag:`Stronger starts here, ${city}.`,
+      a1:`${name} is where ${city} gets after it — real coaching, real results.`,
+      a2:`Every level welcome. Show up; we'll handle the rest.`,
+      svc:S([["Personal Training","1-on-1, goal-focused.",""],["Group Classes","Sweat together.",""],["Memberships","Flexible plans.",""],["Nutrition Coaching","Fuel the work.",""],["Open Gym","Your space, your pace.",""],["Free Intro Session","Come try it.","Free"]]),
+    }],
+    [/clean|maid|janitor|housekeep/, {
+      tag:`Spotless spaces across ${city}.`,
+      a1:`${name} makes clean effortless — reliable, thorough, and trusted in homes and offices.`,
+      a2:`Bonded, insured, and detail-obsessed. You'll notice the difference.`,
+      svc:S([["Home Cleaning","Top to bottom.",""],["Deep Clean","The full reset.",""],["Office Cleaning","Spotless workspace.",""],["Move In / Out","Leave it perfect.",""],["Recurring Service","Weekly or monthly.",""],["Free Quote","No obligation.","Free"]]),
+    }],
+  ];
+  let pick = null;
+  for(const [re,data] of sets){ if(re.test(t)){ pick=data; break; } }
+  if(!pick){
+    pick = {
+      tag:`${name}: quality work ${city} can count on.`,
+      a1:`${name} is a locally owned ${type||"business"} built on honest work and treating every customer like a neighbor.`,
+      a2:`From your first visit, you'll feel the difference real experience and pride make.`,
+      svc:S([["Our Signature Service","What we're best known for.",""],["Everyday Essentials","Dependable quality.",""],["Premium Option","Our top tier.",""],["Quick Service","Fast, same quality.",""],["Custom Work","Tell us what you need.",""],["Free Consultation","Not sure? Let's talk.","Free"]]),
+    };
+  }
   return {
-    tagline:`Your neighborhood ${type}, done right.`,
-    heroSub:"Quality work, fair prices, and friendly service. Proudly serving our community.",
-    about1:`We're a locally owned ${type} built on honest work and treating every customer like a neighbor.`,
-    about2:"From your first visit, you'll feel the difference experience and pride make.",
-    services:[{name:"Signature Service",desc:"The thing we're best known for.",price:""},{name:"Everyday Essentials",desc:"Dependable quality for routine needs.",price:""},{name:"Premium Option",desc:"Our top-tier offering.",price:""},{name:"Quick Service",desc:"In and out, same quality.",price:""},{name:"Custom Work",desc:"Tell us what you need.",price:""},{name:"Consultations",desc:"Not sure? Let's talk.",price:"Free"}],
-    reviews:[{quote:"Best in town. Friendly, fair, and they know their craft.",author:"A happy local"},{quote:"I won't go anywhere else. Honest people, great work.",author:"Longtime customer"},{quote:"Quick, professional, reasonably priced. Recommend.",author:"Verified review"}],
-    faqs:[{q:"Do I need an appointment?",a:"Walk-ins welcome, but booking guarantees your spot."},{q:"Payment options?",a:"Cash and all major cards."},{q:"Do you serve my area?",a:"Yes — we proudly serve the whole local community."}],
+    tagline: pick.tag,
+    heroSub: `Proudly serving ${city} with quality work, fair prices, and friendly service.`,
+    about1: pick.a1,
+    about2: pick.a2,
+    services: pick.svc,
+    reviews:[{quote:"Best in town. Friendly, fair, and they know their craft.",author:"A happy local"},{quote:"I won't go anywhere else. Honest people, great work.",author:"Longtime customer"},{quote:"Quick, professional, and reasonably priced. Highly recommend.",author:"Verified review"}],
+    faqs:[{q:"Do I need an appointment?",a:"Walk-ins welcome, but booking guarantees your spot."},{q:"What payment do you accept?",a:"Cash and all major cards."},{q:"Do you serve my area?",a:`Yes — we proudly serve ${city} and nearby.`}],
     hours:[{day:"Mon – Fri",time:"9:00 – 18:00"},{day:"Saturday",time:"10:00 – 16:00"},{day:"Sunday",time:"Closed"}],
     labels:{}
   };
@@ -319,15 +382,18 @@ Copy must be specific and vivid — sensory, local, confident. No filler.
 Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
-  let gen;
+  let gen, aiOk=false, aiErr="";
   try{
     const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt})});
     const j = await r.json();
-    if(!r.ok) throw new Error(j.error||"API error");
-    gen = JSON.parse(j.text.match(/\{[\s\S]*\}/)[0]);
+    if(!r.ok) throw new Error(j.error||("AI error "+r.status));
+    gen = parseGen(j.text);
+    if(!gen) throw new Error("The model didn't return usable JSON.");
+    aiOk = true;
   }catch(e){
-    console.warn("Falling back:", e.message);
-    gen = fallback(type);
+    aiErr = (e && e.message) || "AI unavailable";
+    console.warn("Falling back:", aiErr);
+    gen = fallback(type, name, city);
   }
 
   const mediaPayload = collectMedia();
@@ -343,12 +409,27 @@ Translate EVERY label and all content into ${lang}.`;
       else if(ij.error){ console.warn("Image:", ij.error); }
     }catch(_){}
   }
-  renderSite(name, type, city, lang, gen, mediaPayload);
+  renderSite(name, type, city, lang, gen, mediaPayload, {aiOk, aiErr});
 }
 
-function renderSite(name, type, city, lang, gen, mediaIn){
+// Robustly extract the JSON object from a model reply (handles ```json fences,
+// surrounding prose, and trailing commas).
+function parseGen(text){
+  if(!text) return null;
+  let t = String(text).trim().replace(/^```(?:json)?/i,"").replace(/```\s*$/,"").trim();
+  const a=t.indexOf("{"), b=t.lastIndexOf("}");
+  if(a<0 || b<0 || b<=a) return null;
+  const slice=t.slice(a,b+1);
+  try{ return JSON.parse(slice); }catch(_){}
+  try{ return JSON.parse(slice.replace(/,\s*([}\]])/g,"$1")); }catch(_){}
+  return null;
+}
+
+function renderSite(name, type, city, lang, gen, mediaIn, info){
+  name = name || "Your Business";
   const M = mediaIn || { photos:[], video:"", audio:"", social:{}, posts:[] };
-  const phone=val("fPhone")||"+1 (713) 555-0100", email=val("fEmail")||(name.toLowerCase().replace(/[^a-z0-9]+/g,"")+"@email.com");
+  const emailSlug = (name.toLowerCase().replace(/[^a-z0-9]+/g,"")||"hello");
+  const phone=val("fPhone")||"+1 (713) 555-0100", email=val("fEmail")||(emailSlug+"@email.com");
   const addr=val("fAddr"), full=(addr?addr+", ":"")+city;
   const D = gen.design||{};
   const primary = D.primary || gen.primary || theme(type);
@@ -434,9 +515,14 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <footer style="background:#16181d;color:#aab0ba;padding:48px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">${name}</div><div style="font-size:14px;opacity:.8">${L.footerBlurb||("Proudly serving "+city)}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:18px">${socialFooter}</div>`:""}<div style="font-size:13px;opacity:.6;margin-top:16px">© ${year} ${name}. Built with frontdeskagents.com</div></footer>
   </div>`;
 
+  const aiOk = !info || info.aiOk;
+  const statusBar = aiOk
+    ? ""
+    : `<div style="background:#3a2a14;color:#ffcf99;font-size:12.5px;text-align:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.08)">⚠ Showing a tailored starter template — live AI didn't run${info&&info.aiErr?(" ("+info.aiErr+")"):""}. Add an AI key in <b>Dashboard → Settings</b> (or Vercel env) for fully custom copy &amp; design.</div>`;
   document.getElementById("site").innerHTML = `
+    ${statusBar}
     <div style="background:#0d0d12;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div style="font-size:13px;color:#b3b0bd">✨ Generated — <b style="color:#fff">${name}</b> · ${lang}</div>
+      <div style="font-size:13px;color:#b3b0bd">${aiOk?"✨ Generated":"📝 Starter"} — <b style="color:#fff">${name}</b> · ${lang}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
         <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🚀 Save & Publish</button>

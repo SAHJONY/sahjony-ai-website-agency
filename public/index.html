@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>frontdeskagents.com — Websites for local business</title>
-<meta name="theme-color" content="#0d0d12">
+<meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-180.png">
@@ -21,49 +21,129 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  :root{--bg:#0a0b0e;--panel:#14141b;--line:rgba(255,255,255,.08);--muted:#a7a4b2;--text:#f0eef2;--accent:#ff5c38;--accent2:#ff8366}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0d0d12;color:#f0eef2}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);overflow-x:hidden}
   a{color:inherit}
-  .btn{text-decoration:none;font-weight:700;border-radius:999px;display:inline-block;border:none;cursor:pointer}
+  h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif}
+  ::selection{background:rgba(255,92,56,.3)}
+  a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+
+  .btn{text-decoration:none;font-weight:700;border-radius:999px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;transition:transform .16s ease,box-shadow .22s ease,background .2s ease,border-color .2s ease;will-change:transform}
+  .btn-primary{background:var(--accent);color:#0a0b0e;box-shadow:0 10px 30px rgba(255,92,56,.28)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(255,92,56,.45)}
+  .btn-ghost{border:1px solid rgba(255,255,255,.2);color:var(--text);background:rgba(255,255,255,.02)}
+  .btn-ghost:hover{transform:translateY(-2px);background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.35)}
+  .btn:active{transform:translateY(0) scale(.98)}
+
+  .nav-link{color:#c2bfcc;text-decoration:none;font-size:15px;font-weight:600;transition:color .18s ease}
+  .nav-link:hover{color:#fff}
+  header{position:sticky;top:0;z-index:50;background:rgba(10,11,14,.72);backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .25s ease,background .25s ease}
+  header.scrolled{border-bottom-color:var(--line);background:rgba(10,11,14,.9)}
+
+  /* ambient hero glow */
+  .hero{position:relative}
+  .hero::before{content:"";position:absolute;inset:-10% -20% auto -20%;height:520px;background:
+     radial-gradient(60% 60% at 50% 0%,rgba(255,92,56,.20),transparent 70%),
+     radial-gradient(40% 40% at 80% 10%,rgba(123,92,255,.12),transparent 70%);
+     filter:blur(8px);pointer-events:none;z-index:0}
+  .hero>*{position:relative;z-index:1}
+  .grad{background:linear-gradient(120deg,var(--accent),#ffb37a);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .card{background:linear-gradient(180deg,#15151d,#121219);border:1px solid var(--line);border-radius:18px;padding:28px;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+  .card:hover{transform:translateY(-6px);border-color:rgba(255,92,56,.4);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .ico{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(255,92,56,.12);border:1px solid rgba(255,92,56,.2);margin-bottom:16px}
+
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#cbc8d4;background:rgba(255,255,255,.05);border:1px solid var(--line);padding:8px 14px;border-radius:999px}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .rise{opacity:0;animation:fadeUp .7s cubic-bezier(.2,.7,.2,1) forwards}
+  @media(prefers-reduced-motion:reduce){.rise{animation:none;opacity:1}}
+
+  select[data-lang-select]{background:rgba(255,255,255,.08);color:var(--text);border:1px solid rgba(255,255,255,.16);font-size:13px;font-weight:700;padding:9px 12px;border-radius:999px;cursor:pointer}
+
   @media(max-width:720px){
     header nav{flex-wrap:wrap;gap:12px 16px!important;padding:14px 18px!important}
-    h1{font-size:42px!important;line-height:1.05!important}
+    h1{font-size:40px!important;line-height:1.04!important}
     section{padding-left:18px!important;padding-right:18px!important}
     .grid3{grid-template-columns:1fr!important}
+    .hide-sm{display:none!important}
   }
 </style>
 </head>
 <body>
-<header style="position:sticky;top:0;z-index:50;background:rgba(13,13,18,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.07)">
+<header>
   <nav style="max-width:1200px;margin:0 auto;padding:18px 28px;display:flex;align-items:center;justify-content:space-between">
-    <div style="display:flex;align-items:center;gap:11px"><div style="width:32px;height:32px;border-radius:8px;background:#ff5c38;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px">frontdeskagents<span style="color:#ff5c38">.com</span></div></div>
-    <div style="display:flex;align-items:center;gap:26px">
-      <a href="/pricing.html" style="color:#b3b0bd;text-decoration:none;font-size:15px;font-weight:600" data-en="Pricing" data-es="Precios">Pricing</a>
-      <a href="/contact.html" style="color:#b3b0bd;text-decoration:none;font-size:15px;font-weight:600" data-en="Contact" data-es="Contacto">Contact</a>
-      <a href="/dashboard.html" style="color:#b3b0bd;text-decoration:none;font-size:15px;font-weight:600" data-en="Dashboard" data-es="Panel">Dashboard</a>
-      <select data-lang-select aria-label="Language" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:13px;font-weight:700;padding:9px 12px;border-radius:999px;cursor:pointer"></select>
-      <a href="/builder.html" class="btn" style="background:#ff5c38;color:#0d0d12;font-size:14px;padding:11px 22px" data-en="Build a site" data-es="Crear sitio">Build a site</a>
+    <a href="/" style="display:flex;align-items:center;gap:11px;text-decoration:none"><div style="width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 6px 18px rgba(255,92,56,.4)">⚡</div><div class="disp" style="font-weight:700;font-size:20px">frontdeskagents<span style="color:var(--accent)">.com</span></div></a>
+    <div style="display:flex;align-items:center;gap:24px">
+      <a href="/pricing.html" class="nav-link hide-sm" data-en="Pricing" data-es="Precios">Pricing</a>
+      <a href="/contact.html" class="nav-link hide-sm" data-en="Contact" data-es="Contacto">Contact</a>
+      <a href="/dashboard.html" class="nav-link hide-sm" data-en="Dashboard" data-es="Panel">Dashboard</a>
+      <select data-lang-select aria-label="Language"></select>
+      <a href="/builder.html" class="btn btn-primary" style="font-size:14px;padding:11px 22px" data-en="Build a site" data-es="Crear sitio">Build a site</a>
     </div>
   </nav>
 </header>
 
-<section style="max-width:1100px;margin:0 auto;padding:100px 28px 70px;text-align:center">
-  <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,56,.12);color:#ff8366;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px;margin-bottom:28px" data-en="✦ Powered by SAHJONY AI™ · Full-stack, deployed on Vercel" data-es="✦ Impulsado por SAHJONY AI™ · Full-stack, desplegado en Vercel">✦ Powered by SAHJONY AI™ · Full-stack, deployed on Vercel</div>
-  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:72px;line-height:1;font-weight:700;letter-spacing:-.03em;max-width:900px;margin:0 auto 26px" data-en="Beautiful websites for the shops that <span style=&quot;color:#ff5c38&quot;>built this city.</span>" data-es="Sitios web bonitos para los negocios que <span style=&quot;color:#ff5c38&quot;>construyeron esta ciudad.</span>">Beautiful websites for the shops that <span style="color:#ff5c38">built this city.</span></h1>
-  <p style="font-size:20px;line-height:1.6;color:#aaa7b5;max-width:600px;margin:0 auto 38px" data-en="Stunning, bilingual websites for local businesses — generated by AI in seconds, live in a week, priced for a small business." data-es="Sitios web impresionantes y bilingües para negocios locales — generados por IA en segundos, en línea en una semana, a precio de negocio pequeño.">Stunning, bilingual websites for local businesses — generated by AI in seconds, live in a week, priced for a small business.</p>
-  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-    <a href="/builder.html" class="btn" style="background:#ff5c38;color:#0d0d12;font-size:16px;padding:16px 32px" data-en="⚡ Build a site now" data-es="⚡ Crear un sitio ahora">⚡ Build a site now</a>
-    <a href="/dashboard.html" class="btn" style="border:1px solid rgba(255,255,255,.2);color:#f0eef2;font-size:16px;padding:16px 32px" data-en="Open the dashboard →" data-es="Abrir el panel →">Open the dashboard →</a>
+<section class="hero" style="max-width:1100px;margin:0 auto;padding:104px 28px 64px;text-align:center">
+  <div class="rise chip" style="margin-bottom:28px;color:var(--accent2);background:rgba(255,92,56,.12);border-color:rgba(255,92,56,.25)" data-en="✦ Powered by SAHJONY AI™ · Full-stack, deployed on Vercel" data-es="✦ Impulsado por SAHJONY AI™ · Full-stack, desplegado en Vercel">✦ Powered by SAHJONY AI™ · Full-stack, deployed on Vercel</div>
+  <h1 class="rise" style="font-size:74px;line-height:1;font-weight:700;letter-spacing:-.03em;max-width:920px;margin:0 auto 26px;animation-delay:.06s" data-en="Beautiful websites for the shops that <span class=&quot;grad&quot;>built this city.</span>" data-es="Sitios web bonitos para los negocios que <span class=&quot;grad&quot;>construyeron esta ciudad.</span>">Beautiful websites for the shops that <span class="grad">built this city.</span></h1>
+  <p class="rise" style="font-size:20px;line-height:1.6;color:var(--muted);max-width:600px;margin:0 auto 36px;animation-delay:.12s" data-en="Stunning, bilingual websites for local businesses — generated by AI in seconds, live in a week, priced for a small business." data-es="Sitios web impresionantes y bilingües para negocios locales — generados por IA en segundos, en línea en una semana, a precio de negocio pequeño.">Stunning, bilingual websites for local businesses — generated by AI in seconds, live in a week, priced for a small business.</p>
+  <div class="rise" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation-delay:.18s">
+    <a href="/builder.html" class="btn btn-primary" style="font-size:16px;padding:16px 32px" data-en="⚡ Build a site now" data-es="⚡ Crear un sitio ahora">⚡ Build a site now</a>
+    <a href="/dashboard.html" class="btn btn-ghost" style="font-size:16px;padding:16px 32px" data-en="Open the dashboard →" data-es="Abrir el panel →">Open the dashboard →</a>
   </div>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px">
-    <button id="shareBtn" class="btn" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:14px;padding:11px 20px">🔗 Share app</button>
-    <button id="installBtn" class="btn" style="display:none;background:rgba(255,92,56,.16);color:#ff8366;font-size:14px;padding:11px 20px">⬇ Install app</button>
+  <div class="rise" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:28px;animation-delay:.24s">
+    <span class="chip" data-en="🤖 AI-built" data-es="🤖 Hecho por IA">🤖 AI-built</span>
+    <span class="chip" data-en="🌎 Bilingual" data-es="🌎 Bilingüe">🌎 Bilingual</span>
+    <span class="chip" data-en="⚡ Live in a week" data-es="⚡ En línea en una semana">⚡ Live in a week</span>
+    <span class="chip" data-en="💸 From $899" data-es="💸 Desde $899">💸 From $899</span>
   </div>
-  <div id="shareMsg" style="font-size:13px;color:#2fd47f;margin-top:10px;display:none">Link copied — share it anywhere.</div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+    <button id="shareBtn" class="btn btn-ghost" style="font-size:14px;padding:10px 18px" data-en="🔗 Share app" data-es="🔗 Compartir app">🔗 Share app</button>
+    <button id="installBtn" class="btn" style="display:none;background:rgba(255,92,56,.16);color:var(--accent2);font-size:14px;padding:10px 18px" data-en="⬇ Install app" data-es="⬇ Instalar app">⬇ Install app</button>
+  </div>
+  <div id="shareMsg" style="font-size:13px;color:#2fd47f;margin-top:10px;display:none" data-en="Link copied — share it anywhere." data-es="Enlace copiado — compártelo donde sea.">Link copied — share it anywhere.</div>
 </section>
 
+<section style="max-width:1100px;margin:0 auto;padding:24px 28px 84px">
+  <div class="grid3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+    <div class="card"><div class="ico">🤖</div><div class="disp" style="font-size:20px;font-weight:700;margin-bottom:8px" data-en="AI builds it" data-es="La IA lo construye">AI builds it</div><div style="color:var(--muted);font-size:15px;line-height:1.6" data-en="Enter a few details (or paste an old URL). Claude writes every section and assembles a full site." data-es="Ingresa unos datos (o pega una URL antigua). Claude escribe cada sección y arma un sitio completo.">Enter a few details (or paste an old URL). Claude writes every section and assembles a full site.</div></div>
+    <div class="card"><div class="ico">🌐</div><div class="disp" style="font-size:20px;font-weight:700;margin-bottom:8px" data-en="Deploy free" data-es="Publica gratis">Deploy free</div><div style="color:var(--muted);font-size:15px;line-height:1.6" data-en="Hosted on Vercel with your own domain. Download the file or publish in one click." data-es="Alojado en Vercel con tu propio dominio. Descarga el archivo o publica en un clic.">Hosted on Vercel with your own domain. Download the file or publish in one click.</div></div>
+    <div class="card"><div class="ico">📊</div><div class="disp" style="font-size:20px;font-weight:700;margin-bottom:8px" data-en="Run the business" data-es="Maneja el negocio">Run the business</div><div style="color:var(--muted);font-size:15px;line-height:1.6" data-en="Track leads &amp; clients in the dashboard, synced to your Upstash cloud database." data-es="Gestiona prospectos y clientes en el panel, sincronizado con tu base de datos en la nube Upstash.">Track leads &amp; clients in the dashboard, synced to your Upstash cloud database.</div></div>
+  </div>
+</section>
+
+<section style="max-width:1100px;margin:0 auto;padding:0 28px 96px">
+  <div style="position:relative;overflow:hidden;background:linear-gradient(135deg,#1c1420,#121219);border:1px solid rgba(255,92,56,.25);border-radius:24px;padding:56px 32px;text-align:center">
+    <div style="position:absolute;inset:auto -10% -60% auto;width:380px;height:380px;background:radial-gradient(circle,rgba(255,92,56,.18),transparent 70%);pointer-events:none"></div>
+    <div class="disp" style="font-size:36px;font-weight:700;letter-spacing:-.02em;margin-bottom:12px;position:relative" data-en="From <span class=&quot;grad&quot;>$899</span> to launch." data-es="Desde <span class=&quot;grad&quot;>$899</span> para lanzar.">From <span class="grad">$899</span> to launch.</div>
+    <p style="color:var(--muted);font-size:17px;max-width:520px;margin:0 auto 20px;position:relative" data-en="Most shops go with the full multi-section site at <b style=&quot;color:#f0eef2&quot;>$1,299</b>, plus <b style=&quot;color:#f0eef2&quot;>$89/mo</b> care. No contracts." data-es="La mayoría elige el sitio completo de varias secciones por <b style=&quot;color:#f0eef2&quot;>$1,299</b>, más <b style=&quot;color:#f0eef2&quot;>$89/mes</b> de mantenimiento. Sin contratos.">Most shops go with the full multi-section site at <b style="color:#f0eef2">$1,299</b>, plus <b style="color:#f0eef2">$89/mo</b> care. No contracts.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative">
+      <a href="/pricing.html" class="btn btn-primary" style="font-size:15px;padding:14px 28px" data-en="See full pricing" data-es="Ver precios completos">See full pricing</a>
+      <a href="/contact.html" class="btn btn-ghost" style="font-size:15px;padding:14px 28px" data-en="Get a free mockup" data-es="Pide una muestra gratis">Get a free mockup</a>
+    </div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--line);padding:40px 28px;text-align:center;color:#8c8998;font-size:14px">
+  <div style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
+    <a href="/pricing.html" class="nav-link" style="font-size:14px" data-en="Pricing" data-es="Precios">Pricing</a>
+    <a href="/builder.html" class="nav-link" style="font-size:14px" data-en="Builder" data-es="Constructor">Builder</a>
+    <a href="/dashboard.html" class="nav-link" style="font-size:14px" data-en="Dashboard" data-es="Panel">Dashboard</a>
+    <a href="/contact.html" class="nav-link" style="font-size:14px" data-en="Contact" data-es="Contacto">Contact</a>
+  </div>
+  frontdeskagents.com · powered by SAHJONY AI™ · 🤠
+</footer>
+
 <script>
-  // Share — uses the native share sheet on phones, clipboard elsewhere.
+  // Scroll-aware header shadow.
+  var hdr=document.querySelector("header");
+  var onScroll=function(){ hdr.classList.toggle("scrolled",(window.scrollY||document.documentElement.scrollTop)>16); };
+  window.addEventListener("scroll",onScroll,{passive:true}); onScroll();
+
+  // Share — native share sheet on phones, clipboard elsewhere.
   document.getElementById("shareBtn").onclick = async () => {
     const data = { title: "frontdeskagents.com", text: "AI websites for local business — build one in seconds.", url: location.origin + "/" };
     try {
@@ -73,42 +153,13 @@
   };
   // Install — Add to Home Screen / install as an app.
   let deferredPrompt = null;
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById("installBtn").style.display = "inline-block"; });
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById("installBtn").style.display = "inline-flex"; });
   document.getElementById("installBtn").onclick = async () => {
     if (!deferredPrompt) { alert("To install: open your browser menu and choose “Add to Home Screen” / “Install app.”"); return; }
     deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById("installBtn").style.display = "none";
   };
   window.addEventListener("appinstalled", () => { document.getElementById("installBtn").style.display = "none"; });
 </script>
-
-<section style="max-width:1100px;margin:0 auto;padding:30px 28px 90px">
-  <div class="grid3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
-    <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">🤖</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px" data-en="AI builds it" data-es="La IA lo construye">AI builds it</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6" data-en="Enter a few details (or paste an old URL). Claude writes every section and assembles a full site." data-es="Ingresa unos datos (o pega una URL antigua). Claude escribe cada sección y arma un sitio completo.">Enter a few details (or paste an old URL). Claude writes every section and assembles a full site.</div></div>
-    <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">🌐</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px" data-en="Deploy free" data-es="Publica gratis">Deploy free</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6" data-en="Hosted on Vercel with your own domain. Download the file or publish in one click." data-es="Alojado en Vercel con tu propio dominio. Descarga el archivo o publica en un clic.">Hosted on Vercel with your own domain. Download the file or publish in one click.</div></div>
-    <div style="background:#16161e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px"><div style="font-size:26px;margin-bottom:12px">📊</div><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px" data-en="Run the business" data-es="Maneja el negocio">Run the business</div><div style="color:#aaa7b5;font-size:15px;line-height:1.6" data-en="Track leads &amp; clients in the dashboard, synced to your Upstash cloud database." data-es="Gestiona prospectos y clientes en el panel, sincronizado con tu base de datos en la nube Upstash.">Track leads &amp; clients in the dashboard, synced to your Upstash cloud database.</div></div>
-  </div>
-</section>
-
-<section style="max-width:1100px;margin:0 auto;padding:10px 28px 90px">
-  <div style="background:linear-gradient(180deg,#1a141f,#16161e);border:1px solid rgba(255,92,56,.25);border-radius:22px;padding:48px 32px;text-align:center">
-    <div style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px" data-en="From <span style=&quot;color:#ff5c38&quot;>$899</span> to launch." data-es="Desde <span style=&quot;color:#ff5c38&quot;>$899</span> para lanzar.">From <span style="color:#ff5c38">$899</span> to launch.</div>
-    <p style="color:#aaa7b5;font-size:17px;max-width:520px;margin:0 auto 16px" data-en="Most shops go with the full multi-section site at <b style=&quot;color:#f0eef2&quot;>$1,299</b>, plus <b style=&quot;color:#f0eef2&quot;>$89/mo</b> care. No contracts." data-es="La mayoría elige el sitio completo de varias secciones por <b style=&quot;color:#f0eef2&quot;>$1,299</b>, más <b style=&quot;color:#f0eef2&quot;>$89/mes</b> de mantenimiento. Sin contratos.">Most shops go with the full multi-section site at <b style="color:#f0eef2">$1,299</b>, plus <b style="color:#f0eef2">$89/mo</b> care. No contracts.</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <a href="/pricing.html" class="btn" style="background:#ff5c38;color:#0d0d12;font-size:15px;padding:14px 28px" data-en="See full pricing" data-es="Ver precios completos">See full pricing</a>
-      <a href="/contact.html" class="btn" style="border:1px solid rgba(255,255,255,.2);color:#f0eef2;font-size:15px;padding:14px 28px" data-en="Get a free mockup" data-es="Pide una muestra gratis">Get a free mockup</a>
-    </div>
-  </div>
-</section>
-
-<footer style="border-top:1px solid rgba(255,255,255,.07);padding:36px 28px;text-align:center;color:#8c8998;font-size:14px">
-  <div style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
-    <a href="/pricing.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600" data-en="Pricing" data-es="Precios">Pricing</a>
-    <a href="/builder.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600" data-en="Builder" data-es="Constructor">Builder</a>
-    <a href="/dashboard.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600" data-en="Dashboard" data-es="Panel">Dashboard</a>
-    <a href="/contact.html" style="color:#b3b0bd;text-decoration:none;font-size:14px;font-weight:600" data-en="Contact" data-es="Contacto">Contact</a>
-  </div>
-  frontdeskagents.com · powered by SAHJONY AI™ · 🤠
-</footer>
 <script src="/i18n.js"></script>
 </body>
 </html>

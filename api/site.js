@@ -34,10 +34,22 @@ export default async function handler(req, res) {
       return res.end(`<!doctype html><meta charset="utf-8"><title>${rec.name || "Website"}</title><body style="font-family:system-ui;background:#0d0d12;color:#f0eef2;display:grid;place-items:center;height:100vh;margin:0;text-align:center"><div style="max-width:420px;padding:24px"><div style="font-size:40px">🔒</div><h1 style="font-size:24px;margin:10px 0">This site is paused</h1><p style="color:#aaa7b5;line-height:1.6">${rec.name ? rec.name + "'s" : "This"} website is temporarily offline pending payment. It goes live automatically once payment is complete.</p><a href="/" style="color:#ff8366">frontdeskagents.com</a></div></body>`);
     }
 
+    // SECOND PRODUCT: every site we host ships with AVA, the AI receptionist —
+    // injected at serve time so it's always present (opt-out with rec.ava===false).
+    let html = rec.html;
+    if (rec.ava !== false && !/\/ava\.js/.test(html)) {
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+      const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+      const origin = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+      const biz = String(rec.name || "this business").replace(/"/g, "&quot;");
+      const tag = `<script defer src="${origin}/ava.js" data-business="${biz}"></script>`;
+      html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, tag + "</body>") : html + tag;
+    }
+
     res.status(200);
     res.setHeader("content-type", "text/html; charset=utf-8");
     res.setHeader("cache-control", "public, max-age=60");
-    res.end(rec.html);
+    res.end(html);
   } catch (e) {
     return notFound("Temporarily unavailable.");
   }

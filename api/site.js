@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
       const origin = process.env.APP_URL || (host ? `${proto}://${host}` : "");
       const biz = String(rec.name || "this business").replace(/"/g, "&quot;");
-      const tag = `<script defer src="${origin}/ava.js" data-business="${biz}"></script>`;
+      const tag = `<script defer src="${origin}/ava.js" data-business="${biz}" data-slug="${slug}" data-api="${origin}/api/generate"></script>`;
       html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, tag + "</body>") : html + tag;
     }
 

@@ -7,6 +7,7 @@
 // login). Public visitors never touch this — the contact form writes through the
 // separate, write-only /api/contact path instead.
 import { tgNotifyOwner } from "../lib/telegram.js";
+import { rateLimit, safeEqual } from "../lib/guard.js";
 
 function sanitizeKey(k) {
   return String(k || "fda:default").replace(/[^a-zA-Z0-9:_-]/g, "_").slice(0, 120);
@@ -234,6 +235,8 @@ async function handleRepPublic(req, res, action) {
 
   if (action === "rep-login") {
     if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const lrl = await rateLimit(req, "replogin", { limit: 15, windowSec: 600 });
+    if (lrl.limited) return res.status(429).json({ error: "Too many attempts — wait a few minutes." });
     const email = normEmail(body.email);
     const code = String(body.code || "").trim().toUpperCase();
     if (!email || !code) return res.status(400).json({ error: "Email and access code required." });
@@ -241,7 +244,7 @@ async function handleRepPublic(req, res, action) {
     const id = mapped && typeof mapped === "object" ? mapped.id : mapped;
     if (!id) return res.status(401).json({ error: "No rep account for that email." });
     const rep = await kvGet("fda:rep:" + sanitizeKey(String(id)));
-    if (!rep || String(rep.accessCode || "").toUpperCase() !== code) return res.status(401).json({ error: "Incorrect access code." });
+    if (!rep || !safeEqual(String(rep.accessCode || "").toUpperCase(), code)) return res.status(401).json({ error: "Incorrect access code." });
     if (rep.active === false) return res.status(403).json({ error: "This account is inactive. Contact your manager." });
     const token = genCode(24);
     await kvSet("fda:reptoken:" + token, String(id), REP_TOKEN_TTL);
@@ -259,6 +262,8 @@ async function handleRepPublic(req, res, action) {
   // Public application from /apply.html — write-only into the pending queue.
   if (action === "rep-apply") {
     if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const arl = await rateLimit(req, "repapply", { limit: 5, windowSec: 3600 });
+    if (arl.limited) return res.status(429).json({ error: "Too many applications from this connection — try again later." });
     const name = String(body.name || "").trim().slice(0, 120);
     const email = String(body.email || "").trim().slice(0, 160);
     if (!name || !email) return res.status(400).json({ error: "Name and email are required." });
@@ -298,6 +303,8 @@ async function handlePortal(req, res) {
   // POST { email, code } -> { ok, token, customer }
   if (action === "portal-login") {
     if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const prl = await rateLimit(req, "custlogin", { limit: 15, windowSec: 600 });
+    if (prl.limited) return res.status(429).json({ ok: false, error: "Too many attempts — wait a few minutes." });
     const email = normEmail(body.email);
     const code = String(body.code || "").trim();
     if (!email || !code) return res.status(400).json({ ok: false, error: "Email and access code required." });
@@ -307,7 +314,7 @@ async function handlePortal(req, res) {
     const id = mapped && typeof mapped === "object" ? mapped.id : mapped;
     if (!id) return res.status(401).json({ ok: false, error: "No account found for that email." });
     const cust = await kvGet("fda:cust:" + sanitizeKey(String(id)));
-    if (!cust || String(cust.accessCode || "") !== code) {
+    if (!cust || !safeEqual(String(cust.accessCode || ""), code)) {
       return res.status(401).json({ ok: false, error: "Incorrect access code." });
     }
     // Mint an opaque scoped token mapped only to this customer id.
@@ -410,17 +417,19 @@ export default async function handler(req, res) {
   // BEFORE the owner-gate below, since this is how the dashboard gets its token.
   if (req.query && req.query.action === "login") {
     if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const orl = await rateLimit(req, "ownerlogin", { limit: 10, windowSec: 600 });
+    if (orl.limited) return res.status(429).json({ ok: false, error: "Too many attempts — wait a few minutes." });
     const adminPw = process.env.ADMIN_PASSWORD;
     if (!adminPw) return res.status(200).json({ ok: true, noPassword: true });
     let b = req.body;
     if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-    if (b && b.password === adminPw) return res.status(200).json({ ok: true });
+    if (b && safeEqual(String(b.password || ""), adminPw)) return res.status(200).json({ ok: true });
     return res.status(401).json({ ok: false, error: "Wrong password" });
   }
 
   // Owner-only gate. If no password is configured, stay open (app still works).
   const admin = process.env.ADMIN_PASSWORD;
-  if (admin && req.headers["x-admin-token"] !== admin) {
+  if (admin && !safeEqual(String(req.headers["x-admin-token"] || ""), admin)) {
     return res.status(401).json({ error: "Unauthorized. Log in to the dashboard." });
   }
 

@@ -1,12 +1,14 @@
 // Service worker — makes the app installable and usable offline on any device.
-const CACHE = "fda-v3";
+const CACHE = "fda-v4";
+// Only PUBLIC pages are precached. Owner-gated pages (builder etc.) 302-redirect
+// for anonymous visitors, which would make cache.addAll reject and break the
+// whole install; they're still cached at runtime for the logged-in owner.
 const CORE = [
   "/",
   "/index.html",
   "/pricing.html",
   "/contact.html",
-  "/builder.html",
-  "/dashboard.html",
+  "/request.html",
   "/portal.html",
   "/portal.webmanifest",
   "/data/state-requirements.js",

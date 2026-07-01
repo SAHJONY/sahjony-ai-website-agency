@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Agreement — FrontDesk Agents</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.9);backdrop-filter:blur(12px);z-index:10}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:11px 18px;font-size:14px;text-decoration:none;display:inline-block}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .wrap{max-width:820px;margin:0 auto;padding:26px 18px 90px}
+  .doc{background:#fff;color:#12151c;border-radius:14px;padding:52px 54px;margin-top:18px;line-height:1.6}
+  .doc h1{font-family:'Fraunces',serif;font-size:27px;margin-bottom:4px;color:#0b0d12}
+  .doc h2{font-family:'Fraunces',serif;font-size:18px;margin:26px 0 8px;color:#0b0d12;border-bottom:2px solid #e8c476;padding-bottom:4px}
+  .doc p,.doc li{font-size:14.2px;color:#20242e}
+  .doc ul{margin:6px 0 6px 20px} .doc li{margin:3px 0}
+  .doc .sub{color:#6a7180;font-size:13px}
+  .fld{border:none;border-bottom:1.5px dashed #b9c0cc;background:#fbfcfe;font:inherit;font-size:14.2px;color:#12151c;padding:2px 5px;min-width:120px}
+  .fld:focus{outline:none;border-bottom-color:#e8c476;background:#fffdf6}
+  textarea.fld{width:100%;border:1px solid #d7dbe3;border-radius:8px;padding:8px 10px;min-height:64px}
+  .kv{display:grid;grid-template-columns:180px 1fr;gap:6px 14px;margin-top:10px}
+  .kv div{font-size:14px} .kv .k{color:#5b6270;font-weight:600}
+  .sig{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:26px}
+  .sigline{border-top:1.5px solid #12151c;margin-top:34px;padding-top:5px;font-size:12.5px;color:#5b6270}
+  .note{font-size:12px;color:#8a909c;margin-top:22px;border-top:1px solid #e4e7ec;padding-top:12px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  @media print{
+    body{background:#fff}.bar,.hint{display:none!important}
+    .wrap{max-width:none;padding:0}.doc{border-radius:0;margin:0;padding:0.4in 0.6in;box-shadow:none}
+    .fld{border-bottom:1px solid #999;background:transparent}
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div style="display:flex;align-items:center;gap:10px"><div class="logo">FD</div><div class="fd" style="font-weight:700">Sale Contract</div></div>
+  <div style="display:flex;gap:8px">
+    <a href="/ava.html" class="btn ghost">← Back</a>
+    <button class="btn gold" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <p class="hint muted" style="font-size:13px">Fields are editable — fill in the blanks, then <b>Print / Save as PDF</b> and send it to your client to sign (they can sign on paper, e-sign, or reply-to-accept by email). Everything is prefilled from the sale.</p>
+
+  <div class="doc" id="doc">
+    <h1>Website &amp; AI Receptionist Services Agreement</h1>
+    <p class="sub">Effective date: <input class="fld" id="f_date" style="min-width:150px"></p>
+
+    <div class="kv">
+      <div class="k">Provider</div><div><input class="fld" id="f_provider" style="width:95%"></div>
+      <div class="k">Client (business)</div><div><input class="fld" id="f_biz" style="width:95%"></div>
+      <div class="k">Client contact</div><div><input class="fld" id="f_client" placeholder="Owner / authorized signer"></div>
+      <div class="k">Client email</div><div><input class="fld" id="f_email" style="min-width:220px"></div>
+      <div class="k">Client address</div><div><input class="fld" id="f_addr" style="width:95%" placeholder="Business address"></div>
+      <div class="k">Industry</div><div><input class="fld" id="f_industry" style="min-width:200px"></div>
+      <div class="k">Website address</div><div><input class="fld" id="f_url" style="width:95%"></div>
+      <div class="k">Dashboard login</div><div><input class="fld" id="f_dash" style="width:95%"></div>
+    </div>
+
+    <p style="margin-top:14px">This Agreement is entered into as of the Effective Date between <b id="o_provider">the Provider</b> (“Provider”) and <b id="o_biz">the Client</b> (“Client”). Provider will design, host, and maintain a website and AI front-desk services for Client on the terms below.</p>
+
+    <h2>1. What the Client receives</h2>
+    <p>Provider will deliver a professionally designed, mobile-responsive website for the Client’s <span id="o_ind2">business</span>, including:</p>
+    <ul id="scope"></ul>
+
+    <h2>2. The Client Dashboard</h2>
+    <p>Client receives a private, password-protected dashboard (the “Dashboard”) at the login above. The Dashboard is tailored to a <b id="o_ind3">business</b> and lets Client manage the following, with changes appearing on the live website instantly:</p>
+    <ul id="dash"></ul>
+    <p class="sub">Provider will set the Dashboard password at handover and provide the Client’s Site ID. Client is responsible for keeping these credentials confidential.</p>
+
+    <h2>3. AI Receptionist (“Ava”)</h2>
+    <p id="avaClause">Every hosted website includes Ava, an AI receptionist that answers visitor questions using only the facts the Client provides, captures leads, and routes messages to the Client.</p>
+
+    <h2>4. Fees &amp; payment</h2>
+    <div class="kv">
+      <div class="k">Package</div><div><input class="fld" id="f_pkg" style="width:80%"></div>
+      <div class="k">One-time build fee</div><div><input class="fld" id="f_price" style="min-width:120px"></div>
+      <div class="k">Down payment due</div><div><input class="fld" id="f_down" style="min-width:120px"></div>
+      <div class="k">Installments</div><div><input class="fld" id="f_install" style="width:70%" placeholder="e.g. 3 monthly payments of $X"></div>
+      <div class="k">Hosting &amp; care plan</div><div><input class="fld" id="f_hosting" style="width:70%" placeholder="e.g. $49/month, includes hosting, Ava, updates"></div>
+    </div>
+    <p style="margin-top:10px">The website is published upon receipt of the down payment. Provider hosts the website as long as the hosting/care plan is current. If a payment is more than ten (10) days past due, Provider may temporarily pause (take offline) the website until the balance is paid; the site is automatically restored once payment is received. Fees are non-refundable once work has begun.</p>
+
+    <h2>5. Term &amp; cancellation</h2>
+    <p>This Agreement begins on the Effective Date and continues on a month-to-month basis with the hosting/care plan. Either party may cancel with fourteen (14) days’ written notice. On cancellation, hosting and Ava stop at the end of the paid period. Upon Client’s written request and payment of any balance due, Provider will provide an export of the Client’s website content and captured leads.</p>
+
+    <h2>6. Content &amp; ownership</h2>
+    <p>Client owns its own brand assets, text, photos, videos, audio, menu/pricing, and captured customer leads. Upon full payment of the build fee, Client owns the final delivered website design for its own use. Provider retains ownership of its underlying platform, templates, code, and AI systems, and grants Client a license to use them for the duration of this Agreement. Client represents that it has the rights to all materials it provides and uploads.</p>
+
+    <h2>7. Client responsibilities</h2>
+    <ul>
+      <li>Provide accurate business information (hours, pricing, services, contact details).</li>
+      <li>Keep Dashboard credentials secure and only publish content it is legally allowed to use.</li>
+      <li>Comply with all laws applicable to its business, including for any calls, texts, or emails sent through the platform.</li>
+    </ul>
+
+    <h2>8. Warranties &amp; limitation of liability</h2>
+    <p>Provider will perform services in a professional manner. Except as stated, services are provided “as is.” Provider does not guarantee specific business results, search rankings, or uninterrupted service. To the maximum extent permitted by law, Provider’s total liability under this Agreement will not exceed the fees paid by Client in the three (3) months preceding the claim. Neither party is liable for indirect or consequential damages.</p>
+
+    <h2>9. Confidentiality</h2>
+    <p>Each party will protect the other’s non-public information and use it only to perform this Agreement.</p>
+
+    <h2>10. Governing law &amp; entire agreement</h2>
+    <p>This Agreement is governed by the laws of the State of <input class="fld" id="f_state" style="min-width:120px" placeholder="State"> and constitutes the entire agreement between the parties, superseding prior discussions. Amendments must be in writing. If any provision is unenforceable, the remainder stays in effect.</p>
+
+    <div class="sig">
+      <div>
+        <div style="font-weight:700;color:#0b0d12">Client</div>
+        <input class="fld" id="f_sig1" style="width:100%;margin-top:26px" placeholder="Signature / typed name">
+        <div class="sigline">Name &amp; title — <input class="fld" id="f_sig1n" placeholder="Name, title"></div>
+        <div class="sigline">Date — <input class="fld" id="f_sig1d" style="min-width:120px"></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#0b0d12">Provider</div>
+        <input class="fld" id="f_sig2" style="width:100%;margin-top:26px" placeholder="Signature / typed name">
+        <div class="sigline">Name &amp; title — <input class="fld" id="f_sig2n" placeholder="Name, title"></div>
+        <div class="sigline">Date — <input class="fld" id="f_sig2d" style="min-width:120px"></div>
+      </div>
+    </div>
+
+    <p class="note">This document is a plain-language services agreement template provided for convenience and is not legal advice. For high-value engagements, have it reviewed by an attorney in your jurisdiction.</p>
+  </div>
+</div>
+
+<script>
+var qs=new URLSearchParams(location.search);
+function el(id){return document.getElementById(id);}
+function q(name,def){var v=qs.get(name);return (v!=null&&v!=="")?v:(def||"");}
+
+// Industry-aware scope + dashboard wording (mirrors the client dashboard).
+function profile(t){
+  t=(t||"").toLowerCase();
+  if(/restaurant|food|cafe|coffee|bakery|bread|cake|pizza|taco|grill|\bbar\b|diner|deli|cater|kitchen|eatery|bbq|sushi|juice/.test(t))
+    return {noun:"restaurant / food",list:"Menu & prices",listItem:"menu items and prices"};
+  if(/auto|car|dealer|vehicle|motors|dealership|used cars/.test(t))
+    return {noun:"auto / dealership",list:"Inventory & pricing",listItem:"vehicle inventory and pricing"};
+  if(/repair|mechanic|plumb|electric|hvac|contractor|construction|handyman|roof|landscap|clean|pest|moving|paint|garage/.test(t))
+    return {noun:"home / trade services",list:"Services & rates",listItem:"services and rates"};
+  if(/law|legal|attorney|accountant|account|finance|consult|insurance|realtor|estate|tax|notary|agency|marketing|bookkeep/.test(t))
+    return {noun:"professional services",list:"Services & fees",listItem:"services and fees"};
+  if(/salon|barber|spa|beauty|nail|hair|lash|makeup|\bwax\b|tattoo|brow|esthet/.test(t))
+    return {noun:"salon / beauty",list:"Services & pricing",listItem:"services and pricing"};
+  if(/gym|fitness|yoga|pilates|crossfit|train|martial|dance|studio|bootcamp/.test(t))
+    return {noun:"fitness / studio",list:"Classes & plans",listItem:"classes and membership pricing"};
+  if(/dental|dentist|medical|clinic|doctor|health|chiro|therap|\bvet\b|wellness|med spa|physio|optom/.test(t))
+    return {noun:"health / clinic",list:"Services & pricing",listItem:"services and pricing"};
+  if(/shop|store|retail|boutique|market|goods|product|florist|flower|jewel|furniture|bike|pet store/.test(t))
+    return {noun:"retail / shop",list:"Products & prices",listItem:"products and prices"};
+  return {noun:"business",list:"Services & prices",listItem:"services and prices"};
+}
+
+var industry=q("industry");
+var P=profile(industry);
+var biz=q("biz","the Client");
+var slug=q("slug");
+var origin=location.origin.replace(/\/$/,"");
+var siteUrl=q("url", slug?(origin+"/s/"+slug):"");
+var dashUrl=origin+"/business.html"+(slug?("?slug="+encodeURIComponent(slug)):"");
+var avaTier=(q("ava","chat")||"chat").toLowerCase();
+
+el("f_date").value=q("date", new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}));
+el("f_provider").value=q("provider","Sahjony Capital LLC (d/b/a FrontDesk Agents)");
+el("f_biz").value=biz;
+el("f_client").value=q("client","");
+el("f_email").value=q("email","");
+el("f_industry").value=industry||P.noun;
+el("f_url").value=siteUrl;
+el("f_dash").value=dashUrl;
+el("f_pkg").value=q("package","Website + AI Receptionist");
+el("f_price").value=q("price","");
+el("f_state").value=q("state","");
+
+// Scope of work (what the site includes)
+var scope=[
+  "Custom, mobile-responsive design tailored to the business and its brand colors",
+  "Home, About, Services, Gallery, Reviews, and Contact sections",
+  "A "+P.listItem.charAt(0).toUpperCase()+P.listItem.slice(1)+" section the Client controls",
+  "Promotions &amp; Events section with photos, video, or audio",
+  "Contact form that delivers leads to the Client Dashboard",
+  "Local SEO setup (business schema) and a Google map/location",
+  "Multi-language visitor support and light/dark display",
+  "Secure hosting on a live web address with automatic HTTPS"
+];
+el("scope").innerHTML=scope.map(function(s){return "<li>"+s+"</li>";}).join("");
+
+// Dashboard capabilities
+var dash=[
+  "<b>Overview</b> — website status, visits, and leads captured",
+  "<b>"+P.list+"</b> — add, edit, remove "+P.listItem+", shown on the site instantly",
+  "<b>Promotions &amp; Events</b> — announce specials/events with a photo, video, or audio clip",
+  "<b>Leads &amp; Bookings</b> — every contact-form submission and Ava conversation",
+  "<b>Ava Receptionist</b> — edit greeting, services, hours, prices, and booking link",
+  "<b>Request a Change</b> — send design/content requests to Provider"
+];
+el("dash").innerHTML=dash.map(function(s){return "<li>"+s+"</li>";}).join("");
+
+// Ava clause by tier
+var avaText={
+  none:"This package does not include the AI receptionist.",
+  chat:"Every hosted website includes Ava, an AI receptionist chat widget that answers visitor questions using only the facts the Client provides, captures leads 24/7, and routes messages to the Client.",
+  voice:"This package includes Ava Voice: a dedicated AI phone line that answers inbound calls and can place outbound calls, in addition to the website chat widget. Ava uses only the facts the Client provides, captures leads 24/7, and routes calls and messages to the Client. Telephony usage is included as described in the selected plan."
+};
+el("avaClause").textContent=avaText[avaTier]||avaText.chat;
+
+// Live-bind the header names to the editable fields.
+function bind(id,outId){var i=el(id),o=el(outId);function u(){o.textContent=i.value||o.textContent;}i.addEventListener("input",u);}
+bind("f_provider","o_provider"); bind("f_biz","o_biz");
+el("o_provider").textContent=el("f_provider").value;
+el("o_biz").textContent=el("f_biz").value;
+el("o_ind2").textContent=P.noun; el("o_ind3").textContent=P.noun;
+function bi(id,out){var i=el(id);i.addEventListener("input",function(){el(out).textContent=profile(i.value).noun;});}
+bi("f_industry","o_ind2"); bi("f_industry","o_ind3");
+</script>
+</body>
+</html>

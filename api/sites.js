@@ -106,15 +106,16 @@ export default async function handler(req, res) {
       // "suspended" (offline for non-payment). Default active; the Stripe webhook
       // flips it on payment events. Preserve existing status on re-save.
       let status = body.status === "pending" || body.status === "suspended" || body.status === "active" ? body.status : "";
-      if (!status) {
-        const prev = await readJSON("fda:site:" + slug, null);
-        status = (prev && prev.status) || "active";
-      }
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status }));
+      const prev = await readJSON("fda:site:" + slug, null);
+      if (!status) status = (prev && prev.status) || "active";
+      // Industry + city drive the industry-specific client dashboard and contract.
+      const bizType = String(body.bizType || (prev && prev.bizType) || "").slice(0, 80);
+      const bizCity = String(body.bizCity || (prev && prev.bizCity) || "").slice(0, 80);
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity }));
 
       const existing = index.find((s) => s.slug === slug);
-      if (existing) { existing.name = name; existing.at = now; existing.status = status; }
-      else index.unshift({ name, slug, at: now, status });
+      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }
+      else index.unshift({ name, slug, at: now, status, bizType });
       await writeRaw(INDEX_KEY, JSON.stringify(index));
 
       return res.status(200).json({ ok: true, slug, url: "/s/" + slug });

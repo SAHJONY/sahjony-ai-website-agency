@@ -101,8 +101,8 @@
   <div class="panel" id="p_menu">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <div><div class="fd" style="font-size:18px;font-weight:700">Menu &amp; prices</div>
-        <div class="muted">Add your items and prices. They appear on your website instantly — no need to ask us.</div></div>
+        <div><div class="fd" id="menuHead" style="font-size:18px;font-weight:700">Menu &amp; prices</div>
+        <div class="muted" id="menuHint">Add your items and prices. They appear on your website instantly — no need to ask us.</div></div>
       </div>
       <div class="row" style="margin-top:12px">
         <div><label>Section heading</label><input id="mn_title" placeholder="Menu & Prices"></div>
@@ -186,6 +186,38 @@ var el=function(id){return document.getElementById(id);};
 var SLUG="", PW="";
 var qs=new URLSearchParams(location.search);
 
+// Each dashboard adapts to the client's industry: the "priced list" tab, its
+// wording, and default section titles all change to fit how that business
+// actually sells (menu / services / inventory / classes / products…).
+function industryProfile(t){
+  t=(t||"").toLowerCase();
+  if(/restaurant|food|cafe|coffee|bakery|bread|cake|pizza|taco|grill|\bbar\b|diner|deli|cater|kitchen|eatery|bbq|sushi|juice/.test(t))
+    return {list:"Menu & prices",item:"dish",title:"Menu",kicker:"Menu",sec:"Course / section (e.g. Starters)"};
+  if(/auto|car|dealer|vehicle|motors|dealership|used cars/.test(t))
+    return {list:"Inventory & pricing",item:"vehicle",title:"Our Inventory",kicker:"Inventory",sec:"Category (New / Used / Certified)"};
+  if(/repair|mechanic|plumb|electric|hvac|contractor|construction|handyman|roof|landscap|clean|pest|moving|paint|garage/.test(t))
+    return {list:"Services & rates",item:"service",title:"Services & Rates",kicker:"Services",sec:"Category (optional)"};
+  if(/law|legal|attorney|accountant|account|finance|consult|insurance|realtor|estate|tax|notary|agency|marketing|bookkeep/.test(t))
+    return {list:"Services & fees",item:"service",title:"Services & Fees",kicker:"Services",sec:"Practice area (optional)"};
+  if(/salon|barber|spa|beauty|nail|hair|lash|makeup|\bwax\b|tattoo|brow|esthet/.test(t))
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Menu",sec:"Category (e.g. Color, Cuts)"};
+  if(/gym|fitness|yoga|pilates|crossfit|train|martial|dance|studio|bootcamp/.test(t))
+    return {list:"Classes & plans",item:"class or plan",title:"Classes & Memberships",kicker:"Pricing",sec:"Type (Class / Membership)"};
+  if(/dental|dentist|medical|clinic|doctor|health|chiro|therap|\bvet\b|wellness|med spa|physio|optom/.test(t))
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Services",sec:"Category (optional)"};
+  if(/shop|store|retail|boutique|market|goods|product|florist|flower|jewel|furniture|bike|pet store/.test(t))
+    return {list:"Products & prices",item:"product",title:"Products",kicker:"Shop",sec:"Category (optional)"};
+  return {list:"Services & prices",item:"item",title:"Services & Prices",kicker:"Pricing",sec:"Category (optional)"};
+}
+var P=industryProfile("");
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function applyIndustry(){
+  var t=document.querySelector('.tab[data-p="menu"]'); if(t) t.textContent=P.list;
+  var h=el("menuHead"); if(h) h.textContent=P.list;
+  var hint=el("menuHint"); if(hint) hint.textContent="Add your "+P.item+"s and prices. They appear on your website instantly — no need to ask us.";
+  var add=el("addItem"); if(add) add.textContent="+ Add "+P.item;
+}
+
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";setTimeout(function(){m.style.display="none";},4000);}
 function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
 
@@ -220,6 +252,7 @@ async function loadAll(){
   el("stStatusDot").style.background=live?"#2fd47f":"#ff9f43";
   el("stStatus").textContent=live?"Live and online":(st==="pending"?"Pending — goes live once payment clears":"Paused — pending payment");
   el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
+  P=industryProfile((d.site&&d.site.industry)||""); applyIndustry();
   var url=(d.site&&d.site.url)||("/s/"+SLUG);
   el("viewSite").href=url; el("copyUrl").dataset.url=url;
   // Ava
@@ -264,8 +297,8 @@ function menuRow(it){
   it=it||{};
   var d=document.createElement("div");
   d.className="lead"; d.dataset.item="1";
-  d.innerHTML='<div class="row"><input data-f="name" placeholder="Item name" style="'+inpS+'"><input data-f="price" placeholder="Price (e.g. $12)" style="'+inpS+'"></div>'+
-    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="Section (e.g. Starters — optional)" style="'+inpS+'"><input data-f="desc" placeholder="Short description (optional)" style="'+inpS+'"></div>'+
+  d.innerHTML='<div class="row"><input data-f="name" placeholder="'+cap(P.item)+' name" style="'+inpS+'"><input data-f="price" placeholder="Price (e.g. $12)" style="'+inpS+'"></div>'+
+    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="'+P.sec+'" style="'+inpS+'"><input data-f="desc" placeholder="Short description (optional)" style="'+inpS+'"></div>'+
     '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
   d.querySelector('[data-f="name"]').value=it.name||"";
   d.querySelector('[data-f="price"]').value=it.price||"";
@@ -322,8 +355,8 @@ function collectContent(){
 }
 function renderContentEditors(c){
   c=c||{};
-  el("mn_title").value=c.menuTitle||""; el("mn_kicker").value=c.menuKicker||"";
-  el("pr_title").value=c.promoTitle||""; el("pr_kicker").value=c.promoKicker||"";
+  el("mn_title").value=c.menuTitle||P.title; el("mn_kicker").value=c.menuKicker||P.kicker;
+  el("pr_title").value=c.promoTitle||"Promotions & Events"; el("pr_kicker").value=c.promoKicker||"What's on";
   var mr=el("menuRows"); mr.innerHTML="";
   (c.menu&&c.menu.length?c.menu:[{}]).forEach(function(i){mr.appendChild(menuRow(i));});
   var pr=el("promoRows"); pr.innerHTML="";

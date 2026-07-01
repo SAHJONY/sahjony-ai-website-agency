@@ -97,6 +97,11 @@
       <div style="display:flex;align-items:flex-end"><button class="btn gold" id="savePortal" style="width:100%">Save &amp; enable login</button></div>
     </div>
     <div id="portalStatus" class="muted" style="margin-top:8px">—</div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:160px"><label>Build price (for the contract)</label><input id="ctPrice" placeholder="$1,500"></div>
+      <div><label>Ava tier</label><select id="ctAva"><option value="chat">Chat</option><option value="voice">Voice + chat</option><option value="none">None</option></select></div>
+      <button class="btn ghost" id="genContract">📄 Generate sale contract →</button>
+    </div>
     <div id="portalReqs" style="margin-top:10px"></div>
   </div>
 </div>
@@ -108,6 +113,7 @@ function H(extra){var h=Object.assign({"content-type":"application/json"},extra|
 var el=function(id){return document.getElementById(id);};
 var FIELDS=["business","greeting","services","hours","address","pricing","calendarUrl","instructions","language","notifyEmail"];
 var current="";
+var SITES={};   // slug -> {name, bizType}
 
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";}
 
@@ -116,6 +122,7 @@ async function loadSites(){
     var r=await fetch("/api/sites",{headers:H()});var j=await r.json();
     if(!r.ok){el("site").innerHTML='<option>'+(j.error||"Log in via the dashboard first")+'</option>';return;}
     var sites=j.sites||[];
+    SITES={}; sites.forEach(function(s){SITES[s.slug]={name:s.name||s.slug,bizType:s.bizType||""};});
     el("site").innerHTML='<option value="">— choose a client site —</option>'+sites.map(function(s){return '<option value="'+s.slug+'">'+(s.name||s.slug)+'</option>';}).join("");
   }catch(e){el("site").innerHTML='<option>Network error</option>';}
 }
@@ -184,6 +191,12 @@ async function voice(action,extra){
 el("site").onchange=function(){loadCfg(this.value);};
 el("save").onclick=save;
 el("savePortal").onclick=savePortal;
+el("genContract").onclick=function(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  var s=SITES[current]||{};
+  var p=new URLSearchParams({slug:current,biz:s.name||current,industry:s.bizType||"",ava:el("ctAva").value,price:el("ctPrice").value.trim()});
+  window.open("/contract.html?"+p.toString(),"_blank");
+};
 el("test").onclick=function(){ if(current) window.open("/s/"+current,"_blank"); else window.open("/","_blank"); };
 el("provision").onclick=async function(){ msg("Getting a number…",true); var j=await voice("provision",{areaCode:el("areaCode").value.trim()}); if(j&&j.phone){el("voiceStatus").textContent="📞 Live number: "+j.phone;msg("✓ Number provisioned: "+j.phone,true);} };
 el("call").onclick=async function(){ var to=el("callTo").value.trim(); if(!to){msg("Enter a number to call.",false);return;} msg("Calling…",true); var j=await voice("call",{to:to}); if(j&&j.ok)msg("✓ Ava is calling "+to,true); };

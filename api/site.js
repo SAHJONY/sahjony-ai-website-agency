@@ -145,6 +145,7 @@ async function handlePortal(req, res) {
     name: site.name || slug, status: site.status || "active",
     url: (site.domain ? "https://" + String(site.domain).replace(/^https?:\/\//, "") : origin + "/s/" + slug),
     ava: site.ava !== false,
+    industry: site.bizType || "", city: site.bizCity || "",
   };
 
   if (action === "login") {

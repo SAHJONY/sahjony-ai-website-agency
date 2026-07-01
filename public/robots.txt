@@ -1,0 +1,16 @@
+# frontdeskagents.com — public marketing pages are crawlable; owner tools are not.
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /playbook.html
+Disallow: /scripts.html
+Disallow: /ava.html
+Disallow: /salesteam.html
+Disallow: /marketing.html
+Disallow: /contract.html
+Disallow: /rep-contract.html
+Disallow: /business.html
+Disallow: /rep.html
+Disallow: /api/
+
+Sitemap: https://www.frontdeskagents.com/sitemap.xml

@@ -88,13 +88,28 @@ export default async function handler(req, res) {
     const site = (process.env.APP_URL || "https://www.frontdeskagents.com").replace(/\/$/, "");
     const caps = autoCaptions(site);
     const day = Math.floor((Date.now() - Date.UTC(new Date().getUTCFullYear(), 0, 0)) / 86400000);
-    const text = caps[day % caps.length];
-    try {
-      const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, link: site, source: "frontdeskagents-cron", at: new Date().toISOString() }) });
-      return res.status(200).json({ ok: r.ok, posted: r.ok });
-    } catch (e) {
-      return res.status(200).json({ ok: false, error: "webhook unreachable" });
+    const today = new Date().toISOString().slice(0, 10);
+
+    const mk = (await getJSON("fda:marketing", {})) || {};
+    const schedule = Array.isArray(mk.schedule) ? mk.schedule : [];
+    // Any scheduled posts due today (or overdue) that haven't gone out yet.
+    const due = schedule.filter((s) => s && !s.sent && String(s.date || "") <= today && s.text);
+    const toSend = due.map((s) => ({ text: String(s.text).slice(0, 3000), via: "scheduled", ref: s })).concat([{ text: caps[day % caps.length], via: "auto" }]);
+
+    let log = Array.isArray(mk.log) ? mk.log : [];
+    let posted = 0;
+    for (const item of toSend) {
+      try {
+        const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: item.text, link: site, source: "frontdeskagents-cron", at: new Date().toISOString() }) });
+        const ok = r.ok; if (ok) posted++;
+        if (item.ref) item.ref.sent = ok;
+        log.unshift({ text: item.text, via: item.via, ok, at: new Date().toISOString() });
+      } catch (_) { log.unshift({ text: item.text, via: item.via, ok: false, at: new Date().toISOString() }); }
     }
+    mk.log = log.slice(0, 100);
+    mk.schedule = schedule.filter((s) => !(s.sent && String(s.date || "") < today)); // drop old sent
+    try { await setJSON("fda:marketing", mk); } catch (_) {}
+    return res.status(200).json({ ok: true, posted });
   }
 
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -148,6 +163,11 @@ export default async function handler(req, res) {
     try {
       const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       if (!r.ok) return res.status(502).json({ error: "Scheduler webhook returned " + r.status });
+      try {
+        const mk = (await getJSON("fda:marketing", {})) || {};
+        mk.log = ([{ text, via: "manual", ok: true, at: new Date().toISOString() }].concat(Array.isArray(mk.log) ? mk.log : [])).slice(0, 100);
+        await setJSON("fda:marketing", mk);
+      } catch (_) {}
       return res.status(200).json({ ok: true });
     } catch (e) {
       return res.status(502).json({ error: "Could not reach the scheduler webhook." });

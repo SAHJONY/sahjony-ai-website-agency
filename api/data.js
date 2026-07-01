@@ -6,6 +6,7 @@
 // must send a matching `x-admin-token` header (the dashboard does this after
 // login). Public visitors never touch this — the contact form writes through the
 // separate, write-only /api/contact path instead.
+import { tgNotifyOwner } from "../lib/telegram.js";
 
 function sanitizeKey(k) {
   return String(k || "fda:default").replace(/[^a-zA-Z0-9:_-]/g, "_").slice(0, 120);
@@ -272,6 +273,8 @@ async function handleRepPublic(req, res, action) {
       at: new Date().toISOString(),
     });
     await kvSet(REP_APPS, apps);
+    // Alert the owner so recruiting is hands-off (best-effort).
+    tgNotifyOwner(`🧑‍💼 <b>New rep application</b>\n<b>${name}</b>\n📧 ${email}` + (body.city ? `\n📍 ${String(body.city).slice(0, 80)}` : "") + `\n\nApprove in Sales Team → applications.`).catch(() => {});
     return res.status(200).json({ ok: true });
   }
 

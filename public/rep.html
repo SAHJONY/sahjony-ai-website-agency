@@ -64,7 +64,10 @@
 </header>
 <div class="wrap">
   <div class="card">
-    <div class="fd" style="font-size:18px;font-weight:700">Your earnings</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="fd" style="font-size:18px;font-weight:700">Your earnings</div>
+      <button class="btn ghost" id="stmtBtn" style="padding:8px 13px;font-size:12.5px">🖨️ Download statement</button>
+    </div>
     <div class="muted" id="rateLine" style="margin-bottom:12px"></div>
     <div class="grid4">
       <div class="stat"><b id="sSales">—</b><span>Sales closed</span></div>
@@ -97,7 +100,7 @@
 
 <script>
 var el=function(id){return document.getElementById(id);};
-var TOKEN="";
+var TOKEN="", CURRENT=null;
 function money(n){return "$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:2});}
 function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.background=ok?"#123a2a":"#3a1620";m.style.color=ok?"#7ff0c0":"#ffb3ab";clearTimeout(window._mt);window._mt=setTimeout(function(){m.style.display="none";},3200);}
@@ -120,8 +123,15 @@ async function refresh(){
   if(!r.ok){try{sessionStorage.removeItem("fda_rep");}catch(e){} location.reload(); return;}
   paint(j.rep);
 }
+function statementHTML(rep){
+  var t=rep.totals||{};
+  var rows=(rep.sales||[]).map(function(s){return '<tr><td>'+new Date(s.at).toLocaleDateString()+'</td><td>'+esc(s.biz||s.slug||"—")+'</td><td>'+money(s.amount)+'</td><td>'+money(s.commission)+'</td><td>'+(s.status==="paid"?"Paid":"Pending")+'</td></tr>';}).join("");
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Commission Statement — '+esc(rep.name)+'</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:34px;max-width:760px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}.sub{color:#666;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}th,td{border-bottom:1px solid #ddd;padding:8px 6px;text-align:left}th{color:#666;font-size:11px;text-transform:uppercase}.tot{display:flex;gap:28px;margin-top:18px}.tot div{font-size:13px;color:#666}.tot b{display:block;font-size:22px;color:#111;margin-top:2px}.ft{margin-top:26px;color:#999;font-size:11.5px;border-top:1px solid #eee;padding-top:10px}</style></head><body><h1>Commission Statement</h1><div class="sub">'+esc(rep.name)+' · '+esc(rep.email||"")+'</div><div class="sub">Generated '+new Date().toLocaleDateString()+' · Commission rate '+Math.round((rep.rate||0)*100)+'%</div><div class="tot"><div>Total earned<b>'+money(t.commission)+'</b></div><div>Pending payout<b>'+money(t.pending)+'</b></div><div>Paid to you<b>'+money(t.paid)+'</b></div></div><table><thead><tr><th>Date</th><th>Business</th><th>Sale</th><th>Commission</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">No sales yet.</td></tr>')+'</tbody></table><div class="ft">Sahjony Capital LLC (d/b/a FrontDesk Agents) — this statement is for informational purposes.</div></body></html>';
+}
+function downloadStatement(){ if(!CURRENT)return; var w=window.open("","_blank"); if(!w){msg("Allow pop-ups to download.",false);return;} w.document.write(statementHTML(CURRENT)); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); }
 function paint(rep){
   if(!rep)return;
+  CURRENT=rep;
   var t=rep.totals||{};
   el("hdrName").textContent=rep.name||"Rep";
   el("rateLine").textContent="You earn "+Math.round((rep.rate||0)*100)+"% commission on every sale.";
@@ -140,6 +150,7 @@ function paint(rep){
 }
 
 el("li_go").onclick=login;
+el("stmtBtn").onclick=downloadStatement;
 el("li_code").addEventListener("keydown",function(e){if(e.key==="Enter")login();});
 el("logout").onclick=function(){try{sessionStorage.removeItem("fda_rep");}catch(e){} location.reload();};
 el("copyRef").onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(el("refLink").dataset.ref);msg("✓ Link copied",true);};

@@ -102,7 +102,14 @@ async function load(){
   render(j.reps||[]);
 }
 
+var REPS={};
+function statementHTML(rep){
+  var t=rep.totals||{};
+  var rows=(rep.sales||[]).map(function(s){return '<tr><td>'+new Date(s.at).toLocaleDateString()+'</td><td>'+esc(s.biz||s.slug||"—")+'</td><td>'+money(s.amount)+'</td><td>'+money(s.commission)+'</td><td>'+(s.status==="paid"?"Paid":"Pending")+'</td></tr>';}).join("");
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Commission Statement — '+esc(rep.name)+'</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:34px;max-width:760px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}.sub{color:#666;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}th,td{border-bottom:1px solid #ddd;padding:8px 6px;text-align:left}th{color:#666;font-size:11px;text-transform:uppercase}.tot{display:flex;gap:28px;margin-top:18px}.tot div{font-size:13px;color:#666}.tot b{display:block;font-size:22px;color:#111;margin-top:2px}.ft{margin-top:26px;color:#999;font-size:11.5px;border-top:1px solid #eee;padding-top:10px}</style></head><body><h1>Commission Statement</h1><div class="sub">'+esc(rep.name)+' · '+esc(rep.email||"")+'</div><div class="sub">Generated '+new Date().toLocaleDateString()+' · Commission rate '+Math.round((rep.rate||0)*100)+'%</div><div class="tot"><div>Total earned<b>'+money(t.commission)+'</b></div><div>Pending payout<b>'+money(t.pending)+'</b></div><div>Paid<b>'+money(t.paid)+'</b></div></div><table><thead><tr><th>Date</th><th>Business</th><th>Sale</th><th>Commission</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">No sales yet.</td></tr>')+'</tbody></table><div class="ft">Sahjony Capital LLC (d/b/a FrontDesk Agents)</div></body></html>';
+}
 function render(reps){
+  REPS={}; reps.forEach(function(rp){REPS[rp.id]=rp;});
   var tRev=0,tPend=0,tPaid=0;
   reps.forEach(function(rp){var t=rp.totals||{};tRev+=t.revenue||0;tPend+=t.pending||0;tPaid+=t.paid||0;});
   el("tReps").textContent=reps.length;
@@ -136,6 +143,7 @@ function render(reps){
       '<div class="btnrow">'+
         '<button class="btn gold" data-rec="'+rp.id+'">+ Record sale</button>'+
         '<button class="btn ghost" data-payall="'+rp.id+'">Pay all pending</button>'+
+        '<button class="btn ghost" data-stmt="'+rp.id+'">🖨️ Statement</button>'+
         '<a class="btn ghost" href="/rep-contract.html?name='+encodeURIComponent(rp.name)+'&email='+encodeURIComponent(rp.email)+'&rate='+((rp.rate||.25)*100)+'&code='+encodeURIComponent(rp.code)+'" target="_blank">📄 Rep contract</a>'+
         '<button class="btn ghost" data-toggle="'+rp.id+'|'+(rp.active===false?'1':'0')+'">'+(rp.active===false?'Reactivate':'Deactivate')+'</button>'+
         '<button class="btn danger" data-del="'+rp.id+'|'+esc(rp.name)+'">Delete</button>'+
@@ -149,6 +157,7 @@ function wire(){
   document.querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy);msg("✓ Copied",true);};});
   document.querySelectorAll("[data-rec]").forEach(function(b){b.onclick=function(){recordSale(b.dataset.rec);};});
   document.querySelectorAll("[data-payall]").forEach(function(b){b.onclick=async function(){ if(!confirm("Mark ALL pending commissions as paid for this rep?"))return; var r=await api("rep-pay",{repId:b.dataset.payall,all:true}); if(r.ok){msg("✓ Marked paid",true);load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-stmt]").forEach(function(b){b.onclick=function(){ var rp=REPS[b.dataset.stmt]; if(!rp)return; var w=window.open("","_blank"); if(!w){msg("Allow pop-ups",false);return;} w.document.write(statementHTML(rp)); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); };});
   document.querySelectorAll("[data-payone]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.payone.split("|"); var r=await api("rep-pay",{repId:p[0],saleId:p[1]}); if(r.ok){msg("✓ Marked paid",true);load();}else msg(r.j.error||"Failed",false); };});
   document.querySelectorAll("[data-toggle]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.toggle.split("|"); var r=await api("rep-update",{repId:p[0],active:p[1]==="1"}); if(r.ok){load();}else msg(r.j.error||"Failed",false); };});
   document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.del.split("|"); if(!confirm("Delete rep "+p[1]+"? Their record and login will be removed."))return; var r=await api("rep-delete",{repId:p[0]}); if(r.ok){msg("✓ Deleted",true);load();}else msg(r.j.error||"Failed",false); };});

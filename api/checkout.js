@@ -63,6 +63,7 @@ export default async function handler(req, res) {
   const monthly = Math.max(0, Number(body.monthly) || 0);
   const installments = Math.max(1, Math.min(36, Math.round(Number(body.installments) || 1)));
   const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); // links payment -> site for auto publish/suspend
+  const ref = String(body.ref || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12); // sales-rep referral code -> auto commission
   if (!build && !monthly) return res.status(400).json({ error: "Provide a build price and/or a monthly amount." });
 
   // Manual peer-to-peer options. Zelle and Cash App $cashtag have no payment API,
@@ -141,6 +142,7 @@ export default async function handler(req, res) {
   p.append("metadata[installments]", String(installments));
   p.append("metadata[downPayment]", String(downPayment));
   if (slug) p.append("metadata[slug]", slug);
+  if (ref) p.append("metadata[ref]", ref);
   p.append("allow_promotion_codes", "true");
   // NOTE: we intentionally do NOT set payment_method_types — Checkout then offers
   // every method enabled in your Stripe Dashboard (card, Cash App Pay, and the
@@ -185,6 +187,7 @@ export default async function handler(req, res) {
   if (mode === "subscription") {
     p.append("subscription_data[metadata][client]", name);
     if (slug) p.append("subscription_data[metadata][slug]", slug); // so invoice/sub events can find the site
+    if (ref) p.append("subscription_data[metadata][ref]", ref);
   }
 
   try {

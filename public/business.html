@@ -71,6 +71,8 @@
 <div class="wrap">
   <div class="tabs">
     <button class="tab on" data-p="overview">Overview</button>
+    <button class="tab" data-p="menu">Menu &amp; prices</button>
+    <button class="tab" data-p="promos">Promotions &amp; events</button>
     <button class="tab" data-p="leads">Leads &amp; bookings</button>
     <button class="tab" data-p="ava">Ava receptionist</button>
     <button class="tab" data-p="request">Request a change</button>
@@ -92,6 +94,43 @@
         <a class="btn gold" id="viewSite" target="_blank" href="#">View my website →</a>
         <button class="btn ghost" id="copyUrl">Copy link</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div class="panel" id="p_menu">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div><div class="fd" style="font-size:18px;font-weight:700">Menu &amp; prices</div>
+        <div class="muted">Add your items and prices. They appear on your website instantly — no need to ask us.</div></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Section heading</label><input id="mn_title" placeholder="Menu & Prices"></div>
+        <div><label>Small label above it</label><input id="mn_kicker" placeholder="Menu"></div>
+      </div>
+      <div id="menuRows" style="margin-top:14px"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn ghost" id="addItem">+ Add item</button>
+        <button class="btn gold" id="saveMenu">Save &amp; publish menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMOS -->
+  <div class="panel" id="p_promos">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700">Promotions &amp; events</div>
+      <div class="muted">Announce specials and events with a photo, video, or audio clip. Shows on your website right away.</div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Section heading</label><input id="pr_title" placeholder="Promotions & Events"></div>
+        <div><label>Small label above it</label><input id="pr_kicker" placeholder="What's on"></div>
+      </div>
+      <div id="promoRows" style="margin-top:14px"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn ghost" id="addPromo">+ Add promotion / event</button>
+        <button class="btn gold" id="savePromos">Save &amp; publish</button>
+      </div>
+      <div class="muted" style="margin-top:10px">Tip: for long videos, paste a YouTube/Vimeo or hosted link instead of uploading — uploads are capped so your site stays fast.</div>
     </div>
   </div>
 
@@ -189,6 +228,8 @@ async function loadAll(){
   el("av_booking").value=(a.booking===false)?"false":"true";
   // Leads
   renderLeads(d.leads||[]);
+  // Live website content (menu + promotions/events)
+  renderContentEditors(d.content||{});
 }
 
 function renderLeads(leads){
@@ -215,6 +256,85 @@ async function sendReq(){
   else msg((res.j&&res.j.error)||"Could not send.",false);
 }
 
+/* ---- Menu & Promotions editors (live website content) ---- */
+var inpS="background:var(--ink2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;width:100%";
+function fieldGet(rowEl,name){var e=rowEl.querySelector('[data-f="'+name+'"]');return e?e.value.trim():"";}
+
+function menuRow(it){
+  it=it||{};
+  var d=document.createElement("div");
+  d.className="lead"; d.dataset.item="1";
+  d.innerHTML='<div class="row"><input data-f="name" placeholder="Item name" style="'+inpS+'"><input data-f="price" placeholder="Price (e.g. $12)" style="'+inpS+'"></div>'+
+    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="Section (e.g. Starters — optional)" style="'+inpS+'"><input data-f="desc" placeholder="Short description (optional)" style="'+inpS+'"></div>'+
+    '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+  d.querySelector('[data-f="name"]').value=it.name||"";
+  d.querySelector('[data-f="price"]').value=it.price||"";
+  d.querySelector('[data-f="category"]').value=it.category||"";
+  d.querySelector('[data-f="desc"]').value=it.desc||"";
+  d.querySelector("[data-rm]").onclick=function(){d.remove();};
+  return d;
+}
+function promoRow(p){
+  p=p||{}; var media=p.media||{};
+  var d=document.createElement("div");
+  d.className="lead"; d.dataset.promo="1";
+  d.innerHTML='<input data-f="title" placeholder="Title (e.g. Summer 20% off)" style="'+inpS+'">'+
+    '<textarea data-f="body" rows="2" placeholder="Details" style="'+inpS+';margin-top:8px"></textarea>'+
+    '<div class="row" style="margin-top:8px"><input data-f="starts" placeholder="Starts (e.g. Fri Jul 4 — optional)" style="'+inpS+'"><input data-f="ends" placeholder="Ends (optional)" style="'+inpS+'"></div>'+
+    '<div class="row" style="margin-top:8px"><select data-f="mtype" style="'+inpS+'"><option value="image">Photo</option><option value="video">Video</option><option value="audio">Audio</option></select>'+
+    '<input data-f="url" placeholder="Paste a link (YouTube, image URL…)" style="'+inpS+'"></div>'+
+    '<div style="margin-top:8px"><label style="margin:0 0 5px">…or upload a file</label><input type="file" data-file accept="image/*,video/*,audio/*" style="'+inpS+'"></div>'+
+    '<div data-prev class="muted" style="margin-top:6px"></div>'+
+    '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+  d.querySelector('[data-f="title"]').value=p.title||"";
+  d.querySelector('[data-f="body"]').value=p.body||"";
+  d.querySelector('[data-f="starts"]').value=p.starts||"";
+  d.querySelector('[data-f="ends"]').value=p.ends||"";
+  d.querySelector('[data-f="mtype"]').value=media.type||"image";
+  d.querySelector('[data-f="url"]').value=(media.url&&media.url.indexOf("data:")!==0)?media.url:"";
+  var prev=d.querySelector("[data-prev]");
+  if(media.url&&media.url.indexOf("data:")===0){prev.textContent="✓ Uploaded file attached.";d.dataset.dataurl=media.url;}
+  d.querySelector("[data-file]").onchange=function(){
+    var f=this.files&&this.files[0]; if(!f)return;
+    if(f.size>1500000){prev.style.color="#ff7a6e";prev.textContent="File too big (max ~1.4MB). Paste a hosted link instead for large videos.";this.value="";return;}
+    var rd=new FileReader();
+    rd.onload=function(){d.dataset.dataurl=rd.result;prev.style.color="";prev.textContent="✓ "+f.name+" attached.";
+      d.querySelector('[data-f="mtype"]').value=/^video/.test(f.type)?"video":(/^audio/.test(f.type)?"audio":"image");
+      d.querySelector('[data-f="url"]').value="";};
+    rd.readAsDataURL(f);
+  };
+  d.querySelector("[data-rm]").onclick=function(){d.remove();};
+  return d;
+}
+function collectContent(){
+  var menu=[].map.call(document.querySelectorAll('#menuRows [data-item]'),function(r){
+    return {name:fieldGet(r,"name"),price:fieldGet(r,"price"),category:fieldGet(r,"category"),desc:fieldGet(r,"desc")};
+  }).filter(function(i){return i.name||i.price;});
+  var promos=[].map.call(document.querySelectorAll('#promoRows [data-promo]'),function(r){
+    var o={title:fieldGet(r,"title"),body:fieldGet(r,"body"),starts:fieldGet(r,"starts"),ends:fieldGet(r,"ends")};
+    var url=r.dataset.dataurl||fieldGet(r,"url");
+    if(url) o.media={type:fieldGet(r,"mtype")||"image",url:url};
+    return o;
+  }).filter(function(p){return p.title||p.body||(p.media&&p.media.url);});
+  return {menu:menu,promos:promos,
+    menuTitle:el("mn_title").value.trim(),menuKicker:el("mn_kicker").value.trim(),
+    promoTitle:el("pr_title").value.trim(),promoKicker:el("pr_kicker").value.trim()};
+}
+function renderContentEditors(c){
+  c=c||{};
+  el("mn_title").value=c.menuTitle||""; el("mn_kicker").value=c.menuKicker||"";
+  el("pr_title").value=c.promoTitle||""; el("pr_kicker").value=c.promoKicker||"";
+  var mr=el("menuRows"); mr.innerHTML="";
+  (c.menu&&c.menu.length?c.menu:[{}]).forEach(function(i){mr.appendChild(menuRow(i));});
+  var pr=el("promoRows"); pr.innerHTML="";
+  (c.promos&&c.promos.length?c.promos:[{}]).forEach(function(p){pr.appendChild(promoRow(p));});
+}
+async function saveContent(okMsg){
+  var content=collectContent();
+  var res=await api("save-content",{content:content});
+  msg(res.ok?(okMsg||"✓ Saved & published"):((res.j&&res.j.error)||"Save failed"),res.ok);
+}
+
 // Tabs
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
   document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
@@ -227,6 +347,10 @@ el("li_pw").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();
 el("logout").onclick=function(){try{sessionStorage.removeItem("fda_biz");}catch(e){} location.reload();};
 el("saveAva").onclick=saveAva;
 el("sendReq").onclick=sendReq;
+el("addItem").onclick=function(){el("menuRows").appendChild(menuRow({}));};
+el("saveMenu").onclick=function(){saveContent("✓ Menu saved & live on your site");};
+el("addPromo").onclick=function(){el("promoRows").appendChild(promoRow({}));};
+el("savePromos").onclick=function(){saveContent("✓ Promotions saved & live on your site");};
 el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};
 
 // Prefill slug from ?slug= (generated-site footer link) and resume a session.

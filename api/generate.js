@@ -59,6 +59,34 @@ const ENGINE_TIMEOUT_MS = Number(process.env.ENGINE_TIMEOUT_MS || 18000);
 const REQUEST_BUDGET_MS = Number(process.env.GEN_BUDGET_MS || 52000);
 let requestDeadline = 0; // epoch ms; set per request in the handler.
 
+// --- Public rate limit -------------------------------------------------------
+// /api/generate is public (the free builder + the Ava widget both call it and
+// spend YOUR AI credits). This caps requests per IP so the public preview can't
+// burn your budget. Tune with GEN_RATE_LIMIT (per window) + GEN_RATE_WINDOW
+// (seconds). Set GEN_RATE_LIMIT=0 to disable. Owner calls (valid x-admin-token)
+// and setups without Upstash are never limited (fails open).
+const GEN_RATE_LIMIT = Number(process.env.GEN_RATE_LIMIT || 60);
+const GEN_RATE_WINDOW = Number(process.env.GEN_RATE_WINDOW || 600);
+async function rateLimited(req) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token || GEN_RATE_LIMIT <= 0) return false;
+  if (process.env.ADMIN_PASSWORD && req.headers["x-admin-token"] === process.env.ADMIN_PASSWORD) return false;
+  const xff = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "anon";
+  const ip = xff.replace(/[^a-zA-Z0-9:._-]/g, "_").slice(0, 60);
+  const bucket = Math.floor(Date.now() / 1000 / GEN_RATE_WINDOW);
+  const key = `fda:rl:gen:${ip}:${bucket}`;
+  const base = url.replace(/\/$/, "");
+  try {
+    const r = await fetch(base + "/incr/" + encodeURIComponent(key), { headers: { Authorization: "Bearer " + token } });
+    const j = await r.json();
+    const n = Number(j && j.result) || 0;
+    if (n === 1) { // first hit -> expire the counter at the end of the window
+      fetch(base + "/expire/" + encodeURIComponent(key) + "/" + GEN_RATE_WINDOW, { headers: { Authorization: "Bearer " + token } }).catch(() => {});
+    }
+    return n > GEN_RATE_LIMIT;
+  } catch (_) { return false; } // DB hiccup -> don't block real users
+}
+
 // fetch() that aborts after `ms`, so a hung/slow engine rolls to the next one.
 // Each attempt is capped at the SMALLER of the per-engine timeout and whatever
 // remains of the overall request budget, so the engine chain can't overrun.
@@ -183,9 +211,14 @@ async function tryGemini(prompt, maxTokens, getKey) {
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+
+  if (await rateLimited(req)) {
+    res.setHeader("retry-after", String(GEN_RATE_WINDOW));
+    return res.status(429).json({ error: "You've made a lot of requests — please wait a minute and try again." });
+  }
 
   let body = req.body;
   if (typeof body === "string") {

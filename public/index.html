@@ -129,9 +129,12 @@
     <a href="/builder.html" class="nav-link" style="font-size:14px" data-en="Builder" data-es="Constructor">Builder</a>
     <a href="/dashboard.html" class="nav-link" style="font-size:14px" data-en="Dashboard" data-es="Panel">Dashboard</a>
     <a href="/contact.html" class="nav-link" style="font-size:14px" data-en="Contact" data-es="Contacto">Contact</a>
+    <a href="/apply.html" class="nav-link" style="font-size:14px" data-en="Become a rep" data-es="Únete como vendedor">Become a rep</a>
   </div>
+  <div data-socials data-no-i18n style="display:flex;justify-content:center;flex-wrap:wrap;margin-bottom:16px"></div>
   frontdeskagents.com · powered by SAHJONY AI™
 </footer>
+<script defer src="/social.js"></script>
 
 <script>
   var hdr=document.querySelector("header");
@@ -151,6 +154,8 @@
   window.addEventListener("appinstalled", () => { document.getElementById("installBtn").style.display = "none"; });
 </script>
 <script src="/i18n.js"></script>
+<script>/* Sales-rep referral capture: remember ?ref=CODE for lead attribution. */
+try{var _r=new URLSearchParams(location.search).get("ref");if(_r)localStorage.setItem("fda_ref",_r.replace(/[^A-Za-z0-9]/g,"").slice(0,12));}catch(e){}</script>
 <script defer src="/ava.js" data-business="frontdeskagents.com"></script>
 </body>
 </html>

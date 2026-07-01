@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales Team — FrontDesk Agents</title>
+<meta name="theme-color" content="#04080f">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.85);backdrop-filter:blur(12px);z-index:5}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  .wrap{max-width:960px;margin:0 auto;padding:26px 18px 90px}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 6px}
+  input,select,textarea{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--text);font-size:14.5px;font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:2fr 2fr 1fr;gap:12px}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:10px;padding:10px 15px;font-size:13.5px;text-decoration:none;display:inline-block}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .danger{background:rgba(255,107,107,.1);color:#ff9f9f;border:1px solid rgba(255,107,107,.4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:16px;backdrop-filter:blur(14px)}
+  .muted{color:var(--muted);font-size:13px}
+  .pill{display:inline-block;background:rgba(232,196,118,.14);color:var(--gold);border:1px solid rgba(232,196,118,.3);font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+  .stat{background:rgba(4,8,15,.4);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .stat b{font-size:22px;display:block} .stat span{font-size:11.5px;color:var(--muted)}
+  .rep{border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;background:rgba(4,8,15,.3)}
+  .refbox{display:flex;gap:8px;align-items:center;background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px;margin-top:8px;flex-wrap:wrap}
+  .code{font-family:ui-monospace,monospace;color:var(--gold);font-weight:700}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+  #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;display:none;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .rowactions{display:flex;gap:6px;flex-wrap:wrap}
+  @media(max-width:720px){.row,.row3,.grid4{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:10px"><div class="logo">FD</div><div class="fd" style="font-weight:700;font-size:18px">Sales Team</div></div>
+  <a href="/dashboard.html" class="btn ghost">← Dashboard</a>
+</header>
+
+<div class="wrap">
+  <p class="muted" style="margin-bottom:4px">Build and manage your commission sales force. Reps earn a set % (default 25%) on every sale they close. Add a rep, share their referral link + access code, record their sales, and pay commissions.</p>
+
+  <div class="grid4" id="teamStats">
+    <div class="stat"><b id="tReps">—</b><span>Reps</span></div>
+    <div class="stat"><b id="tRevenue">—</b><span>Total sales</span></div>
+    <div class="stat"><b id="tPending">—</b><span>Commission owed</span></div>
+    <div class="stat"><b id="tPaid">—</b><span>Commission paid</span></div>
+  </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">Add a sales rep</div>
+    <div class="row3">
+      <div><label>Full name</label><input id="n_name" placeholder="Jordan Vega"></div>
+      <div><label>Email</label><input id="n_email" placeholder="jordan@email.com"></div>
+      <div><label>Commission %</label><input id="n_rate" type="number" value="25" min="0" max="100" step="1"></div>
+    </div>
+    <div class="row">
+      <div><label>Phone (optional)</label><input id="n_phone" placeholder="+1 713 555 0100"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn gold" id="addRep" style="width:100%">+ Add rep &amp; generate codes</button></div>
+    </div>
+  </div>
+
+  <div id="appsCard" class="card" style="display:none">
+    <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">📥 Rep applications <span class="pill" id="appsCount">0</span></div>
+    <div class="muted" style="margin-bottom:8px">People who applied at <b>/apply.html</b>. Approve to auto-create their account + access code.</div>
+    <div id="appsList"></div>
+  </div>
+
+  <div class="muted" style="margin-top:16px">Share your recruiting link: <span class="code" id="applyLink"></span> <button class="btn ghost" id="copyApply" style="padding:5px 10px;font-size:12px">Copy</button></div>
+
+  <div id="repList"></div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+function cookie(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[1]):"";}
+var TOKEN=cookie("fda_auth")||sessionStorage.getItem("fda_admin")||"";
+function H(){var h={"content-type":"application/json"};if(TOKEN)h["x-admin-token"]=TOKEN;return h;}
+var el=function(id){return document.getElementById(id);};
+var ORIGIN=location.origin.replace(/\/$/,"");
+function money(n){return "$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:2});}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.background=ok?"#123a2a":"#3a1620";m.style.color=ok?"#7ff0c0":"#ffb3ab";clearTimeout(window._mt);window._mt=setTimeout(function(){m.style.display="none";},3500);}
+
+async function api(action,extra){
+  var r=await fetch("/api/data?action="+action,{method:"POST",headers:H(),body:JSON.stringify(extra||{})});
+  var j=await r.json().catch(function(){return{};});
+  return {ok:r.ok,j:j};
+}
+
+async function load(){
+  var r=await fetch("/api/data?action=rep-list",{method:"POST",headers:H(),body:"{}"});
+  var j=await r.json().catch(function(){return{};});
+  if(!r.ok){ if(r.status===401){location.replace("/dashboard.html");return;} msg(j.error||"Could not load",false); return; }
+  render(j.reps||[]);
+  loadApps();
+}
+
+async function loadApps(){
+  el("applyLink").textContent=ORIGIN+"/apply.html";
+  var r=await api("rep-apps",{});
+  if(!r.ok)return;
+  var apps=(r.j&&r.j.apps)||[];
+  el("appsCount").textContent=apps.length;
+  el("appsCard").style.display=apps.length?"block":"none";
+  el("appsList").innerHTML=apps.map(function(a){
+    return '<div class="rep" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+esc(a.name)+'</b><div class="muted">'+esc(a.email)+(a.phone?' · '+esc(a.phone):'')+(a.city?' · '+esc(a.city):'')+'</div></div><div class="muted" style="font-size:11px">'+new Date(a.at).toLocaleDateString()+'</div></div>'+
+      (a.experience?'<div style="margin-top:8px;font-size:14px;color:#cdd8e6">'+esc(a.experience)+'</div>':'')+
+      '<div class="btnrow"><button class="btn gold" data-approve="'+a.id+'">✓ Approve (25%)</button><button class="btn danger" data-reject="'+a.id+'">Reject</button></div></div>';
+  }).join("");
+  document.querySelectorAll("[data-approve]").forEach(function(b){b.onclick=async function(){ var r=await api("rep-approve",{appId:b.dataset.approve}); if(r.ok){msg("✓ Approved — access code "+r.j.rep.accessCode,true);load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-reject]").forEach(function(b){b.onclick=async function(){ if(!confirm("Reject this application?"))return; var r=await api("rep-reject",{appId:b.dataset.reject}); if(r.ok){load();}else msg(r.j.error||"Failed",false); };});
+}
+
+var REPS={};
+function statementHTML(rep){
+  var t=rep.totals||{};
+  var rows=(rep.sales||[]).map(function(s){return '<tr><td>'+new Date(s.at).toLocaleDateString()+'</td><td>'+esc(s.biz||s.slug||"—")+'</td><td>'+money(s.amount)+'</td><td>'+money(s.commission)+'</td><td>'+(s.status==="paid"?"Paid":"Pending")+'</td></tr>';}).join("");
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Commission Statement — '+esc(rep.name)+'</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:34px;max-width:760px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}.sub{color:#666;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}th,td{border-bottom:1px solid #ddd;padding:8px 6px;text-align:left}th{color:#666;font-size:11px;text-transform:uppercase}.tot{display:flex;gap:28px;margin-top:18px}.tot div{font-size:13px;color:#666}.tot b{display:block;font-size:22px;color:#111;margin-top:2px}.ft{margin-top:26px;color:#999;font-size:11.5px;border-top:1px solid #eee;padding-top:10px}</style></head><body><h1>Commission Statement</h1><div class="sub">'+esc(rep.name)+' · '+esc(rep.email||"")+'</div><div class="sub">Generated '+new Date().toLocaleDateString()+' · Commission rate '+Math.round((rep.rate||0)*100)+'%</div><div class="tot"><div>Total earned<b>'+money(t.commission)+'</b></div><div>Pending payout<b>'+money(t.pending)+'</b></div><div>Paid<b>'+money(t.paid)+'</b></div></div><table><thead><tr><th>Date</th><th>Business</th><th>Sale</th><th>Commission</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">No sales yet.</td></tr>')+'</tbody></table><div class="ft">Sahjony Capital LLC (d/b/a FrontDesk Agents)</div></body></html>';
+}
+function render(reps){
+  REPS={}; reps.forEach(function(rp){REPS[rp.id]=rp;});
+  var tRev=0,tPend=0,tPaid=0;
+  reps.forEach(function(rp){var t=rp.totals||{};tRev+=t.revenue||0;tPend+=t.pending||0;tPaid+=t.paid||0;});
+  el("tReps").textContent=reps.length;
+  el("tRevenue").textContent=money(tRev); el("tPending").textContent=money(tPend); el("tPaid").textContent=money(tPaid);
+
+  if(!reps.length){el("repList").innerHTML='<div class="card muted">No reps yet. Add your first rep above.</div>';return;}
+  el("repList").innerHTML=reps.map(function(rp){
+    var t=rp.totals||{};
+    var ref=ORIGIN+"/?ref="+rp.code;
+    var sales=(rp.sales||[]).slice(0,20).map(function(s){
+      return '<tr><td>'+esc(s.biz||s.slug||"—")+'</td><td>'+money(s.amount)+'</td><td>'+money(s.commission)+'</td>'+
+        '<td>'+(s.status==="paid"?'<span class="pill" style="background:rgba(45,212,191,.14);color:#7ff0c0;border-color:rgba(45,212,191,.4)">paid</span>':'<span class="pill">pending</span>')+'</td>'+
+        '<td>'+(s.status!=="paid"?'<button class="btn ghost" data-payone="'+rp.id+'|'+s.id+'" style="padding:5px 10px;font-size:12px">Mark paid</button>':new Date(s.paidAt||s.at).toLocaleDateString())+'</td></tr>';
+    }).join("");
+    return '<div class="rep">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">'+
+        '<div><div class="fd" style="font-size:18px;font-weight:700">'+esc(rp.name)+(rp.active===false?' <span class="pill" style="background:rgba(255,107,107,.1);color:#ff9f9f;border-color:rgba(255,107,107,.4)">inactive</span>':'')+'</div>'+
+        '<div class="muted">'+esc(rp.email)+(rp.phone?' · '+esc(rp.phone):'')+' · '+Math.round((rp.rate||0)*100)+'% commission</div></div>'+
+        '<div class="pill">'+money(t.pending)+' owed</div>'+
+      '</div>'+
+      '<div class="refbox"><span class="muted">Referral link</span> <span class="code" data-ref="'+esc(ref)+'">'+esc(ref)+'</span>'+
+        '<button class="btn ghost" data-copy="'+esc(ref)+'" style="padding:4px 9px;font-size:11.5px">Copy</button>'+
+        '<span class="muted" style="margin-left:6px">Access code</span> <span class="code">'+esc(rp.accessCode||"—")+'</span></div>'+
+      '<div class="grid4" style="margin:12px 0 4px">'+
+        '<div class="stat"><b>'+(t.salesCount||0)+'</b><span>Sales</span></div>'+
+        '<div class="stat"><b>'+money(t.revenue)+'</b><span>Revenue</span></div>'+
+        '<div class="stat"><b>'+money(t.commission)+'</b><span>Earned</span></div>'+
+        '<div class="stat"><b>'+money(t.paid)+'</b><span>Paid</span></div>'+
+      '</div>'+
+      (sales?'<table><thead><tr><th>Business</th><th>Amount</th><th>Commission</th><th>Status</th><th></th></tr></thead><tbody>'+sales+'</tbody></table>':'<div class="muted" style="margin-top:8px">No sales recorded yet.</div>')+
+      '<div class="btnrow">'+
+        '<button class="btn gold" data-rec="'+rp.id+'">+ Record sale</button>'+
+        '<button class="btn ghost" data-payall="'+rp.id+'">Pay all pending</button>'+
+        '<button class="btn ghost" data-stmt="'+rp.id+'">🖨️ Statement</button>'+
+        '<a class="btn ghost" href="/rep-contract.html?name='+encodeURIComponent(rp.name)+'&email='+encodeURIComponent(rp.email)+'&rate='+((rp.rate||.25)*100)+'&code='+encodeURIComponent(rp.code)+'" target="_blank">📄 Rep contract</a>'+
+        '<button class="btn ghost" data-toggle="'+rp.id+'|'+(rp.active===false?'1':'0')+'">'+(rp.active===false?'Reactivate':'Deactivate')+'</button>'+
+        '<button class="btn danger" data-del="'+rp.id+'|'+esc(rp.name)+'">Delete</button>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+  wire();
+}
+
+function wire(){
+  document.querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy);msg("✓ Copied",true);};});
+  document.querySelectorAll("[data-rec]").forEach(function(b){b.onclick=function(){recordSale(b.dataset.rec);};});
+  document.querySelectorAll("[data-payall]").forEach(function(b){b.onclick=async function(){ if(!confirm("Mark ALL pending commissions as paid for this rep?"))return; var r=await api("rep-pay",{repId:b.dataset.payall,all:true}); if(r.ok){msg("✓ Marked paid",true);load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-stmt]").forEach(function(b){b.onclick=function(){ var rp=REPS[b.dataset.stmt]; if(!rp)return; var w=window.open("","_blank"); if(!w){msg("Allow pop-ups",false);return;} w.document.write(statementHTML(rp)); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); };});
+  document.querySelectorAll("[data-payone]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.payone.split("|"); var r=await api("rep-pay",{repId:p[0],saleId:p[1]}); if(r.ok){msg("✓ Marked paid",true);load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-toggle]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.toggle.split("|"); var r=await api("rep-update",{repId:p[0],active:p[1]==="1"}); if(r.ok){load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-del]").forEach(function(b){b.onclick=async function(){ var p=b.dataset.del.split("|"); if(!confirm("Delete rep "+p[1]+"? Their record and login will be removed."))return; var r=await api("rep-delete",{repId:p[0]}); if(r.ok){msg("✓ Deleted",true);load();}else msg(r.j.error||"Failed",false); };});
+}
+
+async function recordSale(repId){
+  var biz=prompt("Business / client name for this sale:"); if(biz==null)return;
+  var amount=prompt("Sale amount (USD), e.g. 1500:"); if(amount==null)return;
+  amount=parseFloat(String(amount).replace(/[^0-9.]/g,"")); if(!amount){msg("Enter a valid amount",false);return;}
+  var slug=prompt("Site ID / slug (optional):")||"";
+  var r=await api("rep-record",{repId:repId,biz:biz,amount:amount,slug:slug});
+  if(r.ok){msg("✓ Sale recorded — commission "+money(r.j.sale.commission),true);load();}else msg(r.j.error||"Failed",false);
+}
+
+el("addRep").onclick=async function(){
+  var name=el("n_name").value.trim(), email=el("n_email").value.trim();
+  if(!name||!email){msg("Name and email required",false);return;}
+  var rate=(parseFloat(el("n_rate").value)||25)/100;
+  var r=await api("rep-create",{name:name,email:email,phone:el("n_phone").value.trim(),rate:rate});
+  if(!r.ok){msg(r.j.error||"Failed",false);return;}
+  el("n_name").value="";el("n_email").value="";el("n_phone").value="";el("n_rate").value="25";
+  msg("✓ Rep added — access code "+r.j.rep.accessCode,true);
+  load();
+};
+
+el("copyApply").onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(ORIGIN+"/apply.html");msg("✓ Recruiting link copied",true);};
+
+if(!TOKEN){location.replace("/dashboard.html");} else {load();}
+</script>
+<script defer src="/protect.js"></script>
+</body>
+</html>

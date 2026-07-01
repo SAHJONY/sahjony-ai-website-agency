@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Become a Sales Rep — FrontDesk Agents</title>
+<meta name="description" content="Earn 25% commission selling AI websites + receptionists to local businesses. Apply to join the FrontDesk Agents sales team.">
+<meta name="theme-color" content="#04080f">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  .wrap{max-width:640px;margin:0 auto;padding:40px 20px 90px}
+  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800;margin:0 auto 14px}
+  h1{font-family:'Fraunces',serif;font-size:34px;font-weight:700;text-align:center;letter-spacing:-.02em}
+  .sub{color:var(--muted);text-align:center;margin:8px 0 6px;font-size:15px}
+  .perks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0}
+  .perk{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+  .perk b{display:block;font-size:20px;color:var(--gold)} .perk span{font-size:12px;color:var(--muted)}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  input,textarea{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit}
+  input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:14px 18px;font-size:15px;width:100%;margin-top:18px;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .card{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:16px;backdrop-filter:blur(14px)}
+  #msg{margin-top:14px;font-size:14px;display:none;text-align:center}
+  @media(max-width:560px){.row{grid-template-columns:1fr}.perks{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">FD</div>
+  <h1>Sell websites. Earn 25%.</h1>
+  <p class="sub">Join the FrontDesk Agents sales team. You bring local businesses, the AI builds their site + receptionist, and you earn commission on every deal — plus recurring on the monthly plans.</p>
+
+  <div class="perks">
+    <div class="perk"><b>25%</b><span>commission per sale</span></div>
+    <div class="perk"><b>$0</b><span>cost to start</span></div>
+    <div class="perk"><b>24/7</b><span>your own portal</span></div>
+  </div>
+
+  <div class="card" id="formCard">
+    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:2px">Apply now</div>
+    <div style="color:var(--muted);font-size:13px">We review every application and email you your login + agreement once approved.</div>
+    <div class="row">
+      <div><label>Full name *</label><input id="name" placeholder="Jordan Vega"></div>
+      <div><label>Email *</label><input id="email" type="email" placeholder="you@email.com"></div>
+    </div>
+    <div class="row">
+      <div><label>Phone</label><input id="phone" placeholder="+1 713 555 0100"></div>
+      <div><label>City / area</label><input id="city" placeholder="Houston, TX"></div>
+    </div>
+    <label>Tell us about yourself (sales experience, why you'd be great)</label>
+    <textarea id="experience" rows="4" placeholder="A few sentences about your background and the businesses you can reach…"></textarea>
+    <button class="btn" id="go">Submit application →</button>
+    <div id="msg"></div>
+  </div>
+
+  <p class="sub" style="margin-top:22px">Already approved? <a href="/rep.html">Sign in to your rep portal →</a></p>
+</div>
+
+<script>
+var el=function(id){return document.getElementById(id);};
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";}
+el("go").onclick=async function(){
+  var name=el("name").value.trim(), email=el("email").value.trim();
+  if(!name||!email){msg("Please enter your name and email.",false);return;}
+  el("go").disabled=true; el("go").textContent="Submitting…";
+  try{
+    var r=await fetch("/api/data?action=rep-apply",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({name:name,email:email,phone:el("phone").value.trim(),city:el("city").value.trim(),experience:el("experience").value.trim()})});
+    var j=await r.json().catch(function(){return{};});
+    if(!r.ok){msg(j.error||"Something went wrong. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit application →";return;}
+    el("formCard").innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:40px">🎉</div><div class="fd" style="font-size:22px;font-weight:700;margin:10px 0">Application received!</div><div style="color:#9fb3c9;font-size:15px;line-height:1.6">Thanks '+name.replace(/[<>]/g,"")+'. We\'ll review it and email your rep login + commission agreement once you\'re approved.</div></div>';
+  }catch(e){msg("Network error. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit application →";}
+};
+</script>
+</body>
+</html>

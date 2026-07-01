@@ -88,6 +88,35 @@
     </div>
     <div class="muted" style="margin-top:10px">Requires <b>BLAND_API_KEY</b> (and BLAND_WEBHOOK_SECRET) in your env.</div>
   </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">🔑 Client dashboard <span class="pill">hand-off</span></div>
+    <div class="muted">Set a password so this business can log in at <b>/business.html</b> to see their leads &amp; bookings, edit Ava, and request changes. Give them the site URL + this password after the sale.</div>
+    <div class="row" style="margin-top:8px">
+      <div><label>Client portal password</label><input id="portalPw" placeholder="e.g. eastwood-2026" autocomplete="off"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn gold" id="savePortal" style="width:100%">Save &amp; enable login</button></div>
+    </div>
+    <div id="portalStatus" class="muted" style="margin-top:8px">—</div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:150px"><label>Build price (for the contract)</label><input id="ctPrice" placeholder="$1,500"></div>
+      <div><label>Ava tier</label><select id="ctAva"><option value="chat">Chat</option><option value="voice">Voice + chat</option><option value="none">None</option></select></div>
+      <div><label>Social Autopilot</label><input id="ctSocial" placeholder="$79/mo + $99" style="max-width:150px"></div>
+      <button class="btn ghost" id="genContract">📄 Generate sale contract →</button>
+    </div>
+    <div id="portalReqs" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">📣 Social autopilot <span class="pill">per client</span></div>
+    <div class="muted">Connect this client's accounts to a scheduler (Ayrshare / Buffer / Make / Zapier catch-webhook) and their promotions can post automatically. If they requested done-for-you setup, mark it complete here.</div>
+    <div id="socSetup" class="muted" style="margin-top:8px">—</div>
+    <label>Client posting webhook (their scheduler)</label>
+    <input id="socWebhook" placeholder="https://hook.make.com/... or Ayrshare/Buffer webhook">
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn gold" id="saveSoc">Save &amp; connect</button>
+      <button class="btn ghost" id="markSetup">Mark setup complete</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -97,6 +126,7 @@ function H(extra){var h=Object.assign({"content-type":"application/json"},extra|
 var el=function(id){return document.getElementById(id);};
 var FIELDS=["business","greeting","services","hours","address","pricing","calendarUrl","instructions","language","notifyEmail"];
 var current="";
+var SITES={};   // slug -> {name, bizType}
 
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";}
 
@@ -105,11 +135,13 @@ async function loadSites(){
     var r=await fetch("/api/sites",{headers:H()});var j=await r.json();
     if(!r.ok){el("site").innerHTML='<option>'+(j.error||"Log in via the dashboard first")+'</option>';return;}
     var sites=j.sites||[];
+    SITES={}; sites.forEach(function(s){SITES[s.slug]={name:s.name||s.slug,bizType:s.bizType||""};});
     el("site").innerHTML='<option value="">— choose a client site —</option>'+sites.map(function(s){return '<option value="'+s.slug+'">'+(s.name||s.slug)+'</option>';}).join("");
   }catch(e){el("site").innerHTML='<option>Network error</option>';}
 }
 async function loadCfg(slug){
   current=slug; FIELDS.forEach(function(f){el(f).value="";}); el("booking").value="true"; el("voiceStatus").textContent="—";
+  el("portalPw").value=""; el("portalStatus").textContent="—"; el("portalReqs").innerHTML="";
   if(!slug) return;
   try{
     var r=await fetch("/api/data?key="+encodeURIComponent("fda:ava:"+slug),{headers:H()});var j=await r.json();
@@ -118,6 +150,65 @@ async function loadCfg(slug){
     el("booking").value=(c.booking===false)?"false":"true";
     el("voiceStatus").textContent=c.phone?("📞 Live number: "+c.phone):"No phone number yet.";
   }catch(e){}
+  loadPortal(slug);
+  loadSoc(slug);
+}
+var SOC={};
+async function loadSoc(slug){
+  el("socWebhook").value=""; el("socSetup").textContent="—"; SOC={};
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:social:"+slug),{headers:H()});var j=await r.json();
+    SOC=(j&&j.value&&typeof j.value==="object")?j.value:{};
+    el("socWebhook").value=SOC.webhook||"";
+    var bits=[];
+    if(SOC.needsSetup) bits.push(SOC.setupStatus==="done"?"✓ Done-for-you setup complete":"⚠️ Client requested done-for-you setup");
+    if(SOC.handles&&Object.keys(SOC.handles).length) bits.push(Object.keys(SOC.handles).length+" account(s) on file");
+    if(SOC.autopilot) bits.push("autopilot ON");
+    el("socSetup").textContent=bits.length?bits.join(" · "):"No social setup yet for this client.";
+  }catch(e){}
+}
+async function saveSoc(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  SOC.webhook=el("socWebhook").value.trim();
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:social:"+current),{method:"POST",headers:H(),body:JSON.stringify(SOC)});
+    if(!r.ok){var ej=await r.json();msg(ej.error||"Save failed",false);return;}
+    msg("✓ Social autopilot saved for "+current,true); loadSoc(current);
+  }catch(e){msg("Network error",false);}
+}
+async function markSetup(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  SOC.setupStatus="done"; SOC.needsSetup=true;
+  await saveSoc();
+}
+async function loadPortal(slug){
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+slug),{headers:H()});var j=await r.json();
+    var p=(j&&j.value)||{};
+    if(p.password){ el("portalPw").value=p.password; el("portalStatus").textContent="✓ Login enabled. Client logs in at /business.html with slug '"+slug+"'."; }
+    else{ el("portalStatus").textContent="No client login yet — set a password to enable it."; }
+    var reqs=Array.isArray(p.requests)?p.requests:[];
+    if(reqs.length){
+      el("portalReqs").innerHTML='<div class="muted" style="font-weight:700;margin-bottom:6px">Change requests from client:</div>'+reqs.slice(0,10).map(function(q){
+        return '<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:6px"><div style="font-size:11px;color:var(--muted)">'+new Date(q.at).toLocaleString()+'</div>'+String(q.message||"").replace(/</g,"&lt;")+'</div>';
+      }).join("");
+    }
+  }catch(e){}
+}
+async function savePortal(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  var pw=el("portalPw").value.trim();
+  if(pw.length<4){msg("Password must be at least 4 characters.",false);return;}
+  try{
+    // Merge into the existing record so we never wipe pending change requests.
+    var g=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+current),{headers:H()});var gj=await g.json();
+    var rec=(gj&&gj.value&&typeof gj.value==="object")?gj.value:{};
+    rec.password=pw; if(!rec.createdAt) rec.createdAt=new Date().toISOString();
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+current),{method:"POST",headers:H(),body:JSON.stringify(rec)});
+    if(!r.ok){var ej=await r.json();msg(ej.error||"Save failed",false);return;}
+    msg("✓ Client login enabled for "+current,true);
+    el("portalStatus").textContent="✓ Login enabled. Client logs in at /business.html with slug '"+current+"'.";
+  }catch(e){msg("Network error",false);}
 }
 async function save(){
   if(!current){msg("Pick a client site first.",false);return;}
@@ -141,11 +232,22 @@ async function voice(action,extra){
 
 el("site").onchange=function(){loadCfg(this.value);};
 el("save").onclick=save;
+el("savePortal").onclick=savePortal;
+el("saveSoc").onclick=saveSoc;
+el("markSetup").onclick=markSetup;
+el("genContract").onclick=function(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  var s=SITES[current]||{};
+  var p=new URLSearchParams({slug:current,biz:s.name||current,industry:s.bizType||"",ava:el("ctAva").value,price:el("ctPrice").value.trim()});
+  if(el("ctSocial").value.trim()) p.set("social",el("ctSocial").value.trim());
+  window.open("/contract.html?"+p.toString(),"_blank");
+};
 el("test").onclick=function(){ if(current) window.open("/s/"+current,"_blank"); else window.open("/","_blank"); };
 el("provision").onclick=async function(){ msg("Getting a number…",true); var j=await voice("provision",{areaCode:el("areaCode").value.trim()}); if(j&&j.phone){el("voiceStatus").textContent="📞 Live number: "+j.phone;msg("✓ Number provisioned: "+j.phone,true);} };
 el("call").onclick=async function(){ var to=el("callTo").value.trim(); if(!to){msg("Enter a number to call.",false);return;} msg("Calling…",true); var j=await voice("call",{to:to}); if(j&&j.ok)msg("✓ Ava is calling "+to,true); };
 
 if(!TOKEN){ location.replace("/dashboard.html"); } else { loadSites(); }
 </script>
+<script defer src="/protect.js"></script>
 </body>
 </html>

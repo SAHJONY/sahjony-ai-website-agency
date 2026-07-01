@@ -108,10 +108,16 @@ form.onsubmit = async (e) => {
   const v = (id) => (document.getElementById(id).value || "").trim();
   if(!v("name") || !v("type") || !v("contact")){ show("Please fill in the required fields.", false); return; }
 
+  // Sales-rep attribution: a rep's referral link (…/?ref=CODE) stores the code so
+  // the lead is credited to them. Captured on any page via the shared snippet.
+  let ref = "";
+  try { ref = new URLSearchParams(location.search).get("ref") || localStorage.getItem("fda_ref") || ""; } catch (_) {}
+
   const entry = {
     id: Date.now(),
     name: v("name"), type: v("type"), contact: v("contact"),
     city: v("city"), url: v("url"), notes: v("notes"),
+    ref: ref || undefined,
     at: new Date().toISOString(),
   };
 

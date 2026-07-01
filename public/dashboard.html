@@ -56,6 +56,9 @@
     <button class="tab" data-tab="settings" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">⚙️ Settings</button>
     <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0 10px;border-top:1px solid rgba(255,255,255,.07)">
+        <a href="/salesteam.html" style="text-decoration:none;color:#e8c476;font-size:13px;font-weight:700;padding:6px 8px;border-radius:8px">👥 Sales Team</a>
+        <a href="/marketing.html" style="text-decoration:none;color:#e8c476;font-size:13px;font-weight:700;padding:6px 8px;border-radius:8px">📣 Marketing</a>
+        <a href="/ava.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">🤖 Ava Admin</a>
         <a href="/" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">🏠 Home</a>
         <a href="/pricing.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">💸 Pricing</a>
         <a href="/contact.html" style="text-decoration:none;color:#8c8998;font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px">✉️ Contact</a>
@@ -205,7 +208,8 @@ function renderSubs(){
     let down=0;
     if(installments>1 && build>0){ down=Math.max(0,parseFloat(prompt("Down payment due today? (USD — leave blank to use your minimum policy)","")||0)||0); }
     const slug=(prompt("Link to a published site? Enter its slug to auto-publish on payment & pull it on missed payment (leave blank to skip):","")||"").trim();
-    paymentLink(name, build, monthly, installments, down, slug);
+    const ref=(prompt("Sales rep referral code? (leave blank if none — commission is auto-recorded on payment):","")||"").trim();
+    paymentLink(name, build, monthly, installments, down, slug, ref);
   };
   list.querySelectorAll(".sLink").forEach(b=>b.onclick=()=>{ const s=state.subs[+b.dataset.i]; paymentLink(s.name, 0, Number(s.price)||0, 1); });
   list.querySelectorAll(".sPause").forEach(b=>b.onclick=()=>{ state.subs[+b.dataset.i].status="paused"; save(); render(); });
@@ -214,16 +218,17 @@ function renderSubs(){
   list.querySelectorAll(".sDel").forEach(b=>b.onclick=()=>{ if(confirm("Delete this subscription record?")){ state.subs.splice(+b.dataset.i,1); save(); render(); } });
 }
 
-async function paymentLink(name, build, monthly, installments, downPayment, slug){
+async function paymentLink(name, build, monthly, installments, downPayment, slug, ref){
   try{
-    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1,downPayment:downPayment||0,slug:slug||""})});
+    const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1,downPayment:downPayment||0,slug:slug||"",ref:ref||""})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Could not create payment options."); return; }
-    // The server returns a ready-to-send message listing every option:
-    // card / Cash App / installments (Stripe), Square, and manual Zelle + Cash App.
+    // The server returns a ready-to-send message. Zelle + Cash App lead by default
+    // (no fees); Stripe/Square are secondary until PAYMENTS_PRIMARY=stripe.
     const msg = j.message || j.url || "";
     try{ await navigator.clipboard.writeText(msg); }catch(_){}
-    if(j.url) window.open(j.url,"_blank");
+    // Only auto-open the card checkout when cards are the primary method.
+    if(j.url && j.primary!=="manual") window.open(j.url,"_blank");
     alert("✓ Payment options copied — paste into a text or email to "+name+":\n\n"+msg);
   }catch(e){ alert("Network error creating payment options."); }
 }
@@ -774,5 +779,20 @@ else { document.getElementById("loginPw").focus(); }
 </script>
 <script src="/data/state-requirements.js"></script>
 <script src="/i18n.js"></script>
+<div id="secWarn" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:950;background:#3a1620;color:#ffd7d2;border-top:1px solid #ff6b6b;padding:12px 18px;font-size:13.5px;line-height:1.5"></div>
+<script>
+/* Security self-check: warns if the app isn't locked down before you share it. */
+(async function(){
+  try{
+    var j=await (await fetch("/api/health")).json();
+    var c=(j&&j.config)||{}; var warn=[];
+    if(!c.adminPassword) warn.push("Your app is <b>UNLOCKED</b> — set <b>ADMIN_PASSWORD</b> in Vercel → Settings → Environment Variables so only you can open the dashboard, Ava admin, sales team, playbook & scripts.");
+    if(!c.upstash) warn.push("<b>Upstash</b> isn't configured — cloud data & rate-limiting are off.");
+    if(!c.rateLimit) warn.push("Public AI <b>rate-limit is disabled</b> (GEN_RATE_LIMIT=0) — the free builder could burn your AI credits.");
+    if(warn.length){ var el=document.getElementById("secWarn"); el.innerHTML="⚠️ <b>Before you share this app:</b><br>• "+warn.join("<br>• "); el.style.display="block"; }
+  }catch(e){}
+})();
+</script>
+<script defer src="/protect.js"></script>
 </body>
 </html>

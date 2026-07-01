@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Rep Agreement — FrontDesk Agents</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.9);backdrop-filter:blur(12px);z-index:10}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:11px 18px;font-size:14px;text-decoration:none;display:inline-block}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .wrap{max-width:820px;margin:0 auto;padding:26px 18px 90px}
+  .doc{background:#fff;color:#12151c;border-radius:14px;padding:52px 54px;margin-top:18px;line-height:1.6}
+  .doc h1{font-family:'Fraunces',serif;font-size:26px;margin-bottom:4px;color:#0b0d12}
+  .doc h2{font-family:'Fraunces',serif;font-size:17px;margin:24px 0 8px;color:#0b0d12;border-bottom:2px solid #e8c476;padding-bottom:4px}
+  .doc p,.doc li{font-size:14.2px;color:#20242e}
+  .doc ul{margin:6px 0 6px 20px} .doc li{margin:3px 0}
+  .doc .sub{color:#6a7180;font-size:13px}
+  .fld{border:none;border-bottom:1.5px dashed #b9c0cc;background:#fbfcfe;font:inherit;font-size:14.2px;color:#12151c;padding:2px 5px;min-width:120px}
+  .fld:focus{outline:none;border-bottom-color:#e8c476;background:#fffdf6}
+  .kv{display:grid;grid-template-columns:170px 1fr;gap:6px 14px;margin-top:10px}
+  .kv .k{color:#5b6270;font-weight:600;font-size:14px}
+  .sig{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:26px}
+  .sigline{border-top:1.5px solid #12151c;margin-top:34px;padding-top:5px;font-size:12.5px;color:#5b6270}
+  .note{font-size:12px;color:#8a909c;margin-top:22px;border-top:1px solid #e4e7ec;padding-top:12px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  @media print{body{background:#fff}.bar,.hint{display:none!important}.wrap{max-width:none;padding:0}.doc{border-radius:0;margin:0;padding:.4in .6in}.fld{border-bottom:1px solid #999;background:transparent}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div style="display:flex;align-items:center;gap:10px"><div class="logo">FD</div><div class="fd" style="font-weight:700">Sales Rep Agreement</div></div>
+  <div style="display:flex;gap:8px"><a href="/salesteam.html" class="btn ghost">← Sales Team</a><button class="btn gold" onclick="window.print()">🖨️ Print / Save as PDF</button></div>
+</div>
+
+<div class="wrap">
+  <p class="hint muted" style="font-size:13px">Prefilled from the rep record. Fill any blanks, then <b>Print / Save as PDF</b> for the rep to sign.</p>
+  <div class="doc">
+    <h1>Independent Sales Representative Agreement</h1>
+    <p class="sub">Effective date: <input class="fld" id="f_date" style="min-width:150px"></p>
+    <div class="kv">
+      <div class="k">Company</div><div><input class="fld" id="f_company" style="width:95%"></div>
+      <div class="k">Representative</div><div><input class="fld" id="f_name" style="width:95%"></div>
+      <div class="k">Rep email</div><div><input class="fld" id="f_email" style="min-width:220px"></div>
+      <div class="k">Rep address</div><div><input class="fld" id="f_addr" style="width:95%" placeholder="Address"></div>
+      <div class="k">Referral code</div><div><input class="fld" id="f_code" style="min-width:120px"></div>
+    </div>
+
+    <p style="margin-top:14px">This Agreement is made as of the Effective Date between <b id="o_company">the Company</b> (“Company”) and <b id="o_name">the Representative</b> (“Representative”), an independent contractor, for the sale of Company’s website and AI receptionist services (“Services”).</p>
+
+    <h2>1. Appointment</h2>
+    <p>Company appoints Representative as a non-exclusive, independent sales representative to promote and solicit orders for the Services. Representative has no authority to bind the Company, set prices, sign contracts on Company’s behalf, make guarantees, or incur obligations for the Company. All sales are subject to Company’s acceptance.</p>
+
+    <h2>2. Commission</h2>
+    <p>Company will pay Representative a commission of <input class="fld" id="f_rate" style="min-width:60px"> % of the <b>net collected revenue</b> from each new sale that Representative originates and that Company accepts and collects. “Net collected revenue” means amounts actually received by Company for the Services, excluding taxes, third-party processing fees, refunds, and chargebacks. Commission is earned only when Company has received payment from the customer.</p>
+    <p class="sub">A sale is “originated” by Representative when the customer is tracked to Representative’s referral code/link or is otherwise documented by Company as sourced by Representative.</p>
+
+    <h2>3. Payment terms</h2>
+    <p>Earned commissions are calculated and paid on a monthly basis, within thirty (30) days after the close of the month in which Company collected the corresponding payment. Company will provide a statement of sales and commissions. If a customer refunds, disputes, or charges back a payment, the related commission is reversed and may be deducted from future commissions.</p>
+
+    <h2>4. Recurring &amp; installment sales</h2>
+    <p>Where a sale includes installments or a recurring hosting/care plan, commission is paid on amounts as they are collected, for as long as Representative remains active under this Agreement, unless otherwise agreed in writing.</p>
+
+    <h2>5. Independent contractor status</h2>
+    <p>Representative is an independent contractor, not an employee, partner, or agent of Company. Representative is solely responsible for all taxes on commissions (Company will issue an IRS Form 1099 where required), and receives no wages, benefits, or expense reimbursement unless separately agreed in writing. Representative controls the manner and means of performing services and may represent other non-competing businesses.</p>
+
+    <h2>6. Representative’s duties</h2>
+    <ul>
+      <li>Promote the Services honestly and only make claims authorized by Company.</li>
+      <li>Comply with all applicable laws, including telemarketing, email, SMS, and privacy laws, when contacting prospects.</li>
+      <li>Not offer discounts, terms, or promises beyond those approved by Company.</li>
+      <li>Protect Company’s confidential information and customer data.</li>
+    </ul>
+
+    <h2>7. Confidentiality &amp; non-solicitation</h2>
+    <p>Representative will keep Company’s pricing, methods, customer lists, and other non-public information confidential during and after this Agreement. For twelve (12) months after termination, Representative will not solicit Company’s customers introduced through this Agreement to a competing service.</p>
+
+    <h2>8. Intellectual property</h2>
+    <p>Company owns its brand, platform, software, templates, and marketing materials. Representative receives a limited, revocable license to use Company-provided materials solely to promote the Services during this Agreement.</p>
+
+    <h2>9. Term &amp; termination</h2>
+    <p>This Agreement is at-will and may be terminated by either party at any time with written notice. Upon termination, Representative is entitled to commissions on qualifying sales collected by Company before the termination date (and, for recurring amounts, only through the termination date unless otherwise agreed). Sections 5–8 survive termination.</p>
+
+    <h2>10. Governing law &amp; entire agreement</h2>
+    <p>This Agreement is governed by the laws of the State of <input class="fld" id="f_state" style="min-width:120px" placeholder="State">, is the entire agreement between the parties, and may be amended only in writing signed by both parties.</p>
+
+    <div class="sig">
+      <div><div style="font-weight:700;color:#0b0d12">Representative</div>
+        <input class="fld" id="s1" style="width:100%;margin-top:26px" placeholder="Signature / typed name">
+        <div class="sigline">Name — <input class="fld" placeholder="Name"></div>
+        <div class="sigline">Date — <input class="fld" style="min-width:120px"></div></div>
+      <div><div style="font-weight:700;color:#0b0d12">Company</div>
+        <input class="fld" id="s2" style="width:100%;margin-top:26px" placeholder="Signature / typed name">
+        <div class="sigline">Name &amp; title — <input class="fld" placeholder="Name, title"></div>
+        <div class="sigline">Date — <input class="fld" style="min-width:120px"></div></div>
+    </div>
+    <p class="note">This is a plain-language template provided for convenience and is not legal advice. Have it reviewed by an attorney in your jurisdiction before use.</p>
+  </div>
+</div>
+
+<script>
+var qs=new URLSearchParams(location.search);
+function el(id){return document.getElementById(id);}
+function q(n,d){var v=qs.get(n);return (v!=null&&v!=="")?v:(d||"");}
+el("f_date").value=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+el("f_company").value=q("company","Sahjony Capital LLC (d/b/a FrontDesk Agents)");
+el("f_name").value=q("name","");
+el("f_email").value=q("email","");
+el("f_code").value=q("code","");
+el("f_rate").value=q("rate","25");
+el("f_state").value=q("state","");
+function bind(id,out){var i=el(id),o=el(out);o.textContent=i.value||o.textContent;i.addEventListener("input",function(){o.textContent=i.value||o.textContent;});}
+bind("f_company","o_company"); bind("f_name","o_name");
+</script>
+</body>
+</html>

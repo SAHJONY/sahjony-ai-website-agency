@@ -9,7 +9,8 @@
     "api/contact.js": { "maxDuration": 30 }
   },
   "crons": [
-    { "path": "/api/leads-find?sweep=1", "schedule": "0 13 * * *" }
+    { "path": "/api/leads-find?sweep=1", "schedule": "0 13 * * *" },
+    { "path": "/api/outreach?autopost=1", "schedule": "0 15 * * *" }
   ],
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },

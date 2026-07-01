@@ -39,11 +39,45 @@ async function loadSecrets() {
   return {};
 }
 
+// PUBLIC marketing config: social profile links for the whole app. Sourced from
+// env (SOCIAL_*) and overridable via the owner's Marketing settings (fda:marketing
+// in Upstash). No secrets — just public profile URLs shown in footers etc.
+const SOCIAL_PLATFORMS = [
+  ["facebook", "Facebook"], ["instagram", "Instagram"], ["tiktok", "TikTok"],
+  ["youtube", "YouTube"], ["x", "X"], ["linkedin", "LinkedIn"], ["threads", "Threads"],
+  ["pinterest", "Pinterest"], ["whatsapp", "WhatsApp"], ["telegram", "Telegram"],
+  ["google", "Google"], ["yelp", "Yelp"],
+];
+async function loadMarketing() {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return {};
+  try {
+    const r = await fetch(url.replace(/\/$/, "") + "/get/" + encodeURIComponent("fda:marketing"), {
+      headers: { Authorization: "Bearer " + token },
+    });
+    const j = await r.json();
+    if (j && j.result) { try { return JSON.parse(j.result) || {}; } catch { return {}; } }
+  } catch (_) { /* ignore */ }
+  return {};
+}
+function buildSocial(marketing) {
+  const m = (marketing && marketing.social) || {};
+  const out = {};
+  for (const [key] of SOCIAL_PLATFORMS) {
+    const v = m[key] || process.env["SOCIAL_" + key.toUpperCase()] || (key === "x" ? process.env.SOCIAL_TWITTER : "") || "";
+    if (v && String(v).trim()) out[key] = String(v).trim();
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   // Analytics-beacon mode (rewritten from /api/track) — disambiguated by ?slug=.
   if (req.query && req.query.slug != null) return trackBeacon(req, res);
 
   const secrets = await loadSecrets();
+  const marketing = await loadMarketing();
+  const social = buildSocial(marketing);
   const get = (name) => process.env[name] || secrets[name] || "";
   const has = (name) => !!get(name);
   const higgsfield = has("HIGGSFIELD_API_KEY") || (has("HIGGSFIELD_KEY_ID") && has("HIGGSFIELD_KEY_SECRET"));
@@ -81,8 +115,12 @@ export default async function handler(req, res) {
       telegram: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_OWNER_CHAT),
       googlePlaces: has("GOOGLE_PLACES_API_KEY"),
       secretsManager: !!process.env.ADMIN_PASSWORD,
+      adminPassword: !!process.env.ADMIN_PASSWORD,
+      rateLimit: Number(process.env.GEN_RATE_LIMIT || 60) > 0,
+      paymentsPrimary: String(process.env.PAYMENTS_PRIMARY || "manual").toLowerCase(),
       model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
     },
     engineRotation: ["claude (primary)", "openai", "gemini", "grok", "glm (z.ai)", "nvidia nim (rotating)"],
+    social,
   });
 }

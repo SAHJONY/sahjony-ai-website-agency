@@ -8,6 +8,8 @@
 // On checkout.session.completed (paid), it appends a client + an active
 // subscription to the owner panel (fda:panel:owner) in Upstash.
 
+import { creditRepByCode } from "../lib/reps.js";
+
 const PANEL_KEY = "fda:panel:owner";
 
 async function upstash(path, opts) {
@@ -96,6 +98,12 @@ export default async function handler(req, res) {
               panel.subs.push({ id: Date.now() + 1, sessionId: id, name, plan: "Care plan", price: monthly, status: "active", since: new Date().toISOString().slice(0, 10) });
             }
             await writePanel(panel);
+          }
+          // Sales-rep attribution: if the checkout carried a referral code, credit
+          // the rep automatically (idempotent by session id — never double-counts).
+          if (md.ref) {
+            const collected = Number(md.build) || (s.amount_total ? s.amount_total / 100 : 0);
+            try { await creditRepByCode(md.ref, { biz: name, amount: collected, slug: md.slug || "", paymentId: id }); } catch (_) {}
           }
         }
       }

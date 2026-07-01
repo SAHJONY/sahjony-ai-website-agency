@@ -91,25 +91,31 @@ export default async function handler(req, res) {
       }
 
       const name = String(body.name || "Website").slice(0, 120);
-      const html = body.html;
+      let html = body.html;
       if (!html || typeof html !== "string") return res.status(400).json({ error: "Missing site html." });
       if (html.length > 4_000_000) return res.status(413).json({ error: "Site is too large to publish (try fewer/smaller uploaded photos)." });
 
       const slug = body.slug ? slugify(body.slug) : (slugify(name) + "-" + rand4());
+      // Bind the slug into the built HTML: the contact form tags each lead with
+      // bizSlug (so it files under fda:leads:<slug>) and the footer "Owner login"
+      // link points at /business.html?slug=<slug>. Both use the __SITE_SLUG__
+      // placeholder, which is only resolvable here once the slug is known.
+      html = html.split("__SITE_SLUG__").join(slug);
       const now = new Date().toISOString();
       // status: "active" (live) | "pending" (built, awaiting down payment) |
       // "suspended" (offline for non-payment). Default active; the Stripe webhook
       // flips it on payment events. Preserve existing status on re-save.
       let status = body.status === "pending" || body.status === "suspended" || body.status === "active" ? body.status : "";
-      if (!status) {
-        const prev = await readJSON("fda:site:" + slug, null);
-        status = (prev && prev.status) || "active";
-      }
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status }));
+      const prev = await readJSON("fda:site:" + slug, null);
+      if (!status) status = (prev && prev.status) || "active";
+      // Industry + city drive the industry-specific client dashboard and contract.
+      const bizType = String(body.bizType || (prev && prev.bizType) || "").slice(0, 80);
+      const bizCity = String(body.bizCity || (prev && prev.bizCity) || "").slice(0, 80);
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity }));
 
       const existing = index.find((s) => s.slug === slug);
-      if (existing) { existing.name = name; existing.at = now; existing.status = status; }
-      else index.unshift({ name, slug, at: now, status });
+      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }
+      else index.unshift({ name, slug, at: now, status, bizType });
       await writeRaw(INDEX_KEY, JSON.stringify(index));
 
       return res.status(200).json({ ok: true, slug, url: "/s/" + slug });

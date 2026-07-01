@@ -458,6 +458,17 @@ function hexToRgba(hex, a){
   if(hex.length!==6 || isNaN(n)) return 'rgba(232,196,118,'+a+')';
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
 }
+// Return a text color (near-black or white) that stays readable on top of `hex`.
+// Uses perceived luminance so light accents (gold, mint) get dark text and dark
+// accents (navy, plum) get white text — never white text on a light button.
+function contrastText(hex){
+  let h=String(hex||"").replace('#','');
+  if(h.length===3) h=h.split('').map(c=>c+c).join('');
+  const n=parseInt(h,16);
+  if(h.length!==6 || isNaN(n)) return '#0a0b0e';
+  const r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  return (0.299*r + 0.587*g + 0.114*b)/255 > 0.62 ? '#0a0b0e' : '#ffffff';
+}
 
 // Cinematic site controller: scroll-reveal, frosted nav, light/dark toggle, and a
 // live language selector (translates on demand via /api/generate, cached). This
@@ -521,6 +532,8 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // Cinematic accent — keep the brand hue but ensure it reads on a near-black bg.
   const acc = accent;
   const accGlow = hexToRgba(acc, .55);
+  // Text color that stays readable on a solid accent-filled button/CTA.
+  const accText = contrastText(acc);
   // STANDARD TYPE: every site uses the platform's Fraunces + Inter pairing so the
   // whole portfolio shares one premium look — only the color changes per business.
   const headingFont = "Fraunces";
@@ -638,7 +651,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   .genroot h1,.genroot h2,.genroot h3{font-family:'${headingFont}',system-ui,sans-serif}
   .genroot [style*="Space Grotesk"]{font-family:'${headingFont}',system-ui,sans-serif!important}
   .genroot a{color:inherit}
-  .genroot ::selection{background:${acc};color:#fff}
+  .genroot ::selection{background:${acc};color:${accText}}
   .reveal{opacity:0;transform:translateY(30px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)}
   .reveal.in{opacity:1;transform:none}
   .cine-eyebrow{font-size:12px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:${acc};margin-bottom:16px}
@@ -657,11 +670,16 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   .cnav.scrolled [data-cine-lang]{background:var(--bg2);color:var(--fg);border-color:var(--line)}
   [data-cine-lang] option{background:#16181d;color:#fff}
   .genroot[data-theme="light"] [data-cine-lang] option{background:#fff;color:#0c0d10}
-  .cnav-cta{text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;background:${acc};color:#fff;white-space:nowrap}
-  .cbtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px;font-weight:600;letter-spacing:.02em;padding:15px 34px;border-radius:7px;cursor:pointer;transition:transform .25s,background .25s,opacity .25s}
+  .cnav-cta{text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;background:${acc};color:${accText};white-space:nowrap;box-shadow:0 6px 18px ${hexToRgba(acc,.32)};transition:filter .25s,transform .25s}
+  .cnav-cta:hover{filter:brightness(.94);transform:translateY(-1px)}
+  .cbtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:.02em;padding:15px 34px;border-radius:7px;cursor:pointer;transition:transform .25s,filter .25s,background .25s,border-color .25s}
   .cbtn:hover{transform:translateY(-2px)}
-  .cbtnA{background:#fff;color:#0a0b0e}.cbtnA:hover{background:#e8e8ee}
-  .cbtnB{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(6px)}
+  /* Primary CTA: solid brand accent with auto-contrasting text (never white-on-white). */
+  .cbtnA{background:${acc};color:${accText};box-shadow:0 10px 30px -6px ${hexToRgba(acc,.5)}}
+  .cbtnA:hover{filter:brightness(.94)}
+  /* Secondary CTA: premium accent outline; text follows the theme foreground so it stays readable in light and dark. */
+  .cbtnB{background:${hexToRgba(acc,.1)};color:var(--fg);border:1px solid ${hexToRgba(acc,.55)};backdrop-filter:blur(6px)}
+  .cbtnB:hover{background:${hexToRgba(acc,.2)};border-color:${acc}}
   .ccard{background:var(--card);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s,box-shadow .45s}
   .ccard:hover{transform:translateY(-6px);border-color:${accGlow};box-shadow:0 30px 60px -24px rgba(0,0,0,.55)}
   .cimg{filter:saturate(1.08) contrast(1.04)}
@@ -694,7 +712,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
 
   const siteHtml = `
   <style>${cineCss}</style>
-  <div class="genroot" data-theme="dark">
+  <div class="genroot" data-theme="dark" data-acc="${acc}" data-acc-text="${accText}">
   <nav class="cnav" data-cine-nav>
     <div class="cnav-in">
       <a href="#g-home" class="cnav-logo">${name}</a>

@@ -63,6 +63,7 @@ export default async function handler(req, res) {
   const monthly = Math.max(0, Number(body.monthly) || 0);
   const installments = Math.max(1, Math.min(36, Math.round(Number(body.installments) || 1)));
   const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); // links payment -> site for auto publish/suspend
+  const ref = String(body.ref || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12); // sales-rep referral code -> auto commission
   if (!build && !monthly) return res.status(400).json({ error: "Provide a build price and/or a monthly amount." });
 
   // Manual peer-to-peer options. Zelle and Cash App $cashtag have no payment API,
@@ -97,18 +98,30 @@ export default async function handler(req, res) {
   const manualLines = [];
   if (zelle) manualLines.push(`  – Zelle: ${zelle}`);
   if (cashapp) manualLines.push(`  – Cash App: ${cashapp}`);
-  const manualBlock = manualLines.length
-    ? `\n\nPrefer to pay directly? (no card needed — installments welcome, just ask)\n${manualLines.join("\n")}`
-    : "";
+
+  // PAYMENTS_PRIMARY controls which method leads. Default "manual" (Zelle + Cash
+  // App) — zero processor fees, ideal while the business is getting going. Set it
+  // to "stripe" later (when volume/profits justify card fees) to lead with cards.
+  const primaryPref = String(process.env.PAYMENTS_PRIMARY || "manual").toLowerCase();
+  const manualPrimary = primaryPref !== "stripe" && manualLines.length > 0;
 
   // Square hosted link (one-time): the down payment for a plan, else the build/monthly.
   const squareUrl = await squareLink(name, buildIsPlan && downPayment > 0 ? downPayment : (build > 0 ? build : monthly));
 
   const buildMessage = (stripeUrl) => {
     let m = `Hi ${name}! Here are your payment options:\n\n${opts.join("\n")}`;
-    if (stripeUrl) m += `\n\nPay securely by card, Cash App, or installments:\n${stripeUrl}`;
-    if (squareUrl) m += `\n\nOr pay via Square (card / Afterpay):\n${squareUrl}`;
-    m += manualBlock;
+    if (manualPrimary) {
+      // Lead with the no-fee direct methods.
+      m += `\n\n✅ Easiest way to pay — no fees (installments welcome, just ask):\n${manualLines.join("\n")}`;
+      const cardLines = [];
+      if (stripeUrl) cardLines.push(`  – Card / Cash App Pay / installments: ${stripeUrl}`);
+      if (squareUrl) cardLines.push(`  – Square (card / Afterpay): ${squareUrl}`);
+      if (cardLines.length) m += `\n\nPrefer a card? You can also pay online:\n${cardLines.join("\n")}`;
+    } else {
+      if (stripeUrl) m += `\n\nPay securely by card, Cash App, or installments:\n${stripeUrl}`;
+      if (squareUrl) m += `\n\nOr pay via Square (card / Afterpay):\n${squareUrl}`;
+      if (manualLines.length) m += `\n\nPrefer to pay directly? (no card needed — installments welcome, just ask)\n${manualLines.join("\n")}`;
+    }
     return m;
   };
 
@@ -117,7 +130,7 @@ export default async function handler(req, res) {
   // No Stripe? Still useful — return Square and/or manual (Zelle/Cash App) options.
   if (!sk) {
     if (squareUrl || manualLines.length) {
-      return res.status(200).json({ stripe: false, square: squareUrl || undefined, manual, installments, message: buildMessage("") });
+      return res.status(200).json({ stripe: false, square: squareUrl || undefined, manual, primary: manualPrimary ? "manual" : "square", installments, message: buildMessage("") });
     }
     return res.status(500).json({
       error: "No payment method configured. Set STRIPE_SECRET_KEY (cards, Cash App Pay, installments), SQUARE_ACCESS_TOKEN + SQUARE_LOCATION_ID (Square), and/or ZELLE_HANDLE + CASHAPP_CASHTAG (manual).",
@@ -141,6 +154,7 @@ export default async function handler(req, res) {
   p.append("metadata[installments]", String(installments));
   p.append("metadata[downPayment]", String(downPayment));
   if (slug) p.append("metadata[slug]", slug);
+  if (ref) p.append("metadata[ref]", ref);
   p.append("allow_promotion_codes", "true");
   // NOTE: we intentionally do NOT set payment_method_types — Checkout then offers
   // every method enabled in your Stripe Dashboard (card, Cash App Pay, and the
@@ -185,6 +199,7 @@ export default async function handler(req, res) {
   if (mode === "subscription") {
     p.append("subscription_data[metadata][client]", name);
     if (slug) p.append("subscription_data[metadata][slug]", slug); // so invoice/sub events can find the site
+    if (ref) p.append("subscription_data[metadata][ref]", ref);
   }
 
   try {
@@ -201,6 +216,7 @@ export default async function handler(req, res) {
       stripe: true,
       square: squareUrl || undefined,
       manual,
+      primary: manualPrimary ? "manual" : "stripe",
       installments,
       isPlan: buildIsPlan,
       message: buildMessage(data.url),

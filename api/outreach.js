@@ -60,7 +60,85 @@ async function notifyOwner(subject, text) {
   } catch (_) {}
 }
 
+// Rotating marketing captions for the daily auto-post cron. A different one goes
+// out each day (indexed by day-of-year) so socials stay active hands-free.
+function autoCaptions(site) {
+  return [
+    "Your business deserves a stunning website — live this week, with a 24/7 AI receptionist that answers every customer. Free preview 👉 " + site + " #localbusiness #smallbusiness",
+    "Never miss a call or message again. Ava, our AI receptionist, answers your customers 24/7, books appointments, and captures every lead 👉 " + site,
+    "Still have an outdated website (or none)? We build modern, mobile sites that bring customers in — from $899. See yours free 👉 " + site,
+    "💼 Earn 25% commission selling AI websites to local businesses. $0 to start, your own hours. Apply 👉 " + site + "/apply.html",
+    "A website + AI receptionist that works while you sleep. Get found on Google, answer every customer, book more jobs 👉 " + site,
+    "Local owners: your competitors are online. Get a premium site + 24/7 AI receptionist, live in days 👉 " + site,
+    "One link. Every customer. Websites + AI phone/chat receptionist for local businesses 👉 " + site,
+  ];
+}
+
 export default async function handler(req, res) {
+  // ---- Daily AUTO-POST cron (Vercel Cron -> /api/outreach?autopost=1) ----
+  // Cron-gated by CRON_SECRET (Vercel attaches it as a Bearer token). Posts one
+  // rotating caption to MARKETING_WEBHOOK_URL so socials update hands-free.
+  if (req.query && req.query.autopost) {
+    const secret = process.env.CRON_SECRET;
+    const auth = req.headers.authorization || "";
+    const ok = !secret || auth === "Bearer " + secret || req.query.token === secret;
+    if (!ok) return res.status(401).json({ error: "Unauthorized" });
+    const hook = process.env.MARKETING_WEBHOOK_URL;
+    if (!hook) return res.status(200).json({ skipped: "MARKETING_WEBHOOK_URL not set" });
+    const site = (process.env.APP_URL || "https://www.frontdeskagents.com").replace(/\/$/, "");
+    const caps = autoCaptions(site);
+    const day = Math.floor((Date.now() - Date.UTC(new Date().getUTCFullYear(), 0, 0)) / 86400000);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const mk = (await getJSON("fda:marketing", {})) || {};
+    const schedule = Array.isArray(mk.schedule) ? mk.schedule : [];
+    // Any scheduled posts due today (or overdue) that haven't gone out yet.
+    const due = schedule.filter((s) => s && !s.sent && String(s.date || "") <= today && s.text);
+    const toSend = due.map((s) => ({ text: String(s.text).slice(0, 3000), via: "scheduled", ref: s })).concat([{ text: caps[day % caps.length], via: "auto" }]);
+
+    let log = Array.isArray(mk.log) ? mk.log : [];
+    let posted = 0;
+    for (const item of toSend) {
+      try {
+        const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: item.text, link: site, source: "frontdeskagents-cron", at: new Date().toISOString() }) });
+        const ok = r.ok; if (ok) posted++;
+        if (item.ref) item.ref.sent = ok;
+        log.unshift({ text: item.text, via: item.via, ok, at: new Date().toISOString() });
+      } catch (_) { log.unshift({ text: item.text, via: item.via, ok: false, at: new Date().toISOString() }); }
+    }
+    mk.log = log.slice(0, 100);
+    mk.schedule = schedule.filter((s) => !(s.sent && String(s.date || "") < today)); // drop old sent
+    try { await setJSON("fda:marketing", mk); } catch (_) {}
+
+    // ---- Per-client autopilot: post each opted-in client's latest promotion to
+    // their own connected scheduler (best-effort, bounded). ----
+    let clientPosted = 0;
+    try {
+      const appUrl = (process.env.APP_URL || site).replace(/\/$/, "");
+      let index = (await getJSON("fda:sites:index", [])) || [];
+      if (Array.isArray(index)) {
+        for (const s of index.slice(0, 60)) {
+          const slug = s && s.slug; if (!slug) continue;
+          const soc = await getJSON("fda:social:" + slug, null);
+          if (!soc || !soc.autopilot || !soc.webhook) continue;
+          const content = (await getJSON("fda:content:" + slug, {})) || {};
+          const promos = Array.isArray(content.promos) ? content.promos : [];
+          const p = promos[0];
+          const link = appUrl + "/s/" + slug;
+          const text = p ? [p.title, p.body].filter(Boolean).join(" — ") + " " + link
+                         : (s.name ? s.name + " — see what's new " + link : "");
+          if (!text.trim()) continue;
+          try {
+            const rr = await fetch(soc.webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, link, source: "frontdeskagents-client", slug, at: new Date().toISOString() }) });
+            if (rr.ok) clientPosted++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    return res.status(200).json({ ok: true, posted, clientPosted });
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
@@ -92,6 +170,36 @@ export default async function handler(req, res) {
   // ---- Everything below is owner-only ----
   const admin = process.env.ADMIN_PASSWORD;
   if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
+
+  // ---- Autonomous social posting ----
+  // Push a caption to your scheduler/auto-poster (Zapier / Make / Buffer / n8n)
+  // which fans it out to your connected networks. Set MARKETING_WEBHOOK_URL to a
+  // catch webhook there. Keeps social API/OAuth complexity out of this app.
+  if (body.post) {
+    const hook = process.env.MARKETING_WEBHOOK_URL;
+    if (!hook) return res.status(400).json({ error: "Set MARKETING_WEBHOOK_URL (a Zapier/Make/Buffer webhook) to enable auto-posting." });
+    const text = String(body.text || "").slice(0, 3000).trim();
+    if (!text) return res.status(400).json({ error: "Nothing to post." });
+    const payload = {
+      text,
+      link: String(body.link || "").slice(0, 400),
+      platforms: Array.isArray(body.platforms) ? body.platforms.slice(0, 20) : undefined,
+      source: "frontdeskagents",
+      at: new Date().toISOString(),
+    };
+    try {
+      const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      if (!r.ok) return res.status(502).json({ error: "Scheduler webhook returned " + r.status });
+      try {
+        const mk = (await getJSON("fda:marketing", {})) || {};
+        mk.log = ([{ text, via: "manual", ok: true, at: new Date().toISOString() }].concat(Array.isArray(mk.log) ? mk.log : [])).slice(0, 100);
+        await setJSON("fda:marketing", mk);
+      } catch (_) {}
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      return res.status(502).json({ error: "Could not reach the scheduler webhook." });
+    }
+  }
 
   // ---- AVA VOICE (Bland) ----
   if (body.voice) {

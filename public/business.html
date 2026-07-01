@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Business — Dashboard</title>
+<meta name="theme-color" content="#04080f">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.85);backdrop-filter:blur(12px);z-index:5}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  .wrap{max-width:920px;margin:0 auto;padding:26px 18px 90px}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  input,textarea,select{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:12px 18px;font-size:14px;text-decoration:none;display:inline-block;text-align:center}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:16px;backdrop-filter:blur(14px)}
+  .muted{color:var(--muted);font-size:13px}
+  .pill{display:inline-block;background:rgba(232,196,118,.14);color:var(--gold);border:1px solid rgba(232,196,118,.3);font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .tab{padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-weight:600;font-size:13.5px}
+  .tab.on{background:rgba(232,196,118,.14);color:var(--gold);border-color:rgba(232,196,118,.35)}
+  .panel{display:none} .panel.on{display:block}
+  .stat{display:flex;flex-direction:column;gap:2px}
+  .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .lead{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+  .lead .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  #msg{margin-top:12px;font-size:13.5px;display:none}
+  #login{max-width:400px;margin:9vh auto 0;padding:0 18px}
+  .center{text-align:center}
+  @media(max-width:640px){.row,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="center" style="margin-bottom:8px"><div class="logo" style="margin:0 auto 12px">FD</div>
+    <div class="fd" style="font-size:24px;font-weight:700">My Business Dashboard</div>
+    <div class="muted" style="margin-top:6px">Sign in to see your leads, manage Ava, and request changes.</div>
+  </div>
+  <div class="card">
+    <label>Site ID</label><input id="li_slug" placeholder="your-site-id">
+    <label>Password</label><input id="li_pw" type="password" placeholder="••••••••">
+    <button class="btn gold" id="li_go" style="width:100%;margin-top:16px">Sign in</button>
+    <div id="li_msg" class="muted" style="margin-top:10px;display:none"></div>
+    <div class="muted" style="margin-top:14px">Don't have a password? Ask your website provider to enable your dashboard.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+<header>
+  <div class="brand"><div class="logo">FD</div><div><div class="fd" style="font-weight:700;font-size:17px" id="hdrName">My Business</div><div class="muted" style="font-size:11px">FrontDesk Agents</div></div></div>
+  <button class="btn ghost" id="logout">Sign out</button>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab on" data-p="overview">Overview</button>
+    <button class="tab" data-p="menu">Menu &amp; prices</button>
+    <button class="tab" data-p="promos">Promotions &amp; events</button>
+    <button class="tab" data-p="social">Social media</button>
+    <button class="tab" data-p="leads">Leads &amp; bookings</button>
+    <button class="tab" data-p="ava">Ava receptionist</button>
+    <button class="tab" data-p="request">Request a change</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="panel on" id="p_overview">
+    <div class="card">
+      <div class="grid3">
+        <div class="stat"><span class="muted">Website visits</span><b id="stViews">—</b></div>
+        <div class="stat"><span class="muted">Leads captured</span><b id="stLeads">—</b></div>
+        <div class="stat"><span class="muted">Ava phone line</span><b id="stPhone" style="font-size:18px">—</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:6px">Your website</div>
+      <div class="muted" style="margin-bottom:4px"><span id="stStatusDot" class="status-dot"></span><span id="stStatus">—</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <a class="btn gold" id="viewSite" target="_blank" href="#">View my website →</a>
+        <button class="btn ghost" id="copyUrl">Copy link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div class="panel" id="p_menu">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div><div class="fd" id="menuHead" style="font-size:18px;font-weight:700">Menu &amp; prices</div>
+        <div class="muted" id="menuHint">Add your items and prices. They appear on your website instantly — no need to ask us.</div></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Section heading</label><input id="mn_title" placeholder="Menu & Prices"></div>
+        <div><label>Small label above it</label><input id="mn_kicker" placeholder="Menu"></div>
+      </div>
+      <div id="menuRows" style="margin-top:14px"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn ghost" id="addItem">+ Add item</button>
+        <button class="btn gold" id="saveMenu">Save &amp; publish menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMOS -->
+  <div class="panel" id="p_promos">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700">Promotions &amp; events</div>
+      <div class="muted">Announce specials and events with a photo, video, or audio clip. Shows on your website right away.</div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Section heading</label><input id="pr_title" placeholder="Promotions & Events"></div>
+        <div><label>Small label above it</label><input id="pr_kicker" placeholder="What's on"></div>
+      </div>
+      <div id="promoRows" style="margin-top:14px"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn ghost" id="addPromo">+ Add promotion / event</button>
+        <button class="btn gold" id="savePromos">Save &amp; publish</button>
+      </div>
+      <div class="muted" style="margin-top:10px">Tip: for long videos, paste a YouTube/Vimeo or hosted link instead of uploading — uploads are capped so your site stays fast.</div>
+    </div>
+  </div>
+
+  <!-- SOCIAL -->
+  <div class="panel" id="p_social">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700">Social media</div>
+      <div class="muted">No accounts yet? We'll set them up for you. Already have them? Add them and turn on autopilot so your promotions post automatically.</div>
+
+      <label style="display:flex;gap:8px;align-items:center;margin-top:14px;cursor:pointer"><input type="checkbox" id="so_needsetup" style="width:auto"> <span>I don't have social accounts — <b>set them up for me</b></span></label>
+      <div id="setupNote" class="muted" style="margin-top:6px;display:none"></div>
+
+      <div class="fd" style="font-size:15px;font-weight:700;margin-top:18px">Your accounts (paste your profile links)</div>
+      <div class="row" id="socialGrid" style="margin-top:8px"></div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="fd" style="font-size:15px;font-weight:700">✨ AI social starter kit</div>
+        <div class="muted">Generate a bio, hashtags, first posts, and a profile-image idea — so your accounts look great from day one.</div>
+        <button class="btn ghost" id="genKit" style="margin-top:10px">✨ Generate my kit</button>
+        <div id="kitOut" style="margin-top:12px"></div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="fd" style="font-size:15px;font-weight:700">🤖 Autopilot</div>
+        <div class="muted" id="autoNote">Auto-post your promotions to your connected accounts.</div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:10px;cursor:pointer"><input type="checkbox" id="so_autopilot" style="width:auto"> <span>Auto-post my promotions &amp; specials for me</span></label>
+      </div>
+
+      <div style="margin-top:16px"><button class="btn gold" id="saveSocial">Save social settings</button></div>
+    </div>
+  </div>
+
+  <!-- LEADS -->
+  <div class="panel" id="p_leads">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">Leads &amp; bookings</div>
+      <div class="muted" style="margin-bottom:12px">Everyone who contacted you through your website or Ava appears here.</div>
+      <div id="leadList"><div class="muted">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- AVA -->
+  <div class="panel" id="p_ava">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">Ava — your AI receptionist</div>
+      <div class="muted">Only the facts you enter are used. Ava never makes things up.</div>
+      <label>Greeting (first line)</label><input id="av_greeting" placeholder="Thanks for calling — this is Ava, how can I help?">
+      <label>Services &amp; prices</label><textarea id="av_services" rows="2" placeholder="Classic cut $30, Skin fade $35…"></textarea>
+      <div class="row">
+        <div><label>Hours</label><input id="av_hours" placeholder="Mon–Sat 9–7, Sun closed"></div>
+        <div><label>Address</label><input id="av_address" placeholder="123 Main St, Houston TX"></div>
+      </div>
+      <label>Pricing notes</label><input id="av_pricing" placeholder="Walk-ins welcome; cash & card">
+      <label>Booking link (Calendly / Google, optional)</label><input id="av_calendarUrl" placeholder="https://calendly.com/your-biz">
+      <label>Extra instructions</label><textarea id="av_instructions" rows="2" placeholder="Always mention the loyalty card…"></textarea>
+      <div class="row" style="margin-top:6px">
+        <div><label>Language</label><input id="av_language" placeholder="auto / English / Español"></div>
+        <div><label>Take bookings?</label><select id="av_booking"><option value="true">Yes — Ava books appointments</option><option value="false">No — take messages only</option></select></div>
+      </div>
+      <label>Notify email (new leads &amp; calls)</label><input id="av_notifyEmail" placeholder="you@business.com">
+      <div style="margin-top:16px"><button class="btn gold" id="saveAva">Save Ava</button></div>
+    </div>
+  </div>
+
+  <!-- REQUEST -->
+  <div class="panel" id="p_request">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">Request a change</div>
+      <div class="muted" style="margin-bottom:6px">Want new photos, text edits, a new page, or pricing updates? Tell us and we'll handle it.</div>
+      <label>What would you like changed?</label>
+      <textarea id="rq_msg" rows="5" placeholder="e.g. Please add our new summer hours and swap the hero photo."></textarea>
+      <div style="margin-top:14px"><button class="btn gold" id="sendReq">Send request</button></div>
+    </div>
+  </div>
+
+  <div id="msg"></div>
+</div>
+</div>
+
+<script>
+var el=function(id){return document.getElementById(id);};
+var SLUG="", PW="", SITEURL="", BIZNAME="", INDUSTRY="", CITY="";
+var qs=new URLSearchParams(location.search);
+
+// Each dashboard adapts to the client's industry: the "priced list" tab, its
+// wording, and default section titles all change to fit how that business
+// actually sells (menu / services / inventory / classes / products…).
+function industryProfile(t){
+  t=(t||"").toLowerCase();
+  if(/restaurant|food|cafe|coffee|bakery|bread|cake|pizza|taco|grill|\bbar\b|diner|deli|cater|kitchen|eatery|bbq|sushi|juice/.test(t))
+    return {list:"Menu & prices",item:"dish",title:"Menu",kicker:"Menu",sec:"Course / section (e.g. Starters)"};
+  if(/auto|car|dealer|vehicle|motors|dealership|used cars/.test(t))
+    return {list:"Inventory & pricing",item:"vehicle",title:"Our Inventory",kicker:"Inventory",sec:"Category (New / Used / Certified)"};
+  if(/repair|mechanic|plumb|electric|hvac|contractor|construction|handyman|roof|landscap|clean|pest|moving|paint|garage/.test(t))
+    return {list:"Services & rates",item:"service",title:"Services & Rates",kicker:"Services",sec:"Category (optional)"};
+  if(/law|legal|attorney|accountant|account|finance|consult|insurance|realtor|estate|tax|notary|agency|marketing|bookkeep/.test(t))
+    return {list:"Services & fees",item:"service",title:"Services & Fees",kicker:"Services",sec:"Practice area (optional)"};
+  if(/salon|barber|spa|beauty|nail|hair|lash|makeup|\bwax\b|tattoo|brow|esthet/.test(t))
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Menu",sec:"Category (e.g. Color, Cuts)"};
+  if(/gym|fitness|yoga|pilates|crossfit|train|martial|dance|studio|bootcamp/.test(t))
+    return {list:"Classes & plans",item:"class or plan",title:"Classes & Memberships",kicker:"Pricing",sec:"Type (Class / Membership)"};
+  if(/dental|dentist|medical|clinic|doctor|health|chiro|therap|\bvet\b|wellness|med spa|physio|optom/.test(t))
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Services",sec:"Category (optional)"};
+  if(/shop|store|retail|boutique|market|goods|product|florist|flower|jewel|furniture|bike|pet store/.test(t))
+    return {list:"Products & prices",item:"product",title:"Products",kicker:"Shop",sec:"Category (optional)"};
+  return {list:"Services & prices",item:"item",title:"Services & Prices",kicker:"Pricing",sec:"Category (optional)"};
+}
+var P=industryProfile("");
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function applyIndustry(){
+  var t=document.querySelector('.tab[data-p="menu"]'); if(t) t.textContent=P.list;
+  var h=el("menuHead"); if(h) h.textContent=P.list;
+  var hint=el("menuHint"); if(hint) hint.textContent="Add your "+P.item+"s and prices. They appear on your website instantly — no need to ask us.";
+  var add=el("addItem"); if(add) add.textContent="+ Add "+P.item;
+}
+
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";setTimeout(function(){m.style.display="none";},4000);}
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
+
+async function api(action,extra){
+  var r=await fetch("/api/site",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(Object.assign({action:action,slug:SLUG,password:PW},extra||{}))});
+  var j=await r.json().catch(function(){return{};});
+  return {ok:r.ok,j:j};
+}
+
+async function doLogin(){
+  SLUG=el("li_slug").value.trim().toLowerCase().replace(/[^a-z0-9-]/g,""); PW=el("li_pw").value;
+  var m=el("li_msg"); m.style.display="none";
+  if(!SLUG||!PW){m.style.display="block";m.style.color="#ff7a6e";m.textContent="Enter your site ID and password.";return;}
+  var res=await api("login");
+  if(!res.ok){m.style.display="block";m.style.color="#ff7a6e";m.textContent=(res.j&&res.j.error)||"Sign in failed.";return;}
+  try{sessionStorage.setItem("fda_biz",JSON.stringify({s:SLUG,p:PW}));}catch(e){}
+  el("login").style.display="none"; el("app").style.display="block";
+  el("hdrName").textContent=(res.j.site&&res.j.site.name)||SLUG;
+  loadAll();
+}
+
+async function loadAll(){
+  var res=await api("get");
+  if(!res.ok){msg((res.j&&res.j.error)||"Could not load your data.",false);return;}
+  var d=res.j;
+  // Overview
+  el("stViews").textContent=(d.stats&&d.stats.views)||0;
+  el("stLeads").textContent=(d.stats&&d.stats.leads)||0;
+  el("stPhone").textContent=(d.ava&&d.ava.phone)?d.ava.phone:"Chat only";
+  var st=(d.site&&d.site.status)||"active";
+  var live=st==="active";
+  el("stStatusDot").style.background=live?"#2fd47f":"#ff9f43";
+  el("stStatus").textContent=live?"Live and online":(st==="pending"?"Pending — goes live once payment clears":"Paused — pending payment");
+  el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
+  BIZNAME=(d.site&&d.site.name)||SLUG; INDUSTRY=(d.site&&d.site.industry)||""; CITY=(d.site&&d.site.city)||"";
+  P=industryProfile(INDUSTRY); applyIndustry();
+  var url=(d.site&&d.site.url)||("/s/"+SLUG);
+  SITEURL=/^https?:\/\//.test(url)?url:(location.origin.replace(/\/$/,"")+url);
+  el("viewSite").href=url; el("copyUrl").dataset.url=url;
+  // Ava
+  var a=d.ava||{};
+  ["greeting","services","hours","address","pricing","calendarUrl","instructions","language","notifyEmail"].forEach(function(f){ if(el("av_"+f)) el("av_"+f).value=a[f]||""; });
+  el("av_booking").value=(a.booking===false)?"false":"true";
+  // Leads
+  renderLeads(d.leads||[]);
+  // Live website content (menu + promotions/events)
+  renderContentEditors(d.content||{});
+  // Social media setup + autopilot
+  renderSocial(d.social||{});
+}
+
+function renderLeads(leads){
+  if(!leads.length){el("leadList").innerHTML='<div class="muted">No leads yet. When someone fills out your contact form or chats with Ava, they show up here.</div>';return;}
+  el("leadList").innerHTML=leads.map(function(l){
+    return '<div class="lead"><div class="top"><b>'+esc(l.name||"Someone")+'</b><span class="pill">'+esc(l.type||"Lead")+'</span></div>'+
+      '<div class="muted" style="margin-top:4px">'+esc(l.contact||"")+(l.city?" · "+esc(l.city):"")+'</div>'+
+      (l.notes?'<div style="margin-top:8px">'+esc(l.notes)+'</div>':"")+
+      '<div class="muted" style="margin-top:8px;font-size:11px">'+(l.at?new Date(l.at).toLocaleString():"")+'</div></div>';
+  }).join("");
+}
+
+async function saveAva(){
+  var ava={booking:el("av_booking").value!=="false"};
+  ["greeting","services","hours","address","pricing","calendarUrl","instructions","language","notifyEmail"].forEach(function(f){ ava[f]=el("av_"+f).value.trim(); });
+  var res=await api("save",{ava:ava});
+  msg(res.ok?"✓ Ava saved":((res.j&&res.j.error)||"Save failed"),res.ok);
+}
+
+async function sendReq(){
+  var t=el("rq_msg").value.trim(); if(!t){msg("Type your request first.",false);return;}
+  var res=await api("request",{message:t});
+  if(res.ok){el("rq_msg").value="";msg("✓ Request sent — we'll get on it.",true);}
+  else msg((res.j&&res.j.error)||"Could not send.",false);
+}
+
+/* ---- Menu & Promotions editors (live website content) ---- */
+var inpS="background:var(--ink2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;width:100%";
+function fieldGet(rowEl,name){var e=rowEl.querySelector('[data-f="'+name+'"]');return e?e.value.trim():"";}
+
+function menuRow(it){
+  it=it||{};
+  var d=document.createElement("div");
+  d.className="lead"; d.dataset.item="1";
+  d.innerHTML='<div class="row"><input data-f="name" placeholder="'+cap(P.item)+' name" style="'+inpS+'"><input data-f="price" placeholder="Price (e.g. $12)" style="'+inpS+'"></div>'+
+    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="'+P.sec+'" style="'+inpS+'"><input data-f="desc" placeholder="Short description (optional)" style="'+inpS+'"></div>'+
+    '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+  d.querySelector('[data-f="name"]').value=it.name||"";
+  d.querySelector('[data-f="price"]').value=it.price||"";
+  d.querySelector('[data-f="category"]').value=it.category||"";
+  d.querySelector('[data-f="desc"]').value=it.desc||"";
+  d.querySelector("[data-rm]").onclick=function(){d.remove();};
+  return d;
+}
+function promoRow(p){
+  p=p||{}; var media=p.media||{};
+  var d=document.createElement("div");
+  d.className="lead"; d.dataset.promo="1";
+  d.innerHTML='<input data-f="title" placeholder="Title (e.g. Summer 20% off)" style="'+inpS+'">'+
+    '<textarea data-f="body" rows="2" placeholder="Details" style="'+inpS+';margin-top:8px"></textarea>'+
+    '<div class="row" style="margin-top:8px"><input data-f="starts" placeholder="Starts (e.g. Fri Jul 4 — optional)" style="'+inpS+'"><input data-f="ends" placeholder="Ends (optional)" style="'+inpS+'"></div>'+
+    '<div class="row" style="margin-top:8px"><select data-f="mtype" style="'+inpS+'"><option value="image">Photo</option><option value="video">Video</option><option value="audio">Audio</option></select>'+
+    '<input data-f="url" placeholder="Paste a link (YouTube, image URL…)" style="'+inpS+'"></div>'+
+    '<div style="margin-top:8px"><label style="margin:0 0 5px">…or upload a file</label><input type="file" data-file accept="image/*,video/*,audio/*" style="'+inpS+'"></div>'+
+    '<div data-prev class="muted" style="margin-top:6px"></div>'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px"><button class="btn ghost" data-share style="padding:6px 12px;font-size:12px">📣 Share to socials</button><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+  d.querySelector('[data-f="title"]').value=p.title||"";
+  d.querySelector('[data-f="body"]').value=p.body||"";
+  d.querySelector('[data-f="starts"]').value=p.starts||"";
+  d.querySelector('[data-f="ends"]').value=p.ends||"";
+  d.querySelector('[data-f="mtype"]').value=media.type||"image";
+  d.querySelector('[data-f="url"]').value=(media.url&&media.url.indexOf("data:")!==0)?media.url:"";
+  var prev=d.querySelector("[data-prev]");
+  if(media.url&&media.url.indexOf("data:")===0){prev.textContent="✓ Uploaded file attached.";d.dataset.dataurl=media.url;}
+  d.querySelector("[data-file]").onchange=function(){
+    var f=this.files&&this.files[0]; if(!f)return;
+    if(f.size>1500000){prev.style.color="#ff7a6e";prev.textContent="File too big (max ~1.4MB). Paste a hosted link instead for large videos.";this.value="";return;}
+    var rd=new FileReader();
+    rd.onload=function(){d.dataset.dataurl=rd.result;prev.style.color="";prev.textContent="✓ "+f.name+" attached.";
+      d.querySelector('[data-f="mtype"]').value=/^video/.test(f.type)?"video":(/^audio/.test(f.type)?"audio":"image");
+      d.querySelector('[data-f="url"]').value="";};
+    rd.readAsDataURL(f);
+  };
+  d.querySelector("[data-rm]").onclick=function(){d.remove();};
+  d.querySelector("[data-share]").onclick=function(){
+    var title=fieldGet(d,"title"), body=fieldGet(d,"body");
+    if(!title&&!body){msg("Add a title or details first.",false);return;}
+    sharePromo(title, body);
+  };
+  return d;
+}
+// Let the business owner broadcast a promo to THEIR OWN social accounts.
+function sharePromo(title, body){
+  var text=[title,body].filter(Boolean).join(" — ");
+  var url=SITEURL||location.origin;
+  var full=text+" "+url;
+  if(navigator.share){ navigator.share({title:title||"Promotion",text:text,url:url}).catch(function(){}); return; }
+  // Fallback chooser: open common networks prefilled.
+  var enc=encodeURIComponent(full), u=encodeURIComponent(url), t=encodeURIComponent(text);
+  var pick=prompt("Share to: type F=Facebook, X=Twitter/X, W=WhatsApp, T=Telegram (or Cancel to copy)","F");
+  if(pick==null){ if(navigator.clipboard)navigator.clipboard.writeText(full); msg("✓ Copied — paste into any post",true); return; }
+  pick=pick.trim().toUpperCase();
+  var link = pick==="X"?("https://twitter.com/intent/tweet?text="+enc)
+    : pick==="W"?("https://api.whatsapp.com/send?text="+enc)
+    : pick==="T"?("https://t.me/share/url?url="+u+"&text="+t)
+    : ("https://www.facebook.com/sharer/sharer.php?u="+u+"&quote="+t);
+  window.open(link,"_blank");
+}
+function collectContent(){
+  var menu=[].map.call(document.querySelectorAll('#menuRows [data-item]'),function(r){
+    return {name:fieldGet(r,"name"),price:fieldGet(r,"price"),category:fieldGet(r,"category"),desc:fieldGet(r,"desc")};
+  }).filter(function(i){return i.name||i.price;});
+  var promos=[].map.call(document.querySelectorAll('#promoRows [data-promo]'),function(r){
+    var o={title:fieldGet(r,"title"),body:fieldGet(r,"body"),starts:fieldGet(r,"starts"),ends:fieldGet(r,"ends")};
+    var url=r.dataset.dataurl||fieldGet(r,"url");
+    if(url) o.media={type:fieldGet(r,"mtype")||"image",url:url};
+    return o;
+  }).filter(function(p){return p.title||p.body||(p.media&&p.media.url);});
+  return {menu:menu,promos:promos,
+    menuTitle:el("mn_title").value.trim(),menuKicker:el("mn_kicker").value.trim(),
+    promoTitle:el("pr_title").value.trim(),promoKicker:el("pr_kicker").value.trim()};
+}
+function renderContentEditors(c){
+  c=c||{};
+  el("mn_title").value=c.menuTitle||P.title; el("mn_kicker").value=c.menuKicker||P.kicker;
+  el("pr_title").value=c.promoTitle||"Promotions & Events"; el("pr_kicker").value=c.promoKicker||"What's on";
+  var mr=el("menuRows"); mr.innerHTML="";
+  (c.menu&&c.menu.length?c.menu:[{}]).forEach(function(i){mr.appendChild(menuRow(i));});
+  var pr=el("promoRows"); pr.innerHTML="";
+  (c.promos&&c.promos.length?c.promos:[{}]).forEach(function(p){pr.appendChild(promoRow(p));});
+}
+async function saveContent(okMsg){
+  var content=collectContent();
+  var res=await api("save-content",{content:content});
+  msg(res.ok?(okMsg||"✓ Saved & published"):((res.j&&res.j.error)||"Save failed"),res.ok);
+}
+
+/* ---- Social media setup + autopilot ---- */
+var SOCIAL_PLATFORMS=[["facebook","Facebook"],["instagram","Instagram"],["tiktok","TikTok"],["youtube","YouTube"],["x","X (Twitter)"],["linkedin","LinkedIn"],["threads","Threads"],["pinterest","Pinterest"],["whatsapp","WhatsApp"],["telegram","Telegram"],["google","Google Business"],["yelp","Yelp"]];
+var KIT=null;
+function buildSocialGrid(){
+  el("socialGrid").innerHTML=SOCIAL_PLATFORMS.map(function(p){
+    return '<div><label>'+p[1]+'</label><input id="so_'+p[0]+'" placeholder="https://..." style="'+inpS+'"></div>';
+  }).join("");
+}
+function renderSocial(s){
+  s=s||{}; buildSocialGrid();
+  var h=s.handles||{}; SOCIAL_PLATFORMS.forEach(function(p){ if(h[p[0]]&&el("so_"+p[0])) el("so_"+p[0]).value=h[p[0]]; });
+  el("so_needsetup").checked=!!s.needsSetup;
+  el("so_autopilot").checked=!!s.autopilot;
+  el("setupNote").style.display=s.needsSetup?"block":"none";
+  el("setupNote").textContent=s.setupStatus==="done"?"✓ Setup complete.":(s.needsSetup?"Requested — we'll create your accounts and email you the logins.":"");
+  el("autoNote").textContent=s.connected?"✓ Connected — your promotions can post automatically.":"Auto-post your promotions once we connect your accounts to posting (ask us to enable).";
+  KIT=s.kit||null; renderKit();
+}
+function renderKit(){
+  if(!KIT){el("kitOut").innerHTML="";return;}
+  var posts=(KIT.posts||[]).map(function(p,i){return '<div class="lead" style="margin-top:8px"><div style="font-size:14px">'+esc(p)+'</div><button class="btn ghost" data-ckit="'+i+'" style="padding:5px 10px;font-size:12px;margin-top:6px">Copy</button></div>';}).join("");
+  var imgs="";
+  if(KIT.profileImage||KIT.coverImage){
+    imgs='<div class="row" style="margin-top:10px">'+
+      (KIT.profileImage?'<div><div class="muted">Profile picture</div><img src="'+esc(KIT.profileImage)+'" style="width:120px;height:120px;object-fit:cover;border-radius:50%;border:1px solid var(--line);margin-top:6px"><div><a href="'+esc(KIT.profileImage)+'" download="profile.png" class="btn ghost" style="padding:5px 10px;font-size:12px;margin-top:6px">Download</a></div></div>':'')+
+      (KIT.coverImage?'<div><div class="muted">Cover banner</div><img src="'+esc(KIT.coverImage)+'" style="width:100%;max-width:320px;border-radius:10px;border:1px solid var(--line);margin-top:6px"><div><a href="'+esc(KIT.coverImage)+'" download="cover.png" class="btn ghost" style="padding:5px 10px;font-size:12px;margin-top:6px">Download</a></div></div>':'')+
+    '</div>';
+  }
+  el("kitOut").innerHTML='<div class="lead"><div class="muted">Bio</div><div>'+esc(KIT.bio||"")+'</div></div>'+
+    '<div class="lead" style="margin-top:8px"><div class="muted">Hashtags</div><div>'+esc(KIT.hashtags||"")+'</div></div>'+
+    (KIT.profileIdea?'<div class="lead" style="margin-top:8px"><div class="muted">Profile image idea</div><div>'+esc(KIT.profileIdea)+'</div></div>':'')+
+    imgs+
+    '<div style="margin-top:10px"><button class="btn ghost" id="genImgs">🎨 Generate profile + cover images</button></div>'+
+    '<div class="muted" style="margin-top:10px">Starter posts:</div>'+posts;
+  el("kitOut").querySelectorAll("[data-ckit]").forEach(function(b){b.onclick=function(){var t=(KIT.posts||[])[+b.dataset.ckit]||"";navigator.clipboard&&navigator.clipboard.writeText(t+" "+SITEURL);msg("✓ Post copied",true);};});
+  var gi=el("genImgs"); if(gi) gi.onclick=generateKitImages;
+}
+async function generateKitImages(){
+  var b=el("genImgs"); b.disabled=true; var old=b.textContent; b.textContent="Creating images…";
+  var idea=KIT.profileIdea||("a clean, modern brand image for "+BIZNAME+", a "+(INDUSTRY||"local business"));
+  try{
+    var pr=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:"Social media profile picture / logo: "+idea+". Centered, bold, minimal, works as a small circular avatar.",size:"1024x1024"})});
+    var pj=await pr.json(); if(pr.ok&&pj.url) KIT.profileImage=pj.url; else if(!pr.ok){msg(pj.error||"Image engine not configured.",false);}
+    var cr=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:"Social media cover banner for "+BIZNAME+", a "+(INDUSTRY||"local business")+(CITY?" in "+CITY:"")+". Wide, cinematic, on-brand, leave space for text.",size:"1536x512"})});
+    var cj=await cr.json(); if(cr.ok&&cj.url) KIT.coverImage=cj.url;
+    renderKit();
+    if(KIT.profileImage||KIT.coverImage) msg("✓ Images ready — Save to keep them",true);
+  }catch(e){msg("Network error generating images",false);}
+  b=el("genImgs"); if(b){b.disabled=false;b.textContent=old;}
+}
+async function generateKit(){
+  el("genKit").disabled=true; var old=el("genKit").textContent; el("genKit").textContent="Generating…";
+  var prompt='You are a social media expert. Create a social media starter kit for "'+BIZNAME+'", a '+(INDUSTRY||"local business")+(CITY?" in "+CITY:"")+'. Return ONLY valid JSON: {"bio":"under 150 chars","hashtags":"8-12 relevant hashtags space separated","posts":["5 short ready-to-post captions, upbeat, no markdown"],"profileIdea":"one sentence describing an ideal profile/logo image"}.';
+  try{
+    var r=await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:prompt,maxTokens:900})});
+    var j=await r.json();
+    if(!r.ok){msg((j&&j.error)||"Could not generate right now.",false);el("genKit").disabled=false;el("genKit").textContent=old;return;}
+    var m=(j.text||"").match(/\{[\s\S]*\}/);
+    if(m){ try{ KIT=JSON.parse(m[0]); }catch(e){ KIT=null; } }
+    if(KIT){ renderKit(); msg("✓ Kit ready — review & Save to keep it",true); }
+    else msg("Couldn't parse the kit — try again.",false);
+  }catch(e){msg("Network error",false);}
+  el("genKit").disabled=false; el("genKit").textContent=old;
+}
+async function saveSocial(){
+  var handles={}; SOCIAL_PLATFORMS.forEach(function(p){var v=el("so_"+p[0]).value.trim(); if(v) handles[p[0]]=v;});
+  var payload={handles:handles,needsSetup:el("so_needsetup").checked,autopilot:el("so_autopilot").checked};
+  if(KIT) payload.kit=KIT;
+  var res=await api("social-save",{social:payload});
+  if(res.ok){ renderSocial(res.j.social); msg("✓ Social settings saved",true); }
+  else msg((res.j&&res.j.error)||"Save failed",false);
+}
+
+// Tabs
+document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
+  document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
+  document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("on");});
+  t.classList.add("on"); el("p_"+t.dataset.p).classList.add("on");
+};});
+
+el("li_go").onclick=doLogin;
+el("li_pw").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
+el("logout").onclick=function(){try{sessionStorage.removeItem("fda_biz");}catch(e){} location.reload();};
+el("saveAva").onclick=saveAva;
+el("sendReq").onclick=sendReq;
+el("addItem").onclick=function(){el("menuRows").appendChild(menuRow({}));};
+el("saveMenu").onclick=function(){saveContent("✓ Menu saved & live on your site");};
+el("addPromo").onclick=function(){el("promoRows").appendChild(promoRow({}));};
+el("savePromos").onclick=function(){saveContent("✓ Promotions saved & live on your site");};
+el("genKit").onclick=generateKit;
+el("saveSocial").onclick=saveSocial;
+el("so_needsetup").onchange=function(){el("setupNote").style.display=this.checked?"block":"none";el("setupNote").textContent=this.checked?"We'll create your accounts and email you the logins after you Save.":"";};
+el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};
+
+// Prefill slug from ?slug= (generated-site footer link) and resume a session.
+if(qs.get("slug")) el("li_slug").value=qs.get("slug");
+try{var saved=JSON.parse(sessionStorage.getItem("fda_biz")||"null");
+  if(saved&&saved.s&&saved.p){SLUG=saved.s;PW=saved.p;
+    el("login").style.display="none";el("app").style.display="block";loadAll();
+  }
+}catch(e){}
+</script>
+</body>
+</html>

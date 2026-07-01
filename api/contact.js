@@ -11,6 +11,7 @@ const MAX_ENTRIES = 500;        // keep the list bounded
 const MAX_LEN = 2000;           // per-field cap
 
 function clean(v) { return String(v == null ? "" : v).slice(0, MAX_LEN); }
+function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
 
 async function upstash(path, opts) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -53,14 +54,23 @@ export default async function handler(req, res) {
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
 
-  if (!clean(body.name).trim() || !clean(body.type).trim() || !clean(body.contact).trim()) {
+  // Leads from a generated client site carry a bizSlug (and use `message` for the
+  // note, with no lead type). Everything else is the frontdeskagents.com intake.
+  const bizSlug = cleanSlug(body.bizSlug);
+  const type = clean(body.type).trim() || (bizSlug ? "Website lead" : "");
+  const notes = clean(body.notes).trim() || clean(body.message).trim();
+
+  if (!clean(body.name).trim() || !type || !clean(body.contact).trim()) {
     return res.status(400).json({ error: "name, type and contact are required." });
   }
 
+  const ref = String(body.ref || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
   const entry = {
     id: Date.now(),
-    name: clean(body.name), type: clean(body.type), contact: clean(body.contact),
-    city: clean(body.city), url: clean(body.url), notes: clean(body.notes),
+    name: clean(body.name), type, contact: clean(body.contact),
+    city: clean(body.city), url: clean(body.url), notes,
+    bizSlug: bizSlug || undefined,
+    ref: ref || undefined,
     at: new Date().toISOString(),
   };
 
@@ -79,6 +89,22 @@ export default async function handler(req, res) {
       method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(list),
     });
     if (!w || !w.ok) throw new Error("write failed");
+
+    // If this lead came from a hosted client site, also file it under that site's
+    // own list so the business owner sees it in their client dashboard.
+    if (bizSlug) {
+      try {
+        const LKEY = "fda:leads:" + bizSlug;
+        let leads = [];
+        const lr = await upstash("/get/" + encodeURIComponent(LKEY), {});
+        if (lr) { const lj = await lr.json(); if (lj && lj.result) { try { const v = JSON.parse(lj.result); if (Array.isArray(v)) leads = v; } catch {} } }
+        leads.push(entry);
+        if (leads.length > MAX_ENTRIES) leads = leads.slice(-MAX_ENTRIES);
+        await upstash("/set/" + encodeURIComponent(LKEY), {
+          method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(leads),
+        });
+      } catch (_) {}
+    }
 
     // Ping the owner on Telegram so new leads are seen instantly (best-effort).
     tgNotifyOwner(

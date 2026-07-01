@@ -91,11 +91,16 @@ export default async function handler(req, res) {
       }
 
       const name = String(body.name || "Website").slice(0, 120);
-      const html = body.html;
+      let html = body.html;
       if (!html || typeof html !== "string") return res.status(400).json({ error: "Missing site html." });
       if (html.length > 4_000_000) return res.status(413).json({ error: "Site is too large to publish (try fewer/smaller uploaded photos)." });
 
       const slug = body.slug ? slugify(body.slug) : (slugify(name) + "-" + rand4());
+      // Bind the slug into the built HTML: the contact form tags each lead with
+      // bizSlug (so it files under fda:leads:<slug>) and the footer "Owner login"
+      // link points at /business.html?slug=<slug>. Both use the __SITE_SLUG__
+      // placeholder, which is only resolvable here once the slug is known.
+      html = html.split("__SITE_SLUG__").join(slug);
       const now = new Date().toISOString();
       // status: "active" (live) | "pending" (built, awaiting down payment) |
       // "suspended" (offline for non-payment). Default active; the Stripe webhook

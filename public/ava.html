@@ -88,6 +88,17 @@
     </div>
     <div class="muted" style="margin-top:10px">Requires <b>BLAND_API_KEY</b> (and BLAND_WEBHOOK_SECRET) in your env.</div>
   </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">🔑 Client dashboard <span class="pill">hand-off</span></div>
+    <div class="muted">Set a password so this business can log in at <b>/business.html</b> to see their leads &amp; bookings, edit Ava, and request changes. Give them the site URL + this password after the sale.</div>
+    <div class="row" style="margin-top:8px">
+      <div><label>Client portal password</label><input id="portalPw" placeholder="e.g. eastwood-2026" autocomplete="off"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn gold" id="savePortal" style="width:100%">Save &amp; enable login</button></div>
+    </div>
+    <div id="portalStatus" class="muted" style="margin-top:8px">—</div>
+    <div id="portalReqs" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <script>
@@ -110,6 +121,7 @@ async function loadSites(){
 }
 async function loadCfg(slug){
   current=slug; FIELDS.forEach(function(f){el(f).value="";}); el("booking").value="true"; el("voiceStatus").textContent="—";
+  el("portalPw").value=""; el("portalStatus").textContent="—"; el("portalReqs").innerHTML="";
   if(!slug) return;
   try{
     var r=await fetch("/api/data?key="+encodeURIComponent("fda:ava:"+slug),{headers:H()});var j=await r.json();
@@ -118,6 +130,36 @@ async function loadCfg(slug){
     el("booking").value=(c.booking===false)?"false":"true";
     el("voiceStatus").textContent=c.phone?("📞 Live number: "+c.phone):"No phone number yet.";
   }catch(e){}
+  loadPortal(slug);
+}
+async function loadPortal(slug){
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+slug),{headers:H()});var j=await r.json();
+    var p=(j&&j.value)||{};
+    if(p.password){ el("portalPw").value=p.password; el("portalStatus").textContent="✓ Login enabled. Client logs in at /business.html with slug '"+slug+"'."; }
+    else{ el("portalStatus").textContent="No client login yet — set a password to enable it."; }
+    var reqs=Array.isArray(p.requests)?p.requests:[];
+    if(reqs.length){
+      el("portalReqs").innerHTML='<div class="muted" style="font-weight:700;margin-bottom:6px">Change requests from client:</div>'+reqs.slice(0,10).map(function(q){
+        return '<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:6px"><div style="font-size:11px;color:var(--muted)">'+new Date(q.at).toLocaleString()+'</div>'+String(q.message||"").replace(/</g,"&lt;")+'</div>';
+      }).join("");
+    }
+  }catch(e){}
+}
+async function savePortal(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  var pw=el("portalPw").value.trim();
+  if(pw.length<4){msg("Password must be at least 4 characters.",false);return;}
+  try{
+    // Merge into the existing record so we never wipe pending change requests.
+    var g=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+current),{headers:H()});var gj=await g.json();
+    var rec=(gj&&gj.value&&typeof gj.value==="object")?gj.value:{};
+    rec.password=pw; if(!rec.createdAt) rec.createdAt=new Date().toISOString();
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:portal:"+current),{method:"POST",headers:H(),body:JSON.stringify(rec)});
+    if(!r.ok){var ej=await r.json();msg(ej.error||"Save failed",false);return;}
+    msg("✓ Client login enabled for "+current,true);
+    el("portalStatus").textContent="✓ Login enabled. Client logs in at /business.html with slug '"+current+"'.";
+  }catch(e){msg("Network error",false);}
 }
 async function save(){
   if(!current){msg("Pick a client site first.",false);return;}
@@ -141,6 +183,7 @@ async function voice(action,extra){
 
 el("site").onchange=function(){loadCfg(this.value);};
 el("save").onclick=save;
+el("savePortal").onclick=savePortal;
 el("test").onclick=function(){ if(current) window.open("/s/"+current,"_blank"); else window.open("/","_blank"); };
 el("provision").onclick=async function(){ msg("Getting a number…",true); var j=await voice("provision",{areaCode:el("areaCode").value.trim()}); if(j&&j.phone){el("voiceStatus").textContent="📞 Live number: "+j.phone;msg("✓ Number provisioned: "+j.phone,true);} };
 el("call").onclick=async function(){ var to=el("callTo").value.trim(); if(!to){msg("Enter a number to call.",false);return;} msg("Calling…",true); var j=await voice("call",{to:to}); if(j&&j.ok)msg("✓ Ava is calling "+to,true); };

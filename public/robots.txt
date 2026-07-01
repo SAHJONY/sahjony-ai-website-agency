@@ -1,6 +1,7 @@
 # frontdeskagents.com — public marketing pages are crawlable; owner tools are not.
 User-agent: *
 Allow: /
+Disallow: /builder.html
 Disallow: /dashboard.html
 Disallow: /playbook.html
 Disallow: /scripts.html

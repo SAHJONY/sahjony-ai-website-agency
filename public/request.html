@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Request your website — FrontDesk Agents</title>
+<meta name="description" content="Tell us about your business and we'll design your website + AI receptionist for you — live in days.">
+<meta name="theme-color" content="#04080f">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  .wrap{max-width:640px;margin:0 auto;padding:44px 20px 90px}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800;margin:0 auto 16px}
+  h1{font-family:'Fraunces',serif;font-size:34px;font-weight:700;text-align:center;letter-spacing:-.02em}
+  .sub{color:var(--muted);text-align:center;margin:10px 0 4px;font-size:15.5px;line-height:1.6}
+  .perks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0}
+  .perk{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:12px;padding:13px;text-align:center;font-size:12.5px;color:var(--muted)}
+  .perk b{display:block;color:var(--gold);font-size:15px;margin-bottom:2px}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  input,textarea,select{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:15px 18px;font-size:15px;width:100%;margin-top:18px;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .card{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:16px;backdrop-filter:blur(14px)}
+  #msg{margin-top:14px;font-size:14px;display:none;text-align:center}
+  @media(max-width:560px){.row{grid-template-columns:1fr}.perks{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">FD</div>
+  <h1>Request your website</h1>
+  <p class="sub">Tell us about your business — we design and build your website (and set up your AI receptionist) <b>for you</b>, live in days. No tech skills, nothing to install.</p>
+
+  <div class="perks">
+    <div class="perk"><b>Done for you</b> we build it</div>
+    <div class="perk"><b>Days</b> not weeks</div>
+    <div class="perk"><b>Free</b> to request</div>
+  </div>
+
+  <div class="card" id="formCard">
+    <div class="row">
+      <div><label>Business name *</label><input id="name" placeholder="Eastwood Barber Co."></div>
+      <div><label>Type of business *</label><input id="type" placeholder="Barber shop, restaurant…"></div>
+    </div>
+    <div class="row">
+      <div><label>Phone or email *</label><input id="contact" placeholder="How we reach you"></div>
+      <div><label>City / area</label><input id="city" placeholder="Houston, TX"></div>
+    </div>
+    <label>Current website (if any)</label><input id="url" placeholder="https://… (leave blank if none)">
+    <label>Tell us what you need</label>
+    <textarea id="notes" rows="4" placeholder="Services, hours, style you like, whether you want an AI receptionist / phone line, social media help…"></textarea>
+    <button class="btn" id="go">Send my request →</button>
+    <div id="msg"></div>
+  </div>
+
+  <p class="sub" style="margin-top:20px"><a href="/pricing.html">See pricing →</a> &nbsp;·&nbsp; <a href="/">Home</a></p>
+</div>
+
+<script>
+var el=function(id){return document.getElementById(id);};
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";}
+el("go").onclick=async function(){
+  var name=el("name").value.trim(), type=el("type").value.trim(), contact=el("contact").value.trim();
+  if(!name||!type||!contact){msg("Please fill in your business name, type, and how to reach you.",false);return;}
+  var ref=""; try{ ref=new URLSearchParams(location.search).get("ref")||localStorage.getItem("fda_ref")||""; }catch(e){}
+  var entry={id:Date.now(),name:name,type:"Website build request — "+type,contact:contact,city:el("city").value.trim(),url:el("url").value.trim(),notes:el("notes").value.trim(),ref:ref||undefined,at:new Date().toISOString()};
+  el("go").disabled=true; el("go").textContent="Sending…";
+  try{
+    var r=await fetch("/api/contact",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(entry)});
+    if(!r.ok){var j=await r.json().catch(function(){return{};});msg(j.error||"Something went wrong — please try again.",false);el("go").disabled=false;el("go").textContent="Send my request →";return;}
+    el("formCard").innerHTML='<div style="text-align:center;padding:22px"><div style="font-size:42px">🎉</div><div class="fd" style="font-size:22px;font-weight:700;margin:10px 0">Request received!</div><div style="color:#9fb3c9;font-size:15px;line-height:1.6">Thanks '+name.replace(/[<>]/g,"")+' — we\'ll get to work on your website and reach out at <b>'+contact.replace(/[<>]/g,"")+'</b> shortly.</div></div>';
+  }catch(e){msg("Network error — please try again.",false);el("go").disabled=false;el("go").textContent="Send my request →";}
+};
+</script>
+</body>
+</html>

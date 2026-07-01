@@ -81,6 +81,11 @@
     <h2>3. AI Receptionist (“Ava”)</h2>
     <p id="avaClause">Every hosted website includes Ava, an AI receptionist that answers visitor questions using only the facts the Client provides, captures leads, and routes messages to the Client.</p>
 
+    <div id="socialClause" style="display:none">
+      <h2>3a. Social Autopilot (add-on)</h2>
+      <p>If selected, Provider will (a) assist the Client in setting up social media accounts and provide an AI-generated brand kit (bio, profile/cover imagery, and starter posts), and (b) publish the Client's promotions to the Client's connected accounts on an automated basis. The Client authorizes Provider to post on its behalf and remains responsible for the accuracy of content. Provider does not control third-party platforms and is not responsible for account approval, suspension, or platform rule changes; social platforms prohibit automated account creation, so any account setup is performed manually on the Client's behalf.</p>
+    </div>
+
     <h2>4. Fees &amp; payment</h2>
     <div class="kv">
       <div class="k">Package</div><div><input class="fld" id="f_pkg" style="width:80%"></div>
@@ -88,6 +93,7 @@
       <div class="k">Down payment due</div><div><input class="fld" id="f_down" style="min-width:120px"></div>
       <div class="k">Installments</div><div><input class="fld" id="f_install" style="width:70%" placeholder="e.g. 3 monthly payments of $X"></div>
       <div class="k">Hosting &amp; care plan</div><div><input class="fld" id="f_hosting" style="width:70%" placeholder="e.g. $49/month, includes hosting, Ava, updates"></div>
+      <div class="k" id="k_social" style="display:none">Social Autopilot add-on</div><div id="v_social" style="display:none"><input class="fld" id="f_social" style="width:70%" placeholder="e.g. $79/month + $99 setup"></div>
     </div>
     <p style="margin-top:10px">The website is published upon receipt of the down payment. Provider hosts the website as long as the hosting/care plan is current. If a payment is more than ten (10) days past due, Provider may temporarily pause (take offline) the website until the balance is paid; the site is automatically restored once payment is received. Fees are non-refundable once work has begun.</p>
 
@@ -179,6 +185,14 @@ el("f_dash").value=dashUrl;
 el("f_pkg").value=q("package","Website + AI Receptionist");
 el("f_price").value=q("price","");
 el("f_state").value=q("state","");
+
+// Social Autopilot add-on (shown when ?social= is present).
+var socialVal=q("social","");
+if(socialVal){
+  el("k_social").style.display=""; el("v_social").style.display="";
+  el("f_social").value=(/^\d/.test(socialVal)?"$":"")+socialVal;
+  el("socialClause").style.display="";
+}
 
 // Scope of work (what the site includes)
 var scope=[

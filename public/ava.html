@@ -98,8 +98,9 @@
     </div>
     <div id="portalStatus" class="muted" style="margin-top:8px">—</div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-      <div style="flex:1;min-width:160px"><label>Build price (for the contract)</label><input id="ctPrice" placeholder="$1,500"></div>
+      <div style="flex:1;min-width:150px"><label>Build price (for the contract)</label><input id="ctPrice" placeholder="$1,500"></div>
       <div><label>Ava tier</label><select id="ctAva"><option value="chat">Chat</option><option value="voice">Voice + chat</option><option value="none">None</option></select></div>
+      <div><label>Social Autopilot</label><input id="ctSocial" placeholder="$79/mo + $99" style="max-width:150px"></div>
       <button class="btn ghost" id="genContract">📄 Generate sale contract →</button>
     </div>
     <div id="portalReqs" style="margin-top:10px"></div>
@@ -238,6 +239,7 @@ el("genContract").onclick=function(){
   if(!current){msg("Pick a client site first.",false);return;}
   var s=SITES[current]||{};
   var p=new URLSearchParams({slug:current,biz:s.name||current,industry:s.bizType||"",ava:el("ctAva").value,price:el("ctPrice").value.trim()});
+  if(el("ctSocial").value.trim()) p.set("social",el("ctSocial").value.trim());
   window.open("/contract.html?"+p.toString(),"_blank");
 };
 el("test").onclick=function(){ if(current) window.open("/s/"+current,"_blank"); else window.open("/","_blank"); };

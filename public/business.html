@@ -445,11 +445,34 @@ function renderSocial(s){
 function renderKit(){
   if(!KIT){el("kitOut").innerHTML="";return;}
   var posts=(KIT.posts||[]).map(function(p,i){return '<div class="lead" style="margin-top:8px"><div style="font-size:14px">'+esc(p)+'</div><button class="btn ghost" data-ckit="'+i+'" style="padding:5px 10px;font-size:12px;margin-top:6px">Copy</button></div>';}).join("");
+  var imgs="";
+  if(KIT.profileImage||KIT.coverImage){
+    imgs='<div class="row" style="margin-top:10px">'+
+      (KIT.profileImage?'<div><div class="muted">Profile picture</div><img src="'+esc(KIT.profileImage)+'" style="width:120px;height:120px;object-fit:cover;border-radius:50%;border:1px solid var(--line);margin-top:6px"><div><a href="'+esc(KIT.profileImage)+'" download="profile.png" class="btn ghost" style="padding:5px 10px;font-size:12px;margin-top:6px">Download</a></div></div>':'')+
+      (KIT.coverImage?'<div><div class="muted">Cover banner</div><img src="'+esc(KIT.coverImage)+'" style="width:100%;max-width:320px;border-radius:10px;border:1px solid var(--line);margin-top:6px"><div><a href="'+esc(KIT.coverImage)+'" download="cover.png" class="btn ghost" style="padding:5px 10px;font-size:12px;margin-top:6px">Download</a></div></div>':'')+
+    '</div>';
+  }
   el("kitOut").innerHTML='<div class="lead"><div class="muted">Bio</div><div>'+esc(KIT.bio||"")+'</div></div>'+
     '<div class="lead" style="margin-top:8px"><div class="muted">Hashtags</div><div>'+esc(KIT.hashtags||"")+'</div></div>'+
     (KIT.profileIdea?'<div class="lead" style="margin-top:8px"><div class="muted">Profile image idea</div><div>'+esc(KIT.profileIdea)+'</div></div>':'')+
+    imgs+
+    '<div style="margin-top:10px"><button class="btn ghost" id="genImgs">🎨 Generate profile + cover images</button></div>'+
     '<div class="muted" style="margin-top:10px">Starter posts:</div>'+posts;
   el("kitOut").querySelectorAll("[data-ckit]").forEach(function(b){b.onclick=function(){var t=(KIT.posts||[])[+b.dataset.ckit]||"";navigator.clipboard&&navigator.clipboard.writeText(t+" "+SITEURL);msg("✓ Post copied",true);};});
+  var gi=el("genImgs"); if(gi) gi.onclick=generateKitImages;
+}
+async function generateKitImages(){
+  var b=el("genImgs"); b.disabled=true; var old=b.textContent; b.textContent="Creating images…";
+  var idea=KIT.profileIdea||("a clean, modern brand image for "+BIZNAME+", a "+(INDUSTRY||"local business"));
+  try{
+    var pr=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:"Social media profile picture / logo: "+idea+". Centered, bold, minimal, works as a small circular avatar.",size:"1024x1024"})});
+    var pj=await pr.json(); if(pr.ok&&pj.url) KIT.profileImage=pj.url; else if(!pr.ok){msg(pj.error||"Image engine not configured.",false);}
+    var cr=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:"Social media cover banner for "+BIZNAME+", a "+(INDUSTRY||"local business")+(CITY?" in "+CITY:"")+". Wide, cinematic, on-brand, leave space for text.",size:"1536x512"})});
+    var cj=await cr.json(); if(cr.ok&&cj.url) KIT.coverImage=cj.url;
+    renderKit();
+    if(KIT.profileImage||KIT.coverImage) msg("✓ Images ready — Save to keep them",true);
+  }catch(e){msg("Network error generating images",false);}
+  b=el("genImgs"); if(b){b.disabled=false;b.textContent=old;}
 }
 async function generateKit(){
   el("genKit").disabled=true; var old=el("genKit").textContent; el("genKit").textContent="Generating…";

@@ -185,11 +185,15 @@ async function handlePortal(req, res) {
     if (s.needsSetup && !rec.setupStatus) rec.setupStatus = "requested";
     if (typeof s.autopilot === "boolean") rec.autopilot = s.autopilot;
     if (s.kit && typeof s.kit === "object") {
+      // Only persist hosted (http/https) image URLs — skip huge data: URLs.
+      const httpUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u).slice(0, 2000) : "");
       rec.kit = {
         bio: String(s.kit.bio || "").slice(0, 600),
         hashtags: String(s.kit.hashtags || "").slice(0, 600),
         posts: (Array.isArray(s.kit.posts) ? s.kit.posts : []).slice(0, 12).map((p) => String(p || "").slice(0, 600)),
         profileIdea: String(s.kit.profileIdea || "").slice(0, 600),
+        profileImage: httpUrl(s.kit.profileImage),
+        coverImage: httpUrl(s.kit.coverImage),
         at: new Date().toISOString(),
       };
     }

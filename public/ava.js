@@ -6,6 +6,7 @@
   var s = document.currentScript || (function(){var a=document.getElementsByTagName("script");return a[a.length-1];})();
   var BIZ = (s && s.getAttribute("data-business")) || (window.AVA_BUSINESS) || (location.hostname.replace(/^www\./,"")) || "our business";
   var API = (s && s.getAttribute("data-api")) || (window.AVA_API) || "/api/generate";
+  var SLUG = (s && s.getAttribute("data-slug")) || (window.AVA_SLUG) || "";
   var GOLD = "#e8c476", TEAL = "#2dd4bf", INK = "#04080f", INK2 = "#0d1a2d", TEXT = "#e8eef7", MUT = "#9fb3c9";
 
   var css = ""
@@ -58,7 +59,7 @@
     input.value = ""; quick.innerHTML = ""; bubble("user", text); messages.push({ role: "user", content: text });
     busy = true; var typing = document.createElement("div"); typing.className = "ava-typing"; typing.textContent = "Ava is typing…"; log.appendChild(typing); log.scrollTop = log.scrollHeight;
     try {
-      var r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ava: true, business: BIZ, messages: messages }) });
+      var r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ava: true, business: BIZ, slug: SLUG, messages: messages }) });
       var j = await r.json(); typing.remove();
       var reply = (j && j.reply) || "Sorry, could you say that again?";
       bubble("assistant", reply); messages.push({ role: "assistant", content: reply });

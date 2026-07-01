@@ -196,20 +196,41 @@ export default async function handler(req, res) {
   // POST { ava:true, business?, messages:[{role,content}], lang? } -> { reply, engine }
   // Reuses the same engine rotation; multilingual; concise; captures intent.
   if (body && body.ava) {
-    const biz = String(body.business || "this business").slice(0, 120);
+    requestDeadline = Date.now() + REQUEST_BUDGET_MS;
+    const secrets = await loadSecrets();
+    const getKey = (name) => process.env[name] || secrets[name] || "";
+    // Per-client customization: load this site's Ava config (fda:ava:<slug>).
+    let cfg = {};
+    const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+    if (slug) {
+      try {
+        const u = process.env.UPSTASH_REDIS_REST_URL, t = process.env.UPSTASH_REDIS_REST_TOKEN;
+        if (u && t) {
+          const cr = await fetch(u.replace(/\/$/, "") + "/get/" + encodeURIComponent("fda:ava:" + slug), { headers: { Authorization: "Bearer " + t } });
+          const cj = await cr.json();
+          if (cj && cj.result) { try { cfg = JSON.parse(cj.result) || {}; } catch {} }
+        }
+      } catch (_) {}
+    }
+    const biz = String(body.business || cfg.business || "this business").slice(0, 120);
     const msgs = Array.isArray(body.messages) ? body.messages.slice(-12) : [];
     const convo = msgs.map((m) => (m && m.role === "assistant" ? "Ava" : "Customer") + ": " + String((m && m.content) || "").slice(0, 800)).join("\n");
+    const facts = [
+      cfg.services ? `Services: ${cfg.services}.` : "",
+      cfg.hours ? `Hours: ${cfg.hours}.` : "",
+      cfg.address ? `Location: ${cfg.address}.` : "",
+      cfg.pricing ? `Pricing: ${cfg.pricing}.` : "",
+      cfg.calendarUrl ? `To book, you may share this link: ${cfg.calendarUrl}.` : "",
+      cfg.instructions ? `Owner instructions: ${cfg.instructions}` : "",
+    ].filter(Boolean).join(" ");
     const sys =
       `You are Ava, the warm, professional AI receptionist for ${biz}. ` +
       `Reply in the SAME language the customer writes in — you speak 100+ languages. ` +
       `Keep replies to 1–3 short sentences. Be friendly and genuinely helpful. ` +
-      `Answer questions about services, hours, pricing, and location; offer to book an appointment or take a message. ` +
-      `When booking or taking a message, collect the customer's name and a phone or email and confirm it back. ` +
-      `Never invent specific facts you weren't given — instead offer to have the team follow up. Greet warmly on the first message.`;
+      (cfg.booking === false ? `Take messages and answer questions. ` : `Answer questions and offer to book an appointment or take a message; when booking, collect the customer's name and a phone or email and confirm it back. `) +
+      (facts ? `\nBusiness facts (use ONLY these, don't invent): ${facts}` : ` Answer questions about services, hours, pricing and location.`) +
+      ` Never invent specific facts you weren't given — offer to have the team follow up. Greet warmly on the first message.`;
     const avaPrompt = sys + "\n\nConversation so far:\n" + (convo || "Customer: (started the chat)") + "\nAva:";
-    requestDeadline = Date.now() + REQUEST_BUDGET_MS;
-    const secrets = await loadSecrets();
-    const getKey = (name) => process.env[name] || secrets[name] || "";
     for (const engine of [tryClaude, tryOpenAI, tryGemini, tryGrok, tryGLM, tryNvidia]) {
       try {
         const r = await engine(avaPrompt, 400, getKey);

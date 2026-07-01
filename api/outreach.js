@@ -1,7 +1,64 @@
-// POST /api/outreach  { channel:"email"|"sms", to, subject?, message }  — owner-only.
-// Sends outreach via Resend (email) or Twilio (SMS). Keys stay server-side.
-//   Email: RESEND_API_KEY (+ optional OUTREACH_FROM, default onboarding@resend.dev)
-//   SMS:   TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM
+// POST /api/outreach — owner outreach + AVA VOICE (Bland.ai). Folded into one
+// function to respect the 12-function cap.
+//
+//   Email/SMS (owner):   { channel:"email"|"sms", to, subject?, message }
+//   Voice provision:     { voice:true, action:"provision", slug, areaCode? }  -> buys a Bland number, wires inbound Ava
+//   Voice outbound call: { voice:true, action:"call", to, slug?, task? }      -> Ava calls someone
+//   Voice status:        { voice:true, action:"status", slug }                -> the client's number/config
+//   Inbound webhook:     POST /api/bland  (rewritten -> ?bland=1)             -> Bland posts call results here (public, secret-gated)
+//
+// Email: RESEND_API_KEY (+ OUTREACH_FROM).  SMS: TWILIO_*.  Voice: BLAND_API_KEY.
+
+const BLAND = (process.env.BLAND_BASE_URL || "https://api.bland.ai").replace(/\/$/, "");
+
+async function up(path, opts) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  return fetch(url.replace(/\/$/, "") + path, { ...opts, headers: { Authorization: "Bearer " + token, ...(opts && opts.headers) } });
+}
+async function getJSON(key, fb) { const r = await up("/get/" + encodeURIComponent(key), {}); if (!r) return fb; const j = await r.json(); if (j && j.result) { try { return JSON.parse(j.result); } catch { return fb; } } return fb; }
+async function setJSON(key, obj) { await up("/set/" + encodeURIComponent(key), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(obj) }); }
+
+async function bland(path, method, payload) {
+  const key = process.env.BLAND_API_KEY;
+  if (!key) return { ok: false, status: 500, j: { error: "BLAND_API_KEY not set" } };
+  const r = await fetch(BLAND + path, {
+    method, headers: { authorization: key, "content-type": "application/json" },
+    body: payload ? JSON.stringify(payload) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, j };
+}
+
+// Build Ava's voice task/prompt from a client's saved config.
+function avaTask(cfg, business) {
+  const c = cfg || {};
+  const lines = [
+    `You are Ava, the friendly, professional phone receptionist for ${business || c.business || "the business"}.`,
+    `Speak naturally and warmly. Detect and speak the caller's language.`,
+    c.services ? `Services: ${c.services}.` : "",
+    c.hours ? `Hours: ${c.hours}.` : "",
+    c.address ? `Location: ${c.address}.` : "",
+    c.pricing ? `Pricing notes: ${c.pricing}.` : "",
+    c.booking !== false ? `You can book appointments — collect the caller's name, phone, preferred day/time, and service, then confirm it back.` : "",
+    c.calendarUrl ? `If they prefer, share this booking link: ${c.calendarUrl}.` : "",
+    `Never invent facts you weren't given; offer to take a message and have the team follow up.`,
+    c.instructions ? `Extra instructions: ${c.instructions}` : "",
+  ].filter(Boolean);
+  return lines.join(" ");
+}
+
+async function notifyOwner(subject, text) {
+  try {
+    const rk = process.env.RESEND_API_KEY, to = process.env.NOTIFY_EMAIL || process.env.SALES_EMAIL;
+    if (rk && to) {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST", headers: { Authorization: "Bearer " + rk, "content-type": "application/json" },
+        body: JSON.stringify({ from: process.env.OUTREACH_FROM || "onboarding@resend.dev", to, subject, text }),
+      });
+    }
+  } catch (_) {}
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -10,12 +67,89 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
-  const admin = process.env.ADMIN_PASSWORD;
-  if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
-
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
+
+  // ---- Bland INBOUND webhook (public; gated by secret) — /api/bland ----
+  if (req.query && req.query.bland) {
+    const secret = process.env.BLAND_WEBHOOK_SECRET;
+    if (secret && req.query.token !== secret) return res.status(401).json({ ok: false });
+    try {
+      const summary = body.summary || body.concatenated_transcript || body.transcript || "(call completed)";
+      const from = body.from || body.caller || body.phone_number || "";
+      const slug = req.query.slug || (body.metadata && body.metadata.slug) || "";
+      // Append to the owner's contact inbox so calls show up alongside leads.
+      let inbox = await getJSON("fda:contact:inbox", []); if (!Array.isArray(inbox)) inbox = [];
+      inbox.push({ id: Date.now(), name: "📞 Call — " + (from || "unknown"), type: "Ava voice", contact: from, city: slug, notes: String(summary).slice(0, 1500), at: new Date().toISOString() });
+      if (inbox.length > 500) inbox = inbox.slice(-500);
+      await setJSON("fda:contact:inbox", inbox);
+      await notifyOwner("📞 New call handled by Ava" + (slug ? " (" + slug + ")" : ""), (from ? "From: " + from + "\n\n" : "") + String(summary).slice(0, 3000));
+    } catch (_) {}
+    return res.status(200).json({ received: true });
+  }
+
+  // ---- Everything below is owner-only ----
+  const admin = process.env.ADMIN_PASSWORD;
+  if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
+
+  // ---- AVA VOICE (Bland) ----
+  if (body.voice) {
+    if (!process.env.BLAND_API_KEY) return res.status(500).json({ error: "Set BLAND_API_KEY to enable Ava voice." });
+    const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+    const cfg = slug ? await getJSON("fda:ava:" + slug, {}) : {};
+    const business = body.business || cfg.business || slug || "the business";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+    const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+    const appUrl = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+    const inboundWebhook = appUrl + "/api/bland?token=" + encodeURIComponent(process.env.BLAND_WEBHOOK_SECRET || "") + (slug ? "&slug=" + slug : "");
+
+    if (body.action === "status") {
+      return res.status(200).json({ ok: true, slug, phone: cfg.phone || "", voice: cfg.voice || process.env.BLAND_AGENT_NAME || "Ava", configured: !!cfg.phone });
+    }
+
+    if (body.action === "provision") {
+      // Buy a phone number and wire it to Ava (inbound).
+      const buy = await bland("/v1/inbound/purchase", "POST", body.areaCode ? { area_code: String(body.areaCode) } : {});
+      if (!buy.ok) return res.status(buy.status || 502).json({ error: "Bland purchase failed", detail: buy.j });
+      const phone = buy.j.phone_number || buy.j.number || (buy.j.data && buy.j.data.phone_number) || "";
+      if (!phone) return res.status(502).json({ error: "Bland did not return a number", detail: buy.j });
+      // Configure the inbound number with Ava's task + our webhook.
+      await bland("/v1/inbound/" + encodeURIComponent(phone), "POST", {
+        prompt: avaTask(cfg, business),
+        first_sentence: cfg.greeting || `Thank you for calling ${business}, this is Ava — how can I help?`,
+        voice: cfg.voice || process.env.BLAND_AGENT_NAME || "Ava",
+        language: cfg.language || process.env.BLAND_DEFAULT_LANGUAGE || "babel",
+        webhook: inboundWebhook,
+        record: true,
+      });
+      const next = Object.assign({}, cfg, { business, phone, provisionedAt: new Date().toISOString() });
+      if (slug) await setJSON("fda:ava:" + slug, next);
+      await notifyOwner("📞 Ava got a phone number" + (slug ? " for " + slug : ""), "New Ava voice line: " + phone);
+      return res.status(200).json({ ok: true, phone, slug });
+    }
+
+    if (body.action === "call") {
+      const to = String(body.to || "").trim();
+      if (!to) return res.status(400).json({ error: "'to' phone number is required." });
+      const call = await bland("/v1/calls", "POST", {
+        phone_number: to,
+        from: cfg.phone || process.env.BLAND_OUTBOUND_NUMBER || undefined,
+        task: body.task || avaTask(cfg, business),
+        voice: cfg.voice || process.env.BLAND_AGENT_NAME || "Ava",
+        language: cfg.language || process.env.BLAND_DEFAULT_LANGUAGE || "babel",
+        first_sentence: body.firstSentence || undefined,
+        webhook: inboundWebhook,
+        record: true,
+      });
+      if (!call.ok) return res.status(call.status || 502).json({ error: "Bland call failed", detail: call.j });
+      return res.status(200).json({ ok: true, call_id: call.j.call_id || call.j.id || "", to });
+    }
+
+    return res.status(400).json({ error: "Unknown voice action. Use provision | call | status." });
+  }
+
+  // ---- Email / SMS outreach (existing behavior) ----
   const channel = body.channel === "sms" ? "sms" : "email";
   const to = String(body.to || "").trim();
   const message = String(body.message || "").trim();
@@ -37,7 +171,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, id: j.id });
     }
 
-    // SMS via Twilio
     const sid = process.env.TWILIO_ACCOUNT_SID, tok = process.env.TWILIO_AUTH_TOKEN, from = process.env.TWILIO_FROM;
     if (!sid || !tok || !from) return res.status(500).json({ error: "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM to send SMS." });
     const form = new URLSearchParams({ To: to, From: from, Body: message });

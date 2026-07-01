@@ -98,18 +98,30 @@ export default async function handler(req, res) {
   const manualLines = [];
   if (zelle) manualLines.push(`  – Zelle: ${zelle}`);
   if (cashapp) manualLines.push(`  – Cash App: ${cashapp}`);
-  const manualBlock = manualLines.length
-    ? `\n\nPrefer to pay directly? (no card needed — installments welcome, just ask)\n${manualLines.join("\n")}`
-    : "";
+
+  // PAYMENTS_PRIMARY controls which method leads. Default "manual" (Zelle + Cash
+  // App) — zero processor fees, ideal while the business is getting going. Set it
+  // to "stripe" later (when volume/profits justify card fees) to lead with cards.
+  const primaryPref = String(process.env.PAYMENTS_PRIMARY || "manual").toLowerCase();
+  const manualPrimary = primaryPref !== "stripe" && manualLines.length > 0;
 
   // Square hosted link (one-time): the down payment for a plan, else the build/monthly.
   const squareUrl = await squareLink(name, buildIsPlan && downPayment > 0 ? downPayment : (build > 0 ? build : monthly));
 
   const buildMessage = (stripeUrl) => {
     let m = `Hi ${name}! Here are your payment options:\n\n${opts.join("\n")}`;
-    if (stripeUrl) m += `\n\nPay securely by card, Cash App, or installments:\n${stripeUrl}`;
-    if (squareUrl) m += `\n\nOr pay via Square (card / Afterpay):\n${squareUrl}`;
-    m += manualBlock;
+    if (manualPrimary) {
+      // Lead with the no-fee direct methods.
+      m += `\n\n✅ Easiest way to pay — no fees (installments welcome, just ask):\n${manualLines.join("\n")}`;
+      const cardLines = [];
+      if (stripeUrl) cardLines.push(`  – Card / Cash App Pay / installments: ${stripeUrl}`);
+      if (squareUrl) cardLines.push(`  – Square (card / Afterpay): ${squareUrl}`);
+      if (cardLines.length) m += `\n\nPrefer a card? You can also pay online:\n${cardLines.join("\n")}`;
+    } else {
+      if (stripeUrl) m += `\n\nPay securely by card, Cash App, or installments:\n${stripeUrl}`;
+      if (squareUrl) m += `\n\nOr pay via Square (card / Afterpay):\n${squareUrl}`;
+      if (manualLines.length) m += `\n\nPrefer to pay directly? (no card needed — installments welcome, just ask)\n${manualLines.join("\n")}`;
+    }
     return m;
   };
 
@@ -118,7 +130,7 @@ export default async function handler(req, res) {
   // No Stripe? Still useful — return Square and/or manual (Zelle/Cash App) options.
   if (!sk) {
     if (squareUrl || manualLines.length) {
-      return res.status(200).json({ stripe: false, square: squareUrl || undefined, manual, installments, message: buildMessage("") });
+      return res.status(200).json({ stripe: false, square: squareUrl || undefined, manual, primary: manualPrimary ? "manual" : "square", installments, message: buildMessage("") });
     }
     return res.status(500).json({
       error: "No payment method configured. Set STRIPE_SECRET_KEY (cards, Cash App Pay, installments), SQUARE_ACCESS_TOKEN + SQUARE_LOCATION_ID (Square), and/or ZELLE_HANDLE + CASHAPP_CASHTAG (manual).",
@@ -204,6 +216,7 @@ export default async function handler(req, res) {
       stripe: true,
       square: squareUrl || undefined,
       manual,
+      primary: manualPrimary ? "manual" : "stripe",
       installments,
       isPlan: buildIsPlan,
       message: buildMessage(data.url),

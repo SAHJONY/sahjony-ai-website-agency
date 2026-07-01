@@ -222,11 +222,12 @@ async function paymentLink(name, build, monthly, installments, downPayment, slug
     const r = await fetch("/api/checkout",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({name,build,monthly,installments:installments||1,downPayment:downPayment||0,slug:slug||"",ref:ref||""})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Could not create payment options."); return; }
-    // The server returns a ready-to-send message listing every option:
-    // card / Cash App / installments (Stripe), Square, and manual Zelle + Cash App.
+    // The server returns a ready-to-send message. Zelle + Cash App lead by default
+    // (no fees); Stripe/Square are secondary until PAYMENTS_PRIMARY=stripe.
     const msg = j.message || j.url || "";
     try{ await navigator.clipboard.writeText(msg); }catch(_){}
-    if(j.url) window.open(j.url,"_blank");
+    // Only auto-open the card checkout when cards are the primary method.
+    if(j.url && j.primary!=="manual") window.open(j.url,"_blank");
     alert("✓ Payment options copied — paste into a text or email to "+name+":\n\n"+msg);
   }catch(e){ alert("Network error creating payment options."); }
 }

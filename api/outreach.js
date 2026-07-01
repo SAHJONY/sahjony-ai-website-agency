@@ -93,6 +93,31 @@ export default async function handler(req, res) {
   const admin = process.env.ADMIN_PASSWORD;
   if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
 
+  // ---- Autonomous social posting ----
+  // Push a caption to your scheduler/auto-poster (Zapier / Make / Buffer / n8n)
+  // which fans it out to your connected networks. Set MARKETING_WEBHOOK_URL to a
+  // catch webhook there. Keeps social API/OAuth complexity out of this app.
+  if (body.post) {
+    const hook = process.env.MARKETING_WEBHOOK_URL;
+    if (!hook) return res.status(400).json({ error: "Set MARKETING_WEBHOOK_URL (a Zapier/Make/Buffer webhook) to enable auto-posting." });
+    const text = String(body.text || "").slice(0, 3000).trim();
+    if (!text) return res.status(400).json({ error: "Nothing to post." });
+    const payload = {
+      text,
+      link: String(body.link || "").slice(0, 400),
+      platforms: Array.isArray(body.platforms) ? body.platforms.slice(0, 20) : undefined,
+      source: "frontdeskagents",
+      at: new Date().toISOString(),
+    };
+    try {
+      const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      if (!r.ok) return res.status(502).json({ error: "Scheduler webhook returned " + r.status });
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      return res.status(502).json({ error: "Could not reach the scheduler webhook." });
+    }
+  }
+
   // ---- AVA VOICE (Bland) ----
   if (body.voice) {
     if (!process.env.BLAND_API_KEY) return res.status(500).json({ error: "Set BLAND_API_KEY to enable Ava voice." });

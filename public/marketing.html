@@ -52,7 +52,7 @@
 
   <div class="card">
     <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">📣 Marketing kit — post everywhere</div>
-    <div class="muted">Ready-to-post captions. Copy one, or share straight to a platform. Your links are already inserted.</div>
+    <div class="muted">Ready-to-post captions. Copy one, share straight to a platform, or <b>🚀 Auto-post</b> to send it to your scheduler (Zapier / Make / Buffer) — set <b>MARKETING_WEBHOOK_URL</b> in your env to enable autonomous posting to all your networks at once.</div>
     <div class="grid2" style="margin-top:10px">
       <div><label>Your site URL</label><input id="siteUrl" placeholder="https://www.frontdeskagents.com"></div>
       <div><label>Your rep-recruiting link</label><input id="applyUrl" placeholder="https://www.frontdeskagents.com/apply.html"></div>
@@ -117,6 +117,7 @@ function renderKits(){
       '<textarea id="kit'+i+'" rows="3">'+k.x.replace(/</g,"&lt;")+'</textarea>'+
       '<div class="share">'+
         '<button data-copy="kit'+i+'">Copy</button>'+
+        '<button data-post="kit'+i+'" style="background:linear-gradient(180deg,#f6dba2,#e8c476);color:#1a1206;font-weight:700">🚀 Auto-post</button>'+
         '<a href="https://www.facebook.com/sharer/sharer.php?u='+url+'&quote='+enc+'" target="_blank">Facebook</a>'+
         '<a href="https://twitter.com/intent/tweet?text='+enc+'" target="_blank">X</a>'+
         '<a href="https://www.linkedin.com/sharing/share-offsite/?url='+url+'" target="_blank">LinkedIn</a>'+
@@ -126,6 +127,15 @@ function renderKits(){
       '</div></div>';
   }).join("");
   el("kits").querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){var t=el(b.dataset.copy).value;navigator.clipboard&&navigator.clipboard.writeText(t);msg("✓ Caption copied — paste into your post",true);};});
+  el("kits").querySelectorAll("[data-post]").forEach(function(b){b.onclick=async function(){
+    var t=el(b.dataset.post).value; b.disabled=true; var old=b.textContent; b.textContent="Sending…";
+    try{
+      var r=await fetch("/api/outreach",{method:"POST",headers:H(),body:JSON.stringify({post:true,text:t,link:el("siteUrl").value.trim()||ORIGIN})});
+      var j=await r.json().catch(function(){return{};});
+      msg(r.ok?"🚀 Sent to your auto-poster":(j.error||"Failed"),r.ok);
+    }catch(e){msg("Network error",false);}
+    b.disabled=false; b.textContent=old;
+  };});
 }
 el("siteUrl").addEventListener("input",renderKits);
 el("applyUrl").addEventListener("input",renderKits);

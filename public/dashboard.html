@@ -789,7 +789,7 @@ async function doLogin(){
       sessionStorage.setItem("fda_auth","1");
       if(pw && !j.noPassword){
         sessionStorage.setItem("fda_admin", pw); // also unlocks Settings
-        document.cookie = "fda_auth="+encodeURIComponent(pw)+";path=/;max-age=86400;samesite=strict"; // unlocks gated pages
+        document.cookie = "fda_auth="+encodeURIComponent(pw)+";path=/;max-age=86400;samesite=strict"+(location.protocol==="https:"?";secure":""); // unlocks gated pages
       }
       enterApp();
       return;

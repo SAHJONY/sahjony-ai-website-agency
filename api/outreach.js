@@ -9,6 +9,8 @@
 //
 // Email: RESEND_API_KEY (+ OUTREACH_FROM).  SMS: TWILIO_*.  Voice: BLAND_API_KEY.
 
+import { safeEqual } from "../lib/guard.js";
+
 const BLAND = (process.env.BLAND_BASE_URL || "https://api.bland.ai").replace(/\/$/, "");
 
 async function up(path, opts) {
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
   if (req.query && req.query.autopost) {
     const secret = process.env.CRON_SECRET;
     const auth = req.headers.authorization || "";
-    const ok = !secret || auth === "Bearer " + secret || req.query.token === secret;
+    const ok = !secret || safeEqual(auth, "Bearer " + secret) || safeEqual(String(req.query.token || ""), secret);
     if (!ok) return res.status(401).json({ error: "Unauthorized" });
     const hook = process.env.MARKETING_WEBHOOK_URL;
     if (!hook) return res.status(200).json({ skipped: "MARKETING_WEBHOOK_URL not set" });
@@ -124,13 +126,20 @@ export default async function handler(req, res) {
           const content = (await getJSON("fda:content:" + slug, {})) || {};
           const promos = Array.isArray(content.promos) ? content.promos : [];
           const p = promos[0];
+          if (!p) continue; // nothing new to say — don't post filler
           const link = appUrl + "/s/" + slug;
-          const text = p ? [p.title, p.body].filter(Boolean).join(" — ") + " " + link
-                         : (s.name ? s.name + " — see what's new " + link : "");
+          const text = [p.title, p.body].filter(Boolean).join(" — ") + " " + link;
           if (!text.trim()) continue;
+          // Only post when the promo actually changed — otherwise the daily cron
+          // would repost the identical promo forever and spam the client's feed.
+          if (soc.lastPosted === text) continue;
           try {
             const rr = await fetch(soc.webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, link, source: "frontdeskagents-client", slug, at: new Date().toISOString() }) });
-            if (rr.ok) clientPosted++;
+            if (rr.ok) {
+              clientPosted++;
+              soc.lastPosted = text; soc.lastPostedAt = new Date().toISOString();
+              await setJSON("fda:social:" + slug, soc);
+            }
           } catch (_) {}
         }
       }
@@ -152,7 +161,7 @@ export default async function handler(req, res) {
   // ---- Bland INBOUND webhook (public; gated by secret) — /api/bland ----
   if (req.query && req.query.bland) {
     const secret = process.env.BLAND_WEBHOOK_SECRET;
-    if (secret && req.query.token !== secret) return res.status(401).json({ ok: false });
+    if (secret && !safeEqual(String(req.query.token || ""), secret)) return res.status(401).json({ ok: false });
     try {
       const summary = body.summary || body.concatenated_transcript || body.transcript || "(call completed)";
       const from = body.from || body.caller || body.phone_number || "";

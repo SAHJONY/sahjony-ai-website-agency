@@ -9,6 +9,7 @@
 // subscription to the owner panel (fda:panel:owner) in Upstash.
 
 import { creditRepByCode } from "../lib/reps.js";
+import { safeEqual } from "../lib/guard.js";
 
 const PANEL_KEY = "fda:panel:owner";
 
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
 
   const gate = process.env.WEBHOOK_TOKEN;
-  if (gate && req.query.token !== gate) return res.status(401).json({ error: "Unauthorized" });
+  if (gate && !safeEqual(String(req.query.token || ""), gate)) return res.status(401).json({ error: "Unauthorized" });
 
   const sk = process.env.STRIPE_SECRET_KEY;
   if (!sk) return res.status(200).json({ received: true, note: "Stripe not configured" });

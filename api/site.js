@@ -9,6 +9,7 @@
 //   fda:portal:<slug>  (creds + change requests)   fda:ava:<slug> (receptionist)
 //   fda:site:<slug>    (name/status, read-only)     fda:leads:<slug> (its leads)
 // It can never read another business's data or any admin/secret key.
+import { rateLimit, safeEqual, clientIp } from "../lib/guard.js";
 
 function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
 
@@ -131,11 +132,19 @@ async function handlePortal(req, res) {
   const slug = cleanSlug(body.slug);
   if (!slug) return res.status(400).json({ error: "Missing site." });
 
+  // Brute-force guard: cap password attempts per IP (and per IP+slug) so a
+  // client's portal password can't be guessed by hammering this endpoint.
+  const rl = await rateLimit(req, "portal", { limit: 20, windowSec: 600, key: clientIp(req) + ":" + slug });
+  if (rl.limited) {
+    res.setHeader("retry-after", String(rl.retryAfter));
+    return res.status(429).json({ error: "Too many attempts — please wait a few minutes and try again." });
+  }
+
   const creds = await kvGet("fda:portal:" + slug);
   const pw = creds && typeof creds === "object" ? String(creds.password || "") : "";
   // No portal password set yet -> the owner hasn't enabled the client dashboard.
   if (!pw) return res.status(403).json({ error: "This site has no client dashboard yet. Ask your provider to enable it." });
-  if (String(body.password || "") !== pw) return res.status(401).json({ error: "Wrong password." });
+  if (!safeEqual(String(body.password || ""), pw)) return res.status(401).json({ error: "Wrong password." });
 
   const site = (await kvGet("fda:site:" + slug)) || {};
   const host = req.headers["x-forwarded-host"] || req.headers.host || "";

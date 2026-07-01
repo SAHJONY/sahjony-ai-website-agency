@@ -5,6 +5,7 @@
 // cannot touch any other key. The owner reads the inbox via the authenticated
 // /api/data endpoint from the dashboard.
 import { tgHandleUpdate, tgNotifyOwner } from "../lib/telegram.js";
+import { rateLimit } from "../lib/guard.js";
 
 const INBOX_KEY = "fda:contact:inbox";
 const MAX_ENTRIES = 500;        // keep the list bounded
@@ -48,6 +49,14 @@ export default async function handler(req, res) {
 
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
     return res.status(500).json({ error: "Inbox is not configured (Upstash env vars missing)." });
+  }
+
+  // Spam guard: the inbox keeps only the last 500 entries, so a flood would
+  // evict real leads. Cap public submissions per IP.
+  const crl = await rateLimit(req, "contact", { limit: 10, windowSec: 600 });
+  if (crl.limited) {
+    res.setHeader("retry-after", String(crl.retryAfter));
+    return res.status(429).json({ error: "Too many messages — please wait a few minutes and try again." });
   }
 
   let body = req.body;

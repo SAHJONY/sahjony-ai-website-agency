@@ -104,6 +104,18 @@
     </div>
     <div id="portalReqs" style="margin-top:10px"></div>
   </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">📣 Social autopilot <span class="pill">per client</span></div>
+    <div class="muted">Connect this client's accounts to a scheduler (Ayrshare / Buffer / Make / Zapier catch-webhook) and their promotions can post automatically. If they requested done-for-you setup, mark it complete here.</div>
+    <div id="socSetup" class="muted" style="margin-top:8px">—</div>
+    <label>Client posting webhook (their scheduler)</label>
+    <input id="socWebhook" placeholder="https://hook.make.com/... or Ayrshare/Buffer webhook">
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn gold" id="saveSoc">Save &amp; connect</button>
+      <button class="btn ghost" id="markSetup">Mark setup complete</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -138,6 +150,35 @@ async function loadCfg(slug){
     el("voiceStatus").textContent=c.phone?("📞 Live number: "+c.phone):"No phone number yet.";
   }catch(e){}
   loadPortal(slug);
+  loadSoc(slug);
+}
+var SOC={};
+async function loadSoc(slug){
+  el("socWebhook").value=""; el("socSetup").textContent="—"; SOC={};
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:social:"+slug),{headers:H()});var j=await r.json();
+    SOC=(j&&j.value&&typeof j.value==="object")?j.value:{};
+    el("socWebhook").value=SOC.webhook||"";
+    var bits=[];
+    if(SOC.needsSetup) bits.push(SOC.setupStatus==="done"?"✓ Done-for-you setup complete":"⚠️ Client requested done-for-you setup");
+    if(SOC.handles&&Object.keys(SOC.handles).length) bits.push(Object.keys(SOC.handles).length+" account(s) on file");
+    if(SOC.autopilot) bits.push("autopilot ON");
+    el("socSetup").textContent=bits.length?bits.join(" · "):"No social setup yet for this client.";
+  }catch(e){}
+}
+async function saveSoc(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  SOC.webhook=el("socWebhook").value.trim();
+  try{
+    var r=await fetch("/api/data?key="+encodeURIComponent("fda:social:"+current),{method:"POST",headers:H(),body:JSON.stringify(SOC)});
+    if(!r.ok){var ej=await r.json();msg(ej.error||"Save failed",false);return;}
+    msg("✓ Social autopilot saved for "+current,true); loadSoc(current);
+  }catch(e){msg("Network error",false);}
+}
+async function markSetup(){
+  if(!current){msg("Pick a client site first.",false);return;}
+  SOC.setupStatus="done"; SOC.needsSetup=true;
+  await saveSoc();
 }
 async function loadPortal(slug){
   try{
@@ -191,6 +232,8 @@ async function voice(action,extra){
 el("site").onchange=function(){loadCfg(this.value);};
 el("save").onclick=save;
 el("savePortal").onclick=savePortal;
+el("saveSoc").onclick=saveSoc;
+el("markSetup").onclick=markSetup;
 el("genContract").onclick=function(){
   if(!current){msg("Pick a client site first.",false);return;}
   var s=SITES[current]||{};

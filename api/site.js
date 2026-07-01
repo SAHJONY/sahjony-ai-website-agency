@@ -160,7 +160,52 @@ async function handlePortal(req, res) {
     const leads = Array.isArray(leadsRaw) ? leadsRaw.slice(-100).reverse() : [];
     const views = (await kvGet("fda:views:" + slug)) || 0;
     const content = (await kvGet("fda:content:" + slug)) || {};
-    return res.status(200).json({ ok: true, site: siteInfo, ava: safeAva, leads, content, stats: { views: Number(views) || 0, leads: leads.length } });
+    const socialRaw = (await kvGet("fda:social:" + slug)) || {};
+    // Never expose the owner-set posting webhook to the client; just whether it's on.
+    const social = {
+      handles: socialRaw.handles || {}, needsSetup: !!socialRaw.needsSetup,
+      setupStatus: socialRaw.setupStatus || "", kit: socialRaw.kit || null,
+      autopilot: !!socialRaw.autopilot, connected: !!socialRaw.webhook,
+    };
+    return res.status(200).json({ ok: true, site: siteInfo, ava: safeAva, leads, content, social, stats: { views: Number(views) || 0, leads: leads.length } });
+  }
+
+  // Client saves their social handles / requests done-for-you setup / AI kit /
+  // autopilot preference. The owner's per-client posting webhook is never touched
+  // here (owner-only, via /api/data).
+  if (action === "social-save") {
+    const s = body.social || {};
+    const rec = (await kvGet("fda:social:" + slug)) || {};
+    const SOCIAL_KEYS = ["facebook", "instagram", "tiktok", "youtube", "x", "linkedin", "threads", "pinterest", "whatsapp", "telegram", "google", "yelp"];
+    const handles = {};
+    const inH = s.handles || {};
+    SOCIAL_KEYS.forEach((k) => { if (typeof inH[k] === "string" && inH[k].trim()) handles[k] = inH[k].trim().slice(0, 200); });
+    rec.handles = handles;
+    if (typeof s.needsSetup === "boolean") rec.needsSetup = s.needsSetup;
+    if (s.needsSetup && !rec.setupStatus) rec.setupStatus = "requested";
+    if (typeof s.autopilot === "boolean") rec.autopilot = s.autopilot;
+    if (s.kit && typeof s.kit === "object") {
+      rec.kit = {
+        bio: String(s.kit.bio || "").slice(0, 600),
+        hashtags: String(s.kit.hashtags || "").slice(0, 600),
+        posts: (Array.isArray(s.kit.posts) ? s.kit.posts : []).slice(0, 12).map((p) => String(p || "").slice(0, 600)),
+        profileIdea: String(s.kit.profileIdea || "").slice(0, 600),
+        at: new Date().toISOString(),
+      };
+    }
+    rec.updatedAt = new Date().toISOString();
+    await kvSet("fda:social:" + slug, rec);
+    // If they asked for done-for-you setup, drop it in the owner's inbox.
+    if (s.needsSetup) {
+      try {
+        const INBOX = "fda:contact:inbox";
+        let list = (await kvGet(INBOX)) || []; if (!Array.isArray(list)) list = [];
+        list.push({ id: Date.now(), name: siteInfo.name, type: "Social setup request", contact: "portal:" + slug, notes: "Client requested done-for-you social media setup.", at: new Date().toISOString() });
+        if (list.length > 500) list = list.slice(-500);
+        await kvSet(INBOX, list);
+      } catch (_) {}
+    }
+    return res.status(200).json({ ok: true, social: { handles: rec.handles, needsSetup: !!rec.needsSetup, setupStatus: rec.setupStatus || "", kit: rec.kit || null, autopilot: !!rec.autopilot, connected: !!rec.webhook } });
   }
 
   // Save the client's live menu/prices + promotions/events. Sanitized + capped.

@@ -73,6 +73,7 @@
     <button class="tab on" data-p="overview">Overview</button>
     <button class="tab" data-p="menu">Menu &amp; prices</button>
     <button class="tab" data-p="promos">Promotions &amp; events</button>
+    <button class="tab" data-p="social">Social media</button>
     <button class="tab" data-p="leads">Leads &amp; bookings</button>
     <button class="tab" data-p="ava">Ava receptionist</button>
     <button class="tab" data-p="request">Request a change</button>
@@ -134,6 +135,35 @@
     </div>
   </div>
 
+  <!-- SOCIAL -->
+  <div class="panel" id="p_social">
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700">Social media</div>
+      <div class="muted">No accounts yet? We'll set them up for you. Already have them? Add them and turn on autopilot so your promotions post automatically.</div>
+
+      <label style="display:flex;gap:8px;align-items:center;margin-top:14px;cursor:pointer"><input type="checkbox" id="so_needsetup" style="width:auto"> <span>I don't have social accounts — <b>set them up for me</b></span></label>
+      <div id="setupNote" class="muted" style="margin-top:6px;display:none"></div>
+
+      <div class="fd" style="font-size:15px;font-weight:700;margin-top:18px">Your accounts (paste your profile links)</div>
+      <div class="row" id="socialGrid" style="margin-top:8px"></div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="fd" style="font-size:15px;font-weight:700">✨ AI social starter kit</div>
+        <div class="muted">Generate a bio, hashtags, first posts, and a profile-image idea — so your accounts look great from day one.</div>
+        <button class="btn ghost" id="genKit" style="margin-top:10px">✨ Generate my kit</button>
+        <div id="kitOut" style="margin-top:12px"></div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="fd" style="font-size:15px;font-weight:700">🤖 Autopilot</div>
+        <div class="muted" id="autoNote">Auto-post your promotions to your connected accounts.</div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:10px;cursor:pointer"><input type="checkbox" id="so_autopilot" style="width:auto"> <span>Auto-post my promotions &amp; specials for me</span></label>
+      </div>
+
+      <div style="margin-top:16px"><button class="btn gold" id="saveSocial">Save social settings</button></div>
+    </div>
+  </div>
+
   <!-- LEADS -->
   <div class="panel" id="p_leads">
     <div class="card">
@@ -183,7 +213,7 @@
 
 <script>
 var el=function(id){return document.getElementById(id);};
-var SLUG="", PW="", SITEURL="";
+var SLUG="", PW="", SITEURL="", BIZNAME="", INDUSTRY="", CITY="";
 var qs=new URLSearchParams(location.search);
 
 // Each dashboard adapts to the client's industry: the "priced list" tab, its
@@ -252,7 +282,8 @@ async function loadAll(){
   el("stStatusDot").style.background=live?"#2fd47f":"#ff9f43";
   el("stStatus").textContent=live?"Live and online":(st==="pending"?"Pending — goes live once payment clears":"Paused — pending payment");
   el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
-  P=industryProfile((d.site&&d.site.industry)||""); applyIndustry();
+  BIZNAME=(d.site&&d.site.name)||SLUG; INDUSTRY=(d.site&&d.site.industry)||""; CITY=(d.site&&d.site.city)||"";
+  P=industryProfile(INDUSTRY); applyIndustry();
   var url=(d.site&&d.site.url)||("/s/"+SLUG);
   SITEURL=/^https?:\/\//.test(url)?url:(location.origin.replace(/\/$/,"")+url);
   el("viewSite").href=url; el("copyUrl").dataset.url=url;
@@ -264,6 +295,8 @@ async function loadAll(){
   renderLeads(d.leads||[]);
   // Live website content (menu + promotions/events)
   renderContentEditors(d.content||{});
+  // Social media setup + autopilot
+  renderSocial(d.social||{});
 }
 
 function renderLeads(leads){
@@ -391,6 +424,56 @@ async function saveContent(okMsg){
   msg(res.ok?(okMsg||"✓ Saved & published"):((res.j&&res.j.error)||"Save failed"),res.ok);
 }
 
+/* ---- Social media setup + autopilot ---- */
+var SOCIAL_PLATFORMS=[["facebook","Facebook"],["instagram","Instagram"],["tiktok","TikTok"],["youtube","YouTube"],["x","X (Twitter)"],["linkedin","LinkedIn"],["threads","Threads"],["pinterest","Pinterest"],["whatsapp","WhatsApp"],["telegram","Telegram"],["google","Google Business"],["yelp","Yelp"]];
+var KIT=null;
+function buildSocialGrid(){
+  el("socialGrid").innerHTML=SOCIAL_PLATFORMS.map(function(p){
+    return '<div><label>'+p[1]+'</label><input id="so_'+p[0]+'" placeholder="https://..." style="'+inpS+'"></div>';
+  }).join("");
+}
+function renderSocial(s){
+  s=s||{}; buildSocialGrid();
+  var h=s.handles||{}; SOCIAL_PLATFORMS.forEach(function(p){ if(h[p[0]]&&el("so_"+p[0])) el("so_"+p[0]).value=h[p[0]]; });
+  el("so_needsetup").checked=!!s.needsSetup;
+  el("so_autopilot").checked=!!s.autopilot;
+  el("setupNote").style.display=s.needsSetup?"block":"none";
+  el("setupNote").textContent=s.setupStatus==="done"?"✓ Setup complete.":(s.needsSetup?"Requested — we'll create your accounts and email you the logins.":"");
+  el("autoNote").textContent=s.connected?"✓ Connected — your promotions can post automatically.":"Auto-post your promotions once we connect your accounts to posting (ask us to enable).";
+  KIT=s.kit||null; renderKit();
+}
+function renderKit(){
+  if(!KIT){el("kitOut").innerHTML="";return;}
+  var posts=(KIT.posts||[]).map(function(p,i){return '<div class="lead" style="margin-top:8px"><div style="font-size:14px">'+esc(p)+'</div><button class="btn ghost" data-ckit="'+i+'" style="padding:5px 10px;font-size:12px;margin-top:6px">Copy</button></div>';}).join("");
+  el("kitOut").innerHTML='<div class="lead"><div class="muted">Bio</div><div>'+esc(KIT.bio||"")+'</div></div>'+
+    '<div class="lead" style="margin-top:8px"><div class="muted">Hashtags</div><div>'+esc(KIT.hashtags||"")+'</div></div>'+
+    (KIT.profileIdea?'<div class="lead" style="margin-top:8px"><div class="muted">Profile image idea</div><div>'+esc(KIT.profileIdea)+'</div></div>':'')+
+    '<div class="muted" style="margin-top:10px">Starter posts:</div>'+posts;
+  el("kitOut").querySelectorAll("[data-ckit]").forEach(function(b){b.onclick=function(){var t=(KIT.posts||[])[+b.dataset.ckit]||"";navigator.clipboard&&navigator.clipboard.writeText(t+" "+SITEURL);msg("✓ Post copied",true);};});
+}
+async function generateKit(){
+  el("genKit").disabled=true; var old=el("genKit").textContent; el("genKit").textContent="Generating…";
+  var prompt='You are a social media expert. Create a social media starter kit for "'+BIZNAME+'", a '+(INDUSTRY||"local business")+(CITY?" in "+CITY:"")+'. Return ONLY valid JSON: {"bio":"under 150 chars","hashtags":"8-12 relevant hashtags space separated","posts":["5 short ready-to-post captions, upbeat, no markdown"],"profileIdea":"one sentence describing an ideal profile/logo image"}.';
+  try{
+    var r=await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:prompt,maxTokens:900})});
+    var j=await r.json();
+    if(!r.ok){msg((j&&j.error)||"Could not generate right now.",false);el("genKit").disabled=false;el("genKit").textContent=old;return;}
+    var m=(j.text||"").match(/\{[\s\S]*\}/);
+    if(m){ try{ KIT=JSON.parse(m[0]); }catch(e){ KIT=null; } }
+    if(KIT){ renderKit(); msg("✓ Kit ready — review & Save to keep it",true); }
+    else msg("Couldn't parse the kit — try again.",false);
+  }catch(e){msg("Network error",false);}
+  el("genKit").disabled=false; el("genKit").textContent=old;
+}
+async function saveSocial(){
+  var handles={}; SOCIAL_PLATFORMS.forEach(function(p){var v=el("so_"+p[0]).value.trim(); if(v) handles[p[0]]=v;});
+  var payload={handles:handles,needsSetup:el("so_needsetup").checked,autopilot:el("so_autopilot").checked};
+  if(KIT) payload.kit=KIT;
+  var res=await api("social-save",{social:payload});
+  if(res.ok){ renderSocial(res.j.social); msg("✓ Social settings saved",true); }
+  else msg((res.j&&res.j.error)||"Save failed",false);
+}
+
 // Tabs
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
   document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
@@ -407,6 +490,9 @@ el("addItem").onclick=function(){el("menuRows").appendChild(menuRow({}));};
 el("saveMenu").onclick=function(){saveContent("✓ Menu saved & live on your site");};
 el("addPromo").onclick=function(){el("promoRows").appendChild(promoRow({}));};
 el("savePromos").onclick=function(){saveContent("✓ Promotions saved & live on your site");};
+el("genKit").onclick=generateKit;
+el("saveSocial").onclick=saveSocial;
+el("so_needsetup").onchange=function(){el("setupNote").style.display=this.checked?"block":"none";el("setupNote").textContent=this.checked?"We'll create your accounts and email you the logins after you Save.":"";};
 el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};
 
 // Prefill slug from ?slug= (generated-site footer link) and resume a session.

@@ -109,7 +109,34 @@ export default async function handler(req, res) {
     mk.log = log.slice(0, 100);
     mk.schedule = schedule.filter((s) => !(s.sent && String(s.date || "") < today)); // drop old sent
     try { await setJSON("fda:marketing", mk); } catch (_) {}
-    return res.status(200).json({ ok: true, posted });
+
+    // ---- Per-client autopilot: post each opted-in client's latest promotion to
+    // their own connected scheduler (best-effort, bounded). ----
+    let clientPosted = 0;
+    try {
+      const appUrl = (process.env.APP_URL || site).replace(/\/$/, "");
+      let index = (await getJSON("fda:sites:index", [])) || [];
+      if (Array.isArray(index)) {
+        for (const s of index.slice(0, 60)) {
+          const slug = s && s.slug; if (!slug) continue;
+          const soc = await getJSON("fda:social:" + slug, null);
+          if (!soc || !soc.autopilot || !soc.webhook) continue;
+          const content = (await getJSON("fda:content:" + slug, {})) || {};
+          const promos = Array.isArray(content.promos) ? content.promos : [];
+          const p = promos[0];
+          const link = appUrl + "/s/" + slug;
+          const text = p ? [p.title, p.body].filter(Boolean).join(" — ") + " " + link
+                         : (s.name ? s.name + " — see what's new " + link : "");
+          if (!text.trim()) continue;
+          try {
+            const rr = await fetch(soc.webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, link, source: "frontdeskagents-client", slug, at: new Date().toISOString() }) });
+            if (rr.ok) clientPosted++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    return res.status(200).json({ ok: true, posted, clientPosted });
   }
 
   res.setHeader("Access-Control-Allow-Origin", "*");

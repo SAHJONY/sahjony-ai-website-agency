@@ -183,7 +183,7 @@
 
 <script>
 var el=function(id){return document.getElementById(id);};
-var SLUG="", PW="";
+var SLUG="", PW="", SITEURL="";
 var qs=new URLSearchParams(location.search);
 
 // Each dashboard adapts to the client's industry: the "priced list" tab, its
@@ -254,6 +254,7 @@ async function loadAll(){
   el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
   P=industryProfile((d.site&&d.site.industry)||""); applyIndustry();
   var url=(d.site&&d.site.url)||("/s/"+SLUG);
+  SITEURL=/^https?:\/\//.test(url)?url:(location.origin.replace(/\/$/,"")+url);
   el("viewSite").href=url; el("copyUrl").dataset.url=url;
   // Ava
   var a=d.ava||{};
@@ -318,7 +319,7 @@ function promoRow(p){
     '<input data-f="url" placeholder="Paste a link (YouTube, image URL…)" style="'+inpS+'"></div>'+
     '<div style="margin-top:8px"><label style="margin:0 0 5px">…or upload a file</label><input type="file" data-file accept="image/*,video/*,audio/*" style="'+inpS+'"></div>'+
     '<div data-prev class="muted" style="margin-top:6px"></div>'+
-    '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+    '<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px"><button class="btn ghost" data-share style="padding:6px 12px;font-size:12px">📣 Share to socials</button><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
   d.querySelector('[data-f="title"]').value=p.title||"";
   d.querySelector('[data-f="body"]').value=p.body||"";
   d.querySelector('[data-f="starts"]').value=p.starts||"";
@@ -337,7 +338,29 @@ function promoRow(p){
     rd.readAsDataURL(f);
   };
   d.querySelector("[data-rm]").onclick=function(){d.remove();};
+  d.querySelector("[data-share]").onclick=function(){
+    var title=fieldGet(d,"title"), body=fieldGet(d,"body");
+    if(!title&&!body){msg("Add a title or details first.",false);return;}
+    sharePromo(title, body);
+  };
   return d;
+}
+// Let the business owner broadcast a promo to THEIR OWN social accounts.
+function sharePromo(title, body){
+  var text=[title,body].filter(Boolean).join(" — ");
+  var url=SITEURL||location.origin;
+  var full=text+" "+url;
+  if(navigator.share){ navigator.share({title:title||"Promotion",text:text,url:url}).catch(function(){}); return; }
+  // Fallback chooser: open common networks prefilled.
+  var enc=encodeURIComponent(full), u=encodeURIComponent(url), t=encodeURIComponent(text);
+  var pick=prompt("Share to: type F=Facebook, X=Twitter/X, W=WhatsApp, T=Telegram (or Cancel to copy)","F");
+  if(pick==null){ if(navigator.clipboard)navigator.clipboard.writeText(full); msg("✓ Copied — paste into any post",true); return; }
+  pick=pick.trim().toUpperCase();
+  var link = pick==="X"?("https://twitter.com/intent/tweet?text="+enc)
+    : pick==="W"?("https://api.whatsapp.com/send?text="+enc)
+    : pick==="T"?("https://t.me/share/url?url="+u+"&text="+t)
+    : ("https://www.facebook.com/sharer/sharer.php?u="+u+"&quote="+t);
+  window.open(link,"_blank");
 }
 function collectContent(){
   var menu=[].map.call(document.querySelectorAll('#menuRows [data-item]'),function(r){

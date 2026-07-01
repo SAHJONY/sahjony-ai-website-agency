@@ -60,7 +60,43 @@ async function notifyOwner(subject, text) {
   } catch (_) {}
 }
 
+// Rotating marketing captions for the daily auto-post cron. A different one goes
+// out each day (indexed by day-of-year) so socials stay active hands-free.
+function autoCaptions(site) {
+  return [
+    "Your business deserves a stunning website — live this week, with a 24/7 AI receptionist that answers every customer. Free preview 👉 " + site + " #localbusiness #smallbusiness",
+    "Never miss a call or message again. Ava, our AI receptionist, answers your customers 24/7, books appointments, and captures every lead 👉 " + site,
+    "Still have an outdated website (or none)? We build modern, mobile sites that bring customers in — from $899. See yours free 👉 " + site,
+    "💼 Earn 25% commission selling AI websites to local businesses. $0 to start, your own hours. Apply 👉 " + site + "/apply.html",
+    "A website + AI receptionist that works while you sleep. Get found on Google, answer every customer, book more jobs 👉 " + site,
+    "Local owners: your competitors are online. Get a premium site + 24/7 AI receptionist, live in days 👉 " + site,
+    "One link. Every customer. Websites + AI phone/chat receptionist for local businesses 👉 " + site,
+  ];
+}
+
 export default async function handler(req, res) {
+  // ---- Daily AUTO-POST cron (Vercel Cron -> /api/outreach?autopost=1) ----
+  // Cron-gated by CRON_SECRET (Vercel attaches it as a Bearer token). Posts one
+  // rotating caption to MARKETING_WEBHOOK_URL so socials update hands-free.
+  if (req.query && req.query.autopost) {
+    const secret = process.env.CRON_SECRET;
+    const auth = req.headers.authorization || "";
+    const ok = !secret || auth === "Bearer " + secret || req.query.token === secret;
+    if (!ok) return res.status(401).json({ error: "Unauthorized" });
+    const hook = process.env.MARKETING_WEBHOOK_URL;
+    if (!hook) return res.status(200).json({ skipped: "MARKETING_WEBHOOK_URL not set" });
+    const site = (process.env.APP_URL || "https://www.frontdeskagents.com").replace(/\/$/, "");
+    const caps = autoCaptions(site);
+    const day = Math.floor((Date.now() - Date.UTC(new Date().getUTCFullYear(), 0, 0)) / 86400000);
+    const text = caps[day % caps.length];
+    try {
+      const r = await fetch(hook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, link: site, source: "frontdeskagents-cron", at: new Date().toISOString() }) });
+      return res.status(200).json({ ok: r.ok, posted: r.ok });
+    } catch (e) {
+      return res.status(200).json({ ok: false, error: "webhook unreachable" });
+    }
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");

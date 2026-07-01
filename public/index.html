@@ -151,6 +151,8 @@
   window.addEventListener("appinstalled", () => { document.getElementById("installBtn").style.display = "none"; });
 </script>
 <script src="/i18n.js"></script>
+<script>/* Sales-rep referral capture: remember ?ref=CODE for lead attribution. */
+try{var _r=new URLSearchParams(location.search).get("ref");if(_r)localStorage.setItem("fda_ref",_r.replace(/[^A-Za-z0-9]/g,"").slice(0,12));}catch(e){}</script>
 <script defer src="/ava.js" data-business="frontdeskagents.com"></script>
 </body>
 </html>

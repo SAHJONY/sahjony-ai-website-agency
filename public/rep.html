@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales Rep Portal — FrontDesk Agents</title>
+<meta name="theme-color" content="#04080f">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line)}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 18px 90px}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 6px}
+  input{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit}
+  input:focus{outline:none;border-color:var(--gold)}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:12px 16px;font-size:14px;text-decoration:none;display:inline-block;text-align:center}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:16px;backdrop-filter:blur(14px)}
+  .muted{color:var(--muted);font-size:13px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat{background:rgba(4,8,15,.4);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .stat b{font-size:24px;display:block} .stat span{font-size:11.5px;color:var(--muted)}
+  .code{font-family:ui-monospace,monospace;color:var(--gold);font-weight:700}
+  .refbox{display:flex;gap:8px;align-items:center;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;flex-wrap:wrap;margin-top:8px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+  th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+  #login{max-width:400px;margin:9vh auto 0;padding:0 18px}
+  .center{text-align:center}
+  #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-weight:600;display:none;z-index:20}
+  @media(max-width:640px){.grid4{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="center" style="margin-bottom:8px"><div class="logo" style="margin:0 auto 12px">FD</div>
+    <div class="fd" style="font-size:24px;font-weight:700">Sales Rep Portal</div>
+    <div class="muted" style="margin-top:6px">Sign in to track your sales and commissions.</div>
+  </div>
+  <div class="card">
+    <label>Email</label><input id="li_email" type="email" placeholder="you@email.com">
+    <label>Access code</label><input id="li_code" placeholder="8-character code" style="text-transform:uppercase">
+    <button class="btn gold" id="li_go" style="width:100%;margin-top:16px">Sign in</button>
+    <div id="li_msg" class="muted" style="margin-top:10px;display:none"></div>
+    <div class="muted" style="margin-top:14px">No account? Ask your sales manager to add you.</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <div style="display:flex;align-items:center;gap:10px"><div class="logo">FD</div><div><div class="fd" style="font-weight:700;font-size:17px" id="hdrName">Rep</div><div class="muted" style="font-size:11px">Sales Rep Portal</div></div></div>
+  <button class="btn ghost" id="logout">Sign out</button>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700">Your earnings</div>
+    <div class="muted" id="rateLine" style="margin-bottom:12px"></div>
+    <div class="grid4">
+      <div class="stat"><b id="sSales">—</b><span>Sales closed</span></div>
+      <div class="stat"><b id="sEarned">—</b><span>Commission earned</span></div>
+      <div class="stat"><b id="sPending" style="color:var(--gold)">—</b><span>Pending payout</span></div>
+      <div class="stat"><b id="sPaid" style="color:#7ff0c0">—</b><span>Paid to you</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700">Your referral link</div>
+    <div class="muted">Share this with every prospect. Sales from it are credited to you.</div>
+    <div class="refbox"><span class="code" id="refLink" style="flex:1;word-break:break-all"></span>
+      <button class="btn gold" id="copyRef">Copy</button>
+      <button class="btn ghost" id="shareRef">Share</button></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a class="btn ghost" href="/" target="_blank">See the product →</a>
+      <a class="btn ghost" id="pitchContract" href="/contract.html" target="_blank">Sample client contract →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:18px;font-weight:700">Your sales</div>
+    <div id="salesTbl"><div class="muted" style="margin-top:8px">Loading…</div></div>
+  </div>
+</div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+var el=function(id){return document.getElementById(id);};
+var TOKEN="";
+function money(n){return "$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:2});}
+function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.background=ok?"#123a2a":"#3a1620";m.style.color=ok?"#7ff0c0":"#ffb3ab";clearTimeout(window._mt);window._mt=setTimeout(function(){m.style.display="none";},3200);}
+var ORIGIN=location.origin.replace(/\/$/,"");
+
+async function login(){
+  var email=el("li_email").value.trim(), code=el("li_code").value.trim().toUpperCase();
+  var m=el("li_msg"); m.style.display="none";
+  if(!email||!code){m.style.display="block";m.style.color="#ff7a6e";m.textContent="Enter your email and access code.";return;}
+  var r=await fetch("/api/data?action=rep-login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:email,code:code})});
+  var j=await r.json().catch(function(){return{};});
+  if(!r.ok){m.style.display="block";m.style.color="#ff7a6e";m.textContent=j.error||"Sign in failed.";return;}
+  TOKEN=j.token; try{sessionStorage.setItem("fda_rep",TOKEN);}catch(e){}
+  el("login").style.display="none"; el("app").style.display="block";
+  paint(j.rep);
+}
+async function refresh(){
+  var r=await fetch("/api/data?action=rep-me",{method:"POST",headers:{"content-type":"application/json","x-rep-token":TOKEN},body:"{}"});
+  var j=await r.json().catch(function(){return{};});
+  if(!r.ok){try{sessionStorage.removeItem("fda_rep");}catch(e){} location.reload(); return;}
+  paint(j.rep);
+}
+function paint(rep){
+  if(!rep)return;
+  var t=rep.totals||{};
+  el("hdrName").textContent=rep.name||"Rep";
+  el("rateLine").textContent="You earn "+Math.round((rep.rate||0)*100)+"% commission on every sale.";
+  el("sSales").textContent=t.salesCount||0;
+  el("sEarned").textContent=money(t.commission);
+  el("sPending").textContent=money(t.pending);
+  el("sPaid").textContent=money(t.paid);
+  var ref=ORIGIN+"/?ref="+(rep.code||"");
+  el("refLink").textContent=ref; el("refLink").dataset.ref=ref;
+  var sales=(rep.sales||[]);
+  if(!sales.length){el("salesTbl").innerHTML='<div class="muted" style="margin-top:8px">No sales yet. Share your referral link to get started.</div>';return;}
+  el("salesTbl").innerHTML='<table><thead><tr><th>Business</th><th>Amount</th><th>Your commission</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+    sales.map(function(s){return '<tr><td>'+esc(s.biz||s.slug||"—")+'</td><td>'+money(s.amount)+'</td><td>'+money(s.commission)+'</td>'+
+      '<td>'+(s.status==="paid"?'<span class="pill" style="background:rgba(45,212,191,.14);color:#7ff0c0">paid</span>':'<span class="pill" style="background:rgba(232,196,118,.14);color:var(--gold)">pending</span>')+'</td>'+
+      '<td class="muted">'+new Date(s.at).toLocaleDateString()+'</td></tr>';}).join("")+'</tbody></table>';
+}
+
+el("li_go").onclick=login;
+el("li_code").addEventListener("keydown",function(e){if(e.key==="Enter")login();});
+el("logout").onclick=function(){try{sessionStorage.removeItem("fda_rep");}catch(e){} location.reload();};
+el("copyRef").onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(el("refLink").dataset.ref);msg("✓ Link copied",true);};
+el("shareRef").onclick=function(){var u=el("refLink").dataset.ref; if(navigator.share)navigator.share({title:"Get a stunning website + AI receptionist",url:u}); else {navigator.clipboard&&navigator.clipboard.writeText(u);msg("✓ Link copied",true);}};
+
+try{var saved=sessionStorage.getItem("fda_rep"); if(saved){TOKEN=saved;el("login").style.display="none";el("app").style.display="block";refresh();}}catch(e){}
+</script>
+</body>
+</html>

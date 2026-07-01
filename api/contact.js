@@ -64,11 +64,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "name, type and contact are required." });
   }
 
+  const ref = String(body.ref || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
   const entry = {
     id: Date.now(),
     name: clean(body.name), type, contact: clean(body.contact),
     city: clean(body.city), url: clean(body.url), notes,
     bizSlug: bizSlug || undefined,
+    ref: ref || undefined,
     at: new Date().toISOString(),
   };
 

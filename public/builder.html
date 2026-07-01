@@ -521,9 +521,11 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // Cinematic accent — keep the brand hue but ensure it reads on a near-black bg.
   const acc = accent;
   const accGlow = hexToRgba(acc, .55);
-  const headingFont = safeFont(D.headingFont, HEAD_FONTS, "Space Grotesk");
-  const bodyFont = safeFont(D.bodyFont, BODY_FONTS, "Inter");
-  const fontsHref = gfUrl(headingFont, bodyFont, "Space Grotesk", "Inter");
+  // STANDARD TYPE: every site uses the platform's Fraunces + Inter pairing so the
+  // whole portfolio shares one premium look — only the color changes per business.
+  const headingFont = "Fraunces";
+  const bodyFont = "Inter";
+  const fontsHref = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap";
   loadFonts(fontsHref);
   const L = gen.labels||{};
   const kw = encodeURIComponent((type.split(/\s+/).slice(-1)[0])||"business");
@@ -631,7 +633,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-locations" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow(L.find||"Locations")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${locs.length} ${(L.find&&/location/i.test(L.find))?L.find:"Locations"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px">${locs.map(l=>`<div class="ccard reveal" style="padding:26px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px">${l.name||name}</div><div style="font-size:15px;color:var(--muted);line-height:1.5;margin-bottom:10px">${l.address}</div>${l.phone?`<a href="tel:${(l.phone||"").replace(/[^0-9+]/g,"")}" style="display:block;font-size:15px;color:${acc};text-decoration:none;font-weight:600;margin-bottom:10px">${l.phone}</a>`:""}${(l.hours&&l.hours.length)?`<div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px">${l.hours.slice(0,7).join("<br>")}</div>`:""}${l.mapsUrl?`<a href="${l.mapsUrl}" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:${acc};text-decoration:none">Directions →</a>`:""}</div>`).join("")}</div></div></section>` : "";
 
   const cineCss = `
-  .genroot{--bg:#0a0b0e;--bg2:#101218;--fg:#f5f6f8;--muted:#9aa0ad;--line:rgba(255,255,255,.10);--card:rgba(255,255,255,.045);font-family:'${bodyFont}',system-ui,sans-serif;background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .genroot{--bg:#04080f;--bg2:#0d1a2d;--fg:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55);font-family:'${bodyFont}',system-ui,sans-serif;background:radial-gradient(120% 80% at 50% -8%,#0a1626,var(--bg) 60%);color:var(--fg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
   .genroot[data-theme="light"]{--bg:#f6f7f9;--bg2:#ffffff;--fg:#0c0d10;--muted:#5b6270;--line:rgba(0,0,0,.10);--card:#ffffff}
   .genroot h1,.genroot h2,.genroot h3{font-family:'${headingFont}',system-ui,sans-serif}
   .genroot [style*="Space Grotesk"]{font-family:'${headingFont}',system-ui,sans-serif!important}
@@ -660,7 +662,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   .cbtn:hover{transform:translateY(-2px)}
   .cbtnA{background:#fff;color:#0a0b0e}.cbtnA:hover{background:#e8e8ee}
   .cbtnB{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(6px)}
-  .ccard{background:var(--card);border:1px solid var(--line);border-radius:18px;transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s,box-shadow .45s}
+  .ccard{background:var(--card);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s,box-shadow .45s}
   .ccard:hover{transform:translateY(-6px);border-color:${accGlow};box-shadow:0 30px 60px -24px rgba(0,0,0,.55)}
   .cimg{filter:saturate(1.08) contrast(1.04)}
   .gphoto{overflow:hidden;border-radius:14px;aspect-ratio:1/1}

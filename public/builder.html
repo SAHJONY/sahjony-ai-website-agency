@@ -927,6 +927,17 @@ async function autoBuild(){
   finally{ ab.disabled=false; ab.textContent="🤖 Research & build automatically"; }
 }
 $("#autoBtn").onclick = autoBuild;
+
+// Prefill from a client's build request (Dashboard → Inbox → "Start build").
+(function(){
+  try{
+    var q=new URLSearchParams(location.search);
+    var map={name:"fName",type:"fType",city:"fCity",phone:"fPhone",email:"fEmail",addr:"fAddr",url:"fUrl",notes:"fNotes"};
+    var any=false;
+    Object.keys(map).forEach(function(k){ var v=q.get(k); var el=document.getElementById(map[k]); if(v&&el){ el.value=v; any=true; } });
+    if(any){ var n=document.getElementById("fName"); if(n){ n.scrollIntoView({behavior:"smooth",block:"center"}); } }
+  }catch(e){}
+})();
 </script>
 <script src="/i18n.js"></script>
 </body>

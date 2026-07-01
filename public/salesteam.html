@@ -74,6 +74,14 @@
     </div>
   </div>
 
+  <div id="appsCard" class="card" style="display:none">
+    <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">📥 Rep applications <span class="pill" id="appsCount">0</span></div>
+    <div class="muted" style="margin-bottom:8px">People who applied at <b>/apply.html</b>. Approve to auto-create their account + access code.</div>
+    <div id="appsList"></div>
+  </div>
+
+  <div class="muted" style="margin-top:16px">Share your recruiting link: <span class="code" id="applyLink"></span> <button class="btn ghost" id="copyApply" style="padding:5px 10px;font-size:12px">Copy</button></div>
+
   <div id="repList"></div>
 </div>
 
@@ -100,6 +108,23 @@ async function load(){
   var j=await r.json().catch(function(){return{};});
   if(!r.ok){ if(r.status===401){location.replace("/dashboard.html");return;} msg(j.error||"Could not load",false); return; }
   render(j.reps||[]);
+  loadApps();
+}
+
+async function loadApps(){
+  el("applyLink").textContent=ORIGIN+"/apply.html";
+  var r=await api("rep-apps",{});
+  if(!r.ok)return;
+  var apps=(r.j&&r.j.apps)||[];
+  el("appsCount").textContent=apps.length;
+  el("appsCard").style.display=apps.length?"block":"none";
+  el("appsList").innerHTML=apps.map(function(a){
+    return '<div class="rep" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+esc(a.name)+'</b><div class="muted">'+esc(a.email)+(a.phone?' · '+esc(a.phone):'')+(a.city?' · '+esc(a.city):'')+'</div></div><div class="muted" style="font-size:11px">'+new Date(a.at).toLocaleDateString()+'</div></div>'+
+      (a.experience?'<div style="margin-top:8px;font-size:14px;color:#cdd8e6">'+esc(a.experience)+'</div>':'')+
+      '<div class="btnrow"><button class="btn gold" data-approve="'+a.id+'">✓ Approve (25%)</button><button class="btn danger" data-reject="'+a.id+'">Reject</button></div></div>';
+  }).join("");
+  document.querySelectorAll("[data-approve]").forEach(function(b){b.onclick=async function(){ var r=await api("rep-approve",{appId:b.dataset.approve}); if(r.ok){msg("✓ Approved — access code "+r.j.rep.accessCode,true);load();}else msg(r.j.error||"Failed",false); };});
+  document.querySelectorAll("[data-reject]").forEach(function(b){b.onclick=async function(){ if(!confirm("Reject this application?"))return; var r=await api("rep-reject",{appId:b.dataset.reject}); if(r.ok){load();}else msg(r.j.error||"Failed",false); };});
 }
 
 var REPS={};
@@ -182,6 +207,8 @@ el("addRep").onclick=async function(){
   msg("✓ Rep added — access code "+r.j.rep.accessCode,true);
   load();
 };
+
+el("copyApply").onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(ORIGIN+"/apply.html");msg("✓ Recruiting link copied",true);};
 
 if(!TOKEN){location.replace("/dashboard.html");} else {load();}
 </script>

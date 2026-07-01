@@ -4,7 +4,7 @@
 //
 // Auth: the dashboard login sets an `fda_auth` cookie equal to ADMIN_PASSWORD.
 // If ADMIN_PASSWORD is not set, the pages stay open (app still works out of box).
-export const config = { matcher: ["/playbook.html", "/scripts.html", "/ava.html", "/contract.html", "/salesteam.html", "/rep-contract.html"] };
+export const config = { matcher: ["/playbook.html", "/scripts.html", "/ava.html", "/contract.html", "/salesteam.html", "/rep-contract.html", "/marketing.html"] };
 
 export default function middleware(request) {
   const admin = process.env.ADMIN_PASSWORD;

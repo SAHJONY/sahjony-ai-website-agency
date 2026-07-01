@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marketing — FrontDesk Agents</title>
+<meta name="theme-color" content="#04080f">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  .fd{font-family:'Fraunces',serif}
+  a{color:var(--teal)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.85);backdrop-filter:blur(12px);z-index:5}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  .wrap{max-width:900px;margin:0 auto;padding:26px 18px 90px}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 6px}
+  input,textarea{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--text);font-size:14.5px;font-family:inherit}
+  input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:10px;padding:10px 15px;font-size:13.5px;text-decoration:none;display:inline-block}
+  .gold{background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
+  .ghost{background:rgba(45,212,191,.08);color:#cdeee9;border:1px solid rgba(45,212,191,.4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:16px;backdrop-filter:blur(14px)}
+  .muted{color:var(--muted);font-size:13px}
+  .kit{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:rgba(4,8,15,.3)}
+  .share{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .share a,.share button{font-size:12px;padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(45,212,191,.06);color:#cdeee9;text-decoration:none;cursor:pointer}
+  #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;font-weight:600;display:none;z-index:20}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:10px"><div class="logo">FD</div><div class="fd" style="font-weight:700;font-size:18px">Marketing</div></div>
+  <a href="/dashboard.html" class="btn ghost">← Dashboard</a>
+</header>
+
+<div class="wrap">
+  <p class="muted">Set your social accounts once — they appear automatically across the app (site footer, and anywhere with a social bar). Then use the ready-to-post kit to market on autopilot.</p>
+
+  <div class="card">
+    <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">Your social accounts</div>
+    <div class="muted" style="margin-bottom:6px">Paste the full profile URL for each account you have. Leave the rest blank.</div>
+    <div class="grid2" id="socialGrid"></div>
+    <div style="margin-top:14px"><button class="btn gold" id="saveSocial">Save social links</button></div>
+  </div>
+
+  <div class="card">
+    <div class="fd" style="font-size:17px;font-weight:700;margin-bottom:2px">📣 Marketing kit — post everywhere</div>
+    <div class="muted">Ready-to-post captions. Copy one, or share straight to a platform. Your links are already inserted.</div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label>Your site URL</label><input id="siteUrl" placeholder="https://www.frontdeskagents.com"></div>
+      <div><label>Your rep-recruiting link</label><input id="applyUrl" placeholder="https://www.frontdeskagents.com/apply.html"></div>
+    </div>
+    <div id="kits"></div>
+  </div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+function cookie(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]+)'));return m?decodeURIComponent(m[1]):"";}
+var TOKEN=cookie("fda_auth")||sessionStorage.getItem("fda_admin")||"";
+function H(){var h={"content-type":"application/json"};if(TOKEN)h["x-admin-token"]=TOKEN;return h;}
+var el=function(id){return document.getElementById(id);};
+var ORIGIN=location.origin.replace(/\/$/,"");
+function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.background=ok?"#123a2a":"#3a1620";m.style.color=ok?"#7ff0c0":"#ffb3ab";clearTimeout(window._mt);window._mt=setTimeout(function(){m.style.display="none";},3200);}
+
+var PLATFORMS=[["facebook","Facebook"],["instagram","Instagram"],["tiktok","TikTok"],["youtube","YouTube"],["x","X (Twitter)"],["linkedin","LinkedIn"],["threads","Threads"],["pinterest","Pinterest"],["whatsapp","WhatsApp"],["telegram","Telegram"],["google","Google Business"],["yelp","Yelp"]];
+
+el("socialGrid").innerHTML=PLATFORMS.map(function(p){
+  return '<div><label>'+p[1]+'</label><input id="s_'+p[0]+'" placeholder="https://..."></div>';
+}).join("");
+
+async function loadSocial(){
+  try{
+    var r=await fetch("/api/data?key=fda:marketing",{headers:H()});
+    if(r.status===401){location.replace("/dashboard.html");return;}
+    var j=await r.json(); var m=(j&&j.value&&j.value.social)||{};
+    PLATFORMS.forEach(function(p){ if(m[p[0]]) el("s_"+p[0]).value=m[p[0]]; });
+  }catch(e){}
+}
+el("saveSocial").onclick=async function(){
+  var social={}; PLATFORMS.forEach(function(p){var v=el("s_"+p[0]).value.trim(); if(v) social[p[0]]=v;});
+  try{
+    // Merge into existing marketing record.
+    var g=await fetch("/api/data?key=fda:marketing",{headers:H()}); var gj=await g.json();
+    var rec=(gj&&gj.value&&typeof gj.value==="object")?gj.value:{};
+    rec.social=social; rec.updatedAt=new Date().toISOString();
+    var r=await fetch("/api/data?key=fda:marketing",{method:"POST",headers:H(),body:JSON.stringify(rec)});
+    if(!r.ok){var ej=await r.json();msg(ej.error||"Save failed",false);return;}
+    msg("✓ Social links saved — live across the app",true);
+  }catch(e){msg("Network error",false);}
+};
+
+/* ---- Marketing kit ---- */
+function kitPosts(){
+  var site=el("siteUrl").value.trim()||ORIGIN;
+  var apply=el("applyUrl").value.trim()||(ORIGIN+"/apply.html");
+  return [
+    {t:"Local business promo",x:"Your business deserves a stunning website — live this week, with a 24/7 AI receptionist that answers every customer. See it free 👉 "+site+" #smallbusiness #localbusiness"},
+    {t:"AI receptionist angle",x:"Never miss a call or message again. Our AI receptionist Ava answers your customers 24/7, books appointments, and captures every lead. Get yours 👉 "+site},
+    {t:"Before/after redesign",x:"Still have an outdated website (or none at all)? We build modern, mobile sites that bring customers in — starting at $899. Free preview 👉 "+site},
+    {t:"Recruit sales reps",x:"💼 Earn 25% commission selling AI websites to local businesses. Work your own hours, $0 to start. Apply 👉 "+apply},
+    {t:"Testimonial style",x:"\"Went live in days and the calls started coming in.\" Give your business a website + AI receptionist that works while you sleep 👉 "+site}
+  ];
+}
+function renderKits(){
+  el("kits").innerHTML=kitPosts().map(function(k,i){
+    var enc=encodeURIComponent(k.x); var url=encodeURIComponent(el("siteUrl").value.trim()||ORIGIN);
+    return '<div class="kit"><div style="font-weight:700;font-size:13px;color:var(--gold);margin-bottom:6px">'+k.t+'</div>'+
+      '<textarea id="kit'+i+'" rows="3">'+k.x.replace(/</g,"&lt;")+'</textarea>'+
+      '<div class="share">'+
+        '<button data-copy="kit'+i+'">Copy</button>'+
+        '<a href="https://www.facebook.com/sharer/sharer.php?u='+url+'&quote='+enc+'" target="_blank">Facebook</a>'+
+        '<a href="https://twitter.com/intent/tweet?text='+enc+'" target="_blank">X</a>'+
+        '<a href="https://www.linkedin.com/sharing/share-offsite/?url='+url+'" target="_blank">LinkedIn</a>'+
+        '<a href="https://api.whatsapp.com/send?text='+enc+'" target="_blank">WhatsApp</a>'+
+        '<a href="https://t.me/share/url?url='+url+'&text='+enc+'" target="_blank">Telegram</a>'+
+        '<a href="https://pinterest.com/pin/create/button/?url='+url+'&description='+enc+'" target="_blank">Pinterest</a>'+
+      '</div></div>';
+  }).join("");
+  el("kits").querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){var t=el(b.dataset.copy).value;navigator.clipboard&&navigator.clipboard.writeText(t);msg("✓ Caption copied — paste into your post",true);};});
+}
+el("siteUrl").addEventListener("input",renderKits);
+el("applyUrl").addEventListener("input",renderKits);
+
+if(!TOKEN){location.replace("/dashboard.html");}
+else { el("siteUrl").value=ORIGIN; el("applyUrl").value=ORIGIN+"/apply.html"; loadSocial(); renderKits(); }
+</script>
+<script defer src="/protect.js"></script>
+</body>
+</html>

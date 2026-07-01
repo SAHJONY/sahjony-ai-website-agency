@@ -86,6 +86,33 @@ function publicRep(rep) {
   const { accessCode, ...safe } = rep;
   return { ...safe, totals: repTotals(rep) };
 }
+const REP_APPS = "fda:rep:apps"; // pending applications from /apply.html
+
+// Create a rep record + code/access-code + index + maps. Returns {rep} or {error}.
+async function makeRep({ name, email, phone, rate }) {
+  const nm = String(name || "").trim().slice(0, 120);
+  const em = normEmail(email);
+  if (!nm || !em) return { error: "Name and email are required." };
+  const dupe = await kvGet("fda:repmap:" + em);
+  const dupeId = dupe && typeof dupe === "object" ? dupe.id : dupe;
+  if (dupeId) return { error: "A rep with that email already exists." };
+  let index = (await kvGet(REP_INDEX)) || [];
+  if (!Array.isArray(index)) index = [];
+  const id = "rp" + Date.now().toString(36) + genCode(3).toLowerCase();
+  let code = genCode(6);
+  while (await kvGet("fda:repcode:" + code)) code = genCode(6);
+  const r = rate != null && !isNaN(rate) ? Math.max(0, Math.min(1, Number(rate))) : DEFAULT_RATE;
+  const rep = {
+    id, name: nm, email: String(email || "").trim().slice(0, 160), phone: String(phone || "").slice(0, 40),
+    code, accessCode: genCode(8), rate: r, active: true, sales: [], createdAt: new Date().toISOString(),
+  };
+  await kvSet("fda:rep:" + id, rep);
+  await kvSet("fda:repcode:" + code, id);
+  await kvSet("fda:repmap:" + em, { id });
+  index.unshift({ id, name: nm, code });
+  await kvSet(REP_INDEX, index);
+  return { rep };
+}
 
 // Owner-gated rep management (runs after the admin gate).
 async function handleRepOwner(req, res, action) {
@@ -105,28 +132,33 @@ async function handleRepOwner(req, res, action) {
   }
 
   if (action === "rep-create") {
-    const name = String(body.name || "").trim().slice(0, 120);
-    const email = normEmail(body.email);
-    if (!name || !email) return res.status(400).json({ error: "Name and email are required." });
-    let index = (await kvGet(REP_INDEX)) || [];
-    if (!Array.isArray(index)) index = [];
-    const dupe = await kvGet("fda:repmap:" + email);
-    const dupeId = dupe && typeof dupe === "object" ? dupe.id : dupe;
-    if (dupeId) return res.status(409).json({ error: "A rep with that email already exists." });
-    const id = "rp" + Date.now().toString(36) + genCode(3).toLowerCase();
-    let code = genCode(6);
-    while (await kvGet("fda:repcode:" + code)) code = genCode(6);
-    const rate = body.rate != null && !isNaN(body.rate) ? Math.max(0, Math.min(1, Number(body.rate))) : DEFAULT_RATE;
-    const rep = {
-      id, name, email: String(body.email || "").trim().slice(0, 160), phone: String(body.phone || "").slice(0, 40),
-      code, accessCode: genCode(8), rate, active: true, sales: [], createdAt: new Date().toISOString(),
-    };
-    await kvSet("fda:rep:" + id, rep);
-    await kvSet("fda:repcode:" + code, id);
-    await kvSet("fda:repmap:" + email, { id });
-    index.unshift({ id, name, code });
-    await kvSet(REP_INDEX, index);
-    return res.status(200).json({ ok: true, rep: publicRep(rep) });
+    const r = await makeRep({ name: body.name, email: body.email, phone: body.phone, rate: body.rate });
+    if (r.error) return res.status(r.error.includes("exists") ? 409 : 400).json({ error: r.error });
+    return res.status(200).json({ ok: true, rep: publicRep(r.rep) });
+  }
+
+  // Pending rep applications (from the public /apply.html page).
+  if (action === "rep-apps") {
+    let apps = (await kvGet(REP_APPS)) || [];
+    if (!Array.isArray(apps)) apps = [];
+    return res.status(200).json({ ok: true, apps });
+  }
+  if (action === "rep-approve") {
+    let apps = (await kvGet(REP_APPS)) || [];
+    if (!Array.isArray(apps)) apps = [];
+    const app = apps.find((a) => a.id === body.appId);
+    if (!app) return res.status(404).json({ error: "Application not found." });
+    const rate = body.rate != null && !isNaN(body.rate) ? Number(body.rate) : DEFAULT_RATE;
+    const r = await makeRep({ name: app.name, email: app.email, phone: app.phone, rate });
+    if (r.error) return res.status(r.error.includes("exists") ? 409 : 400).json({ error: r.error });
+    await kvSet(REP_APPS, apps.filter((a) => a.id !== body.appId));
+    return res.status(200).json({ ok: true, rep: publicRep(r.rep) });
+  }
+  if (action === "rep-reject") {
+    let apps = (await kvGet(REP_APPS)) || [];
+    if (!Array.isArray(apps)) apps = [];
+    await kvSet(REP_APPS, apps.filter((a) => a.id !== body.appId));
+    return res.status(200).json({ ok: true });
   }
 
   // All actions below act on one rep.
@@ -221,6 +253,26 @@ async function handleRepPublic(req, res, action) {
     const rep = await kvGet("fda:rep:" + sanitizeKey(id));
     if (!rep) return res.status(404).json({ error: "Account not found." });
     return res.status(200).json({ ok: true, rep: publicRep(rep) });
+  }
+
+  // Public application from /apply.html — write-only into the pending queue.
+  if (action === "rep-apply") {
+    if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+    const name = String(body.name || "").trim().slice(0, 120);
+    const email = String(body.email || "").trim().slice(0, 160);
+    if (!name || !email) return res.status(400).json({ error: "Name and email are required." });
+    let apps = (await kvGet(REP_APPS)) || [];
+    if (!Array.isArray(apps)) apps = [];
+    if (apps.length > 300) apps = apps.slice(-300);
+    apps.unshift({
+      id: "app" + Date.now().toString(36) + genCode(3).toLowerCase(),
+      name, email, phone: String(body.phone || "").slice(0, 40),
+      city: String(body.city || "").slice(0, 80),
+      experience: String(body.experience || "").slice(0, 1200),
+      at: new Date().toISOString(),
+    });
+    await kvSet(REP_APPS, apps);
+    return res.status(200).json({ ok: true });
   }
 
   return null;
@@ -341,7 +393,7 @@ export default async function handler(req, res) {
 
   // Sales-rep self-service (login / own dashboard) runs BEFORE the owner gate —
   // reps authenticate with email+access code or a scoped rep token.
-  if (req.query && (req.query.action === "rep-login" || req.query.action === "rep-me")) {
+  if (req.query && (req.query.action === "rep-login" || req.query.action === "rep-me" || req.query.action === "rep-apply")) {
     try {
       const handled = await handleRepPublic(req, res, req.query.action);
       if (handled !== null) return handled;

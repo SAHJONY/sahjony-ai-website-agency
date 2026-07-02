@@ -83,10 +83,18 @@ function repTotals(rep) {
   });
   return { salesCount: sales.length, revenue, commission, pending, paid };
 }
+// Rep as seen by the REP themselves (rep-login / rep-me): access code stripped.
 function publicRep(rep) {
   if (!rep) return null;
   const { accessCode, ...safe } = rep;
   return { ...safe, totals: repTotals(rep) };
+}
+// Rep as seen by the OWNER (rep-list/create/approve/…): keeps accessCode — the
+// owner must be able to read it to hand it to the rep. Stripping it here was a
+// bug: the Sales Team page showed "—" and reps were given nothing to log in with.
+function ownerRep(rep) {
+  if (!rep) return null;
+  return { ...rep, totals: repTotals(rep) };
 }
 const REP_APPS = "fda:rep:apps"; // pending applications from /apply.html
 
@@ -128,7 +136,7 @@ async function handleRepOwner(req, res, action) {
     const reps = [];
     for (const entry of index) {
       const rep = await kvGet("fda:rep:" + sanitizeKey(entry.id));
-      if (rep) reps.push(publicRep(rep));
+      if (rep) reps.push(ownerRep(rep));
     }
     return res.status(200).json({ ok: true, reps });
   }
@@ -136,7 +144,7 @@ async function handleRepOwner(req, res, action) {
   if (action === "rep-create") {
     const r = await makeRep({ name: body.name, email: body.email, phone: body.phone, rate: body.rate });
     if (r.error) return res.status(r.error.includes("exists") ? 409 : 400).json({ error: r.error });
-    return res.status(200).json({ ok: true, rep: publicRep(r.rep) });
+    return res.status(200).json({ ok: true, rep: ownerRep(r.rep) });
   }
 
   // Pending rep applications (from the public /apply.html page).
@@ -154,7 +162,7 @@ async function handleRepOwner(req, res, action) {
     const r = await makeRep({ name: app.name, email: app.email, phone: app.phone, rate });
     if (r.error) return res.status(r.error.includes("exists") ? 409 : 400).json({ error: r.error });
     await kvSet(REP_APPS, apps.filter((a) => a.id !== body.appId));
-    return res.status(200).json({ ok: true, rep: publicRep(r.rep) });
+    return res.status(200).json({ ok: true, rep: ownerRep(r.rep) });
   }
   if (action === "rep-reject") {
     let apps = (await kvGet(REP_APPS)) || [];
@@ -173,11 +181,12 @@ async function handleRepOwner(req, res, action) {
     if (typeof body.phone === "string") rep.phone = body.phone.slice(0, 40);
     if (typeof body.active === "boolean") rep.active = body.active;
     if (body.rate != null && !isNaN(body.rate)) rep.rate = Math.max(0, Math.min(1, Number(body.rate)));
+    if (body.resetCode) rep.accessCode = genCode(8); // issue a fresh login code
     await kvSet("fda:rep:" + rid, rep);
     // keep index name in sync
     let index = (await kvGet(REP_INDEX)) || [];
     const e = index.find((x) => x.id === rep.id); if (e) { e.name = rep.name; await kvSet(REP_INDEX, index); }
-    return res.status(200).json({ ok: true, rep: publicRep(rep) });
+    return res.status(200).json({ ok: true, rep: ownerRep(rep) });
   }
 
   if (action === "rep-record") {
@@ -193,7 +202,7 @@ async function handleRepOwner(req, res, action) {
     rep.sales = Array.isArray(rep.sales) ? rep.sales : [];
     rep.sales.unshift(sale);
     await kvSet("fda:rep:" + rid, rep);
-    return res.status(200).json({ ok: true, sale, rep: publicRep(rep) });
+    return res.status(200).json({ ok: true, sale, rep: ownerRep(rep) });
   }
 
   if (action === "rep-pay") {
@@ -205,7 +214,7 @@ async function handleRepOwner(req, res, action) {
       s.status = "paid"; s.paidAt = new Date().toISOString();
     }
     await kvSet("fda:rep:" + rid, rep);
-    return res.status(200).json({ ok: true, rep: publicRep(rep) });
+    return res.status(200).json({ ok: true, rep: ownerRep(rep) });
   }
 
   if (action === "rep-delete") {

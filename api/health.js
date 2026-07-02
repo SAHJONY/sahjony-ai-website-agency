@@ -61,11 +61,16 @@ async function loadMarketing() {
   } catch (_) { /* ignore */ }
   return {};
 }
+// Brand accounts baked in as final fallbacks (overridable via Marketing page or
+// SOCIAL_* env vars).
+const SOCIAL_DEFAULTS = {
+  tiktok: "https://www.tiktok.com/@frontdesk.agents",
+};
 function buildSocial(marketing) {
   const m = (marketing && marketing.social) || {};
   const out = {};
   for (const [key] of SOCIAL_PLATFORMS) {
-    const v = m[key] || process.env["SOCIAL_" + key.toUpperCase()] || (key === "x" ? process.env.SOCIAL_TWITTER : "") || "";
+    const v = m[key] || process.env["SOCIAL_" + key.toUpperCase()] || (key === "x" ? process.env.SOCIAL_TWITTER : "") || SOCIAL_DEFAULTS[key] || "";
     if (v && String(v).trim()) out[key] = String(v).trim();
   }
   return out;

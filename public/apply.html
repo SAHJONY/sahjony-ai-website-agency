@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Become a Sales Rep — FrontDesk Agents</title>
-<meta name="description" content="Earn 25% commission selling AI websites + receptionists to local businesses. Apply to join the FrontDesk Agents sales team.">
+<title>Join the Sales Team — earn 25% — FrontDesk Agents</title>
+<meta name="description" content="Join our worldwide sales team. Earn 25% commission selling AI websites + receptionists to local businesses — in any country, any language, from your phone.">
 <meta name="theme-color" content="#04080f">
 <link rel="icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,57 +12,146 @@
 <style>
   :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16)}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh}
+  body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
   .fd{font-family:'Fraunces',serif}
   a{color:var(--teal)}
-  .wrap{max-width:640px;margin:0 auto;padding:40px 20px 90px}
-  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800;margin:0 auto 14px}
-  h1{font-family:'Fraunces',serif;font-size:34px;font-weight:700;text-align:center;letter-spacing:-.02em}
-  .sub{color:var(--muted);text-align:center;margin:8px 0 6px;font-size:15px}
-  .perks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0}
-  .perk{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
-  .perk b{display:block;font-size:20px;color:var(--gold)} .perk span{font-size:12px;color:var(--muted)}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(4,8,15,.88);backdrop-filter:blur(12px);z-index:10}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#f6dba2,var(--gold));display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:800}
+  [data-lang-select]{background:var(--ink2);color:var(--text);border:1px solid var(--line);border-radius:9px;font-size:12.5px;font-weight:600;padding:8px 10px;cursor:pointer}
+  .wrap{max-width:720px;margin:0 auto;padding:40px 20px 90px}
+  h1{font-family:'Fraunces',serif;font-size:clamp(32px,6vw,44px);font-weight:700;text-align:center;letter-spacing:-.02em;line-height:1.1}
+  .sub{color:var(--muted);text-align:center;margin:12px auto 4px;font-size:16px;line-height:1.65;max-width:560px}
+  .perks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0}
+  .perk{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;font-size:12.5px;color:var(--muted)}
+  .perk b{display:block;color:var(--gold);font-size:20px;margin-bottom:2px}
+  .sec{margin-top:34px}
+  .kick{font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+  h2{font-family:'Fraunces',serif;font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:10px}
+  .card{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(14px)}
+  .step{display:flex;gap:14px;margin-top:14px}
+  .num{flex:0 0 30px;height:30px;border-radius:50%;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .step h3{font-size:15.5px;margin-bottom:3px}
+  .step p{font-size:14.5px;color:var(--muted);line-height:1.65}
+  ul.list{margin:8px 0 0 18px}
+  ul.list li{font-size:14.5px;color:#cdd8e6;line-height:1.8}
+  .money{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .money div{background:rgba(4,8,15,.4);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted)}
+  .money b{display:block;color:var(--text);font-size:16px;margin-bottom:2px}
   label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px}
   input,textarea{width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit}
   input:focus,textarea:focus{outline:none;border-color:var(--gold)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:14px 18px;font-size:15px;width:100%;margin-top:18px;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
-  .card{background:rgba(13,26,45,.55);border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:16px;backdrop-filter:blur(14px)}
+  .btn{border:none;cursor:pointer;font-weight:700;border-radius:11px;padding:15px 18px;font-size:15px;width:100%;margin-top:18px;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206}
   #msg{margin-top:14px;font-size:14px;display:none;text-align:center}
-  @media(max-width:560px){.row{grid-template-columns:1fr}.perks{grid-template-columns:1fr}}
+  .cta{display:inline-block;text-decoration:none;background:linear-gradient(180deg,#f6dba2,var(--gold));color:#1a1206;font-weight:800;border-radius:12px;padding:14px 26px;font-size:15px}
+  .center{text-align:center}
+  @media(max-width:560px){.row,.money{grid-template-columns:1fr}.perks{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body data-i18n-auto>
+<div class="top">
+  <div style="display:flex;align-items:center;gap:10px" data-no-i18n><div class="logo">FD</div><div class="fd" style="font-weight:700;font-size:16px">FrontDesk Agents</div></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <select data-lang-select data-no-i18n aria-label="Language"></select>
+    <a href="/" style="font-size:13px;font-weight:600;text-decoration:none">🏠 Home</a>
+  </div>
+</div>
+
 <div class="wrap">
-  <div class="logo">FD</div>
-  <h1>Sell websites. Earn 25%.</h1>
-  <p class="sub">Join the FrontDesk Agents sales team. You bring local businesses, the AI builds their site + receptionist, and you earn commission on every deal — plus recurring on the monthly plans.</p>
+  <h1>Sell websites. Earn <span style="color:var(--gold)" data-no-i18n>25%</span>. Work from anywhere.</h1>
+  <p class="sub">Join our worldwide sales team. You connect local businesses with an AI-built website + 24/7 AI receptionist — we build everything, you collect commission on every sale. Any country. Any language. From your phone.</p>
+  <p class="center" style="margin-top:18px"><a class="cta" href="#applyForm">Apply now — it's free →</a></p>
 
   <div class="perks">
-    <div class="perk"><b>25%</b><span>commission per sale</span></div>
-    <div class="perk"><b>$0</b><span>cost to start</span></div>
-    <div class="perk"><b>24/7</b><span>your own portal</span></div>
+    <div class="perk"><b data-no-i18n>25%</b>commission on every sale</div>
+    <div class="perk"><b data-no-i18n>$0</b>cost to start — no inventory</div>
+    <div class="perk"><b>🌍</b>sell worldwide, in any language</div>
   </div>
 
-  <div class="card" id="formCard">
-    <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:2px">Apply now</div>
-    <div style="color:var(--muted);font-size:13px">We review every application and email you your login + agreement once approved.</div>
-    <div class="row">
-      <div><label>Full name *</label><input id="name" placeholder="Jordan Vega"></div>
-      <div><label>Email *</label><input id="email" type="email" placeholder="you@email.com"></div>
+  <!-- HOW TO JOIN -->
+  <div class="sec">
+    <div class="kick">Step 1 — Joining</div>
+    <h2>How to join the team</h2>
+    <div class="card">
+      <div class="step"><div class="num" data-no-i18n>1</div><div><h3>Apply below (2 minutes)</h3><p>Name, email, and a few words about yourself. No experience required — we give you the full playbook.</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>2</div><div><h3>Get approved</h3><p>We review every application. Once approved you receive your <b>rep portal login</b>, your personal <b>referral link</b>, and your <b>commission agreement</b> (25%, in writing).</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>3</div><div><h3>Start earning</h3><p>Share your link, bring businesses, and track every sale and commission live in your own portal — with downloadable payout statements.</p></div></div>
     </div>
-    <div class="row">
-      <div><label>Phone</label><input id="phone" placeholder="+1 713 555 0100"></div>
-      <div><label>City / area</label><input id="city" placeholder="Houston, TX"></div>
-    </div>
-    <label>Tell us about yourself (sales experience, why you'd be great)</label>
-    <textarea id="experience" rows="4" placeholder="A few sentences about your background and the businesses you can reach…"></textarea>
-    <button class="btn" id="go">Submit application →</button>
-    <div id="msg"></div>
   </div>
 
-  <p class="sub" style="margin-top:22px">Already approved? <a href="/rep.html">Sign in to your rep portal →</a></p>
-  <p class="sub" style="margin-top:8px"><a href="/">← Back to home</a></p>
+  <!-- WHAT YOU'RE SELLING -->
+  <div class="sec">
+    <div class="kick">Step 2 — The product</div>
+    <h2>What you'll be selling</h2>
+    <div class="card">
+      <p style="font-size:14.5px;color:#cdd8e6;line-height:1.7">Every local business — restaurants, barbers, mechanics, salons, clinics, shops — needs to be online. You sell them a <b>complete online presence, built by AI, live in days</b>:</p>
+      <ul class="list">
+        <li><b>A stunning website</b> — custom design, mobile, multilingual, on Google, with their photos, menu and prices.</li>
+        <li><b>Ava, a 24/7 AI receptionist</b> — answers their customers day and night in 100+ languages, books appointments, captures every lead. Optional real phone line that answers calls.</li>
+        <li><b>Their own dashboard</b> — the owner updates prices and promotions themselves, instantly.</li>
+        <li><b>Social Autopilot</b> — we set up and run their social media automatically (add-on).</li>
+      </ul>
+      <div class="money">
+        <div><b data-no-i18n>$899 – $1,999</b>one-time website build (your commission: 25%)</div>
+        <div><b data-no-i18n>$49 – $149/mo</b>care plan, Ava &amp; add-ons — recurring revenue</div>
+      </div>
+      <p style="font-size:13.5px;color:var(--muted);margin-top:10px">Payment plans are welcome and clients can pay by Zelle, Cash App, or card — so price is never a dead end.</p>
+    </div>
+  </div>
+
+  <!-- HOW YOU'LL SELL IT -->
+  <div class="sec">
+    <div class="kick">Step 3 — The method</div>
+    <h2>How you'll sell it — worldwide, in any language</h2>
+    <div class="card">
+      <div class="step"><div class="num" data-no-i18n>1</div><div><h3>Share your personal link</h3><p>Every prospect who clicks your referral link is tracked to you automatically. Send it by WhatsApp, text, email, or social — anywhere on Earth.</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>2</div><div><h3>Let the free preview do the selling</h3><p>The business requests a website through your link and we build a <b>free preview of THEIR business</b>. When an owner sees their own shop looking world-class on a phone screen, the sale closes itself.</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>3</div><div><h3>Language is never a barrier</h3><p>The websites we build are multilingual, Ava speaks 100+ languages, and this whole platform translates itself — use the language picker at the top of this page right now to see it. You can sell in Spanish, Arabic, Hindi, Chinese, French… whatever your market speaks.</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>4</div><div><h3>We close, build and deliver</h3><p>You bring the interested business — our team handles the contract, the build, the payment, and the delivery. Card sales credit your commission <b>automatically</b>; you watch it appear in your portal.</p></div></div>
+      <div class="step"><div class="num" data-no-i18n>5</div><div><h3>Get paid, then get paid again</h3><p>You earn on the build, and the monthly plans keep the client relationship alive — happy clients refer more businesses to your link.</p></div></div>
+    </div>
+  </div>
+
+  <!-- HOW TO FIND LEADS -->
+  <div class="sec">
+    <div class="kick">Step 4 — The hunt</div>
+    <h2>How to find leads (they are everywhere)</h2>
+    <div class="card">
+      <ul class="list">
+        <li><b>🚶 Walk your neighborhood.</b> Every shop with no website — or an ugly, outdated one — is a prospect. Local owners buy from people they meet. This is the highest close-rate channel.</li>
+        <li><b>🗺️ Mine Google Maps.</b> Search your city for restaurants, barbers, mechanics, salons. Open each profile: no website link, or a broken one? That's a lead. There are thousands in every city on Earth.</li>
+        <li><b>📱 Work social media.</b> Local Facebook groups, marketplace sellers, Instagram businesses taking orders by DM — they all need a real website and a receptionist that never sleeps.</li>
+        <li><b>🤝 Use your own network.</b> Family, friends, your barber, your mechanic, your favorite taco spot. Everyone knows ten business owners.</li>
+        <li><b>🔁 Ask every client for referrals.</b> After a launch, one question — "who else needs this?" — keeps your pipeline full forever.</li>
+        <li><b>🌍 Think worldwide.</b> Your link works in any country. A café in Mexico City, a salon in Manila, a garage in Lagos — if they have customers, they need this, and you can sell it in their language.</li>
+      </ul>
+      <p style="font-size:13.5px;color:var(--muted);margin-top:12px">Once you're approved, your rep portal includes the full <b>Sales Playbook</b>: exact prices, the 5-step pitch, and word-for-word answers to every objection.</p>
+    </div>
+  </div>
+
+  <!-- APPLY -->
+  <div class="sec" id="applyForm">
+    <div class="kick">Step 5 — Your move</div>
+    <h2>Apply now</h2>
+    <div class="card" id="formCard">
+      <div style="color:var(--muted);font-size:13.5px">We review every application and email you your login + agreement once approved. Free to apply, no obligation.</div>
+      <div class="row">
+        <div><label>Full name *</label><input id="name" data-en="Jordan Vega" placeholder="Jordan Vega"></div>
+        <div><label>Email *</label><input id="email" type="email" data-en="you@email.com" placeholder="you@email.com"></div>
+      </div>
+      <div class="row">
+        <div><label>Phone / WhatsApp</label><input id="phone" placeholder="+1 713 555 0100" data-no-i18n></div>
+        <div><label>City &amp; country</label><input id="city" data-en="Houston, TX, USA" placeholder="Houston, TX, USA"></div>
+      </div>
+      <label>Tell us about yourself (languages you speak, sales experience, the businesses you can reach)</label>
+      <textarea id="experience" rows="4" data-en="A few sentences about you…" placeholder="A few sentences about you…"></textarea>
+      <button class="btn" id="go">Submit my application →</button>
+      <div id="msg"></div>
+    </div>
+  </div>
+
+  <p class="sub" style="margin-top:26px">Already approved? <a href="/rep.html">Sign in to your rep portal →</a><br>
+  Want to see the product first? <a href="/">Visit the site</a> · <a href="/pricing.html">See pricing</a></p>
 </div>
 
 <script>
@@ -76,10 +165,11 @@ el("go").onclick=async function(){
     var r=await fetch("/api/data?action=rep-apply",{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify({name:name,email:email,phone:el("phone").value.trim(),city:el("city").value.trim(),experience:el("experience").value.trim()})});
     var j=await r.json().catch(function(){return{};});
-    if(!r.ok){msg(j.error||"Something went wrong. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit application →";return;}
+    if(!r.ok){msg(j.error||"Something went wrong. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit my application →";return;}
     el("formCard").innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:40px">🎉</div><div class="fd" style="font-size:22px;font-weight:700;margin:10px 0">Application received!</div><div style="color:#9fb3c9;font-size:15px;line-height:1.6">Thanks '+name.replace(/[<>]/g,"")+'. We\'ll review it and email your rep login + commission agreement once you\'re approved.</div></div>';
-  }catch(e){msg("Network error. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit application →";}
+  }catch(e){msg("Network error. Please try again.",false);el("go").disabled=false;el("go").textContent="Submit my application →";}
 };
 </script>
+<script src="/i18n.js"></script>
 </body>
 </html>

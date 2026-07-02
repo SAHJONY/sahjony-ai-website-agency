@@ -65,6 +65,7 @@ async function loadMarketing() {
 // SOCIAL_* env vars).
 const SOCIAL_DEFAULTS = {
   tiktok: "https://www.tiktok.com/@frontdesk.agents",
+  instagram: "https://www.instagram.com/frontdeskagentsllc",
 };
 function buildSocial(marketing) {
   const m = (marketing && marketing.social) || {};

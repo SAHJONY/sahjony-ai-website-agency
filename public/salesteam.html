@@ -157,7 +157,9 @@ function render(reps){
       '</div>'+
       '<div class="refbox"><span class="muted">Referral link</span> <span class="code" data-ref="'+esc(ref)+'">'+esc(ref)+'</span>'+
         '<button class="btn ghost" data-copy="'+esc(ref)+'" style="padding:4px 9px;font-size:11.5px">Copy</button>'+
-        '<span class="muted" style="margin-left:6px">Access code</span> <span class="code">'+esc(rp.accessCode||"—")+'</span></div>'+
+        '<span class="muted" style="margin-left:6px">Access code</span> <span class="code">'+esc(rp.accessCode||"—")+'</span>'+
+        (rp.accessCode?'<button class="btn ghost" data-copy="'+esc(rp.accessCode)+'" style="padding:4px 9px;font-size:11.5px">Copy</button>':'')+
+        '<button class="btn ghost" data-newcode="'+rp.id+'" style="padding:4px 9px;font-size:11.5px" title="Generate a new login code for this rep">↻ Reset</button></div>'+
       '<div class="grid4" style="margin:12px 0 4px">'+
         '<div class="stat"><b>'+(t.salesCount||0)+'</b><span>Sales</span></div>'+
         '<div class="stat"><b>'+money(t.revenue)+'</b><span>Revenue</span></div>'+
@@ -180,6 +182,7 @@ function render(reps){
 
 function wire(){
   document.querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy);msg("✓ Copied",true);};});
+  document.querySelectorAll("[data-newcode]").forEach(function(b){b.onclick=async function(){ if(!confirm("Generate a NEW access code for this rep? Their old code stops working."))return; var r=await api("rep-update",{repId:b.dataset.newcode,resetCode:true}); if(r.ok){msg("✓ New access code: "+r.j.rep.accessCode,true);load();}else msg(r.j.error||"Failed",false); };});
   document.querySelectorAll("[data-rec]").forEach(function(b){b.onclick=function(){recordSale(b.dataset.rec);};});
   document.querySelectorAll("[data-payall]").forEach(function(b){b.onclick=async function(){ if(!confirm("Mark ALL pending commissions as paid for this rep?"))return; var r=await api("rep-pay",{repId:b.dataset.payall,all:true}); if(r.ok){msg("✓ Marked paid",true);load();}else msg(r.j.error||"Failed",false); };});
   document.querySelectorAll("[data-stmt]").forEach(function(b){b.onclick=function(){ var rp=REPS[b.dataset.stmt]; if(!rp)return; var w=window.open("","_blank"); if(!w){msg("Allow pop-ups",false);return;} w.document.write(statementHTML(rp)); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); };});

@@ -44,8 +44,9 @@
 <div class="dgrid" style="display:grid;grid-template-columns:240px 1fr;min-height:100vh;display:none">
   <aside style="background:#101017;border-right:1px solid rgba(255,255,255,.07);padding:22px 16px;display:flex;flex-direction:column;gap:6px">
     <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 20px"><div style="width:34px;height:34px;border-radius:9px;background:#e8c476;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div><div><div style="font-family:'Fraunces',sans-serif;font-weight:700;font-size:15px;line-height:1">frontdeskagents</div><div style="font-size:11px;color:#8c8998">DASHBOARD</div></div></div>
+    <button class="tab" data-tab="overview" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:700;padding:11px 13px;border-radius:10px;background:rgba(232,196,118,.14);color:#2dd4bf">📊 Overview</button>
     <button class="tab" data-tab="builder" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:700;padding:11px 13px;border-radius:10px;background:transparent;color:#e8c476">🔨 Builder</button>
-    <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:rgba(232,196,118,.14);color:#2dd4bf">🎯 Leads</button>
+    <button class="tab" data-tab="leads" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">🎯 Leads</button>
     <button class="tab" data-tab="clients" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">👥 Clients</button>
     <button class="tab" data-tab="inbox" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">📨 Inbox</button>
     <button class="tab" data-tab="subs" style="text-align:left;border:none;cursor:pointer;font-size:14.5px;font-weight:600;padding:11px 13px;border-radius:10px;background:transparent;color:#b6b2c2">💳 Subscriptions</button>
@@ -86,7 +87,7 @@
 <script>
 const KEY = "fda:panel:owner";
 let state = { leads:[], clients:[], subs:[] };
-let tab = "leads";
+let tab = "overview";
 
 async function load(){
   try{
@@ -123,7 +124,7 @@ async function save(){
   }catch(e){ document.getElementById("cloudDot").textContent = "Cloud: save failed"; }
 }
 
-const TITLES = { builder:["Builder","Build a client's site — owner only"], leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Website build requests from customers"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], customers:["Customers","Vehicles, financing, payments & portal access"], statereq:["State Rules","Auto-finance & refinance requirements by state — review & edit"], playbook:["Playbook","Your A→Z strategy (owner-only)"], scripts:["Scripts","Your sales scripts (owner-only — keep private)"], settings:["Settings","Manage AI engine keys (env secrets)"] };
+const TITLES = { overview:["Overview","Your whole business at a glance"], builder:["Builder","Build a client's site — owner only"], leads:["Leads","New business in your pipeline"], clients:["Clients","Businesses you've built sites for"], inbox:["Inbox","Website build requests from customers"], subs:["Subscriptions","Recurring care-plan revenue"], sites:["Sites","Published client websites"], customers:["Customers","Vehicles, financing, payments & portal access"], statereq:["State Rules","Auto-finance & refinance requirements by state — review & edit"], playbook:["Playbook","Your A→Z strategy (owner-only)"], scripts:["Scripts","Your sales scripts (owner-only — keep private)"], settings:["Settings","Manage AI engine keys (env secrets)"] };
 
 function render(){
   const [t,s] = TITLES[tab] || TITLES.leads;
@@ -132,6 +133,7 @@ function render(){
   document.getElementById("addBtn").style.display = (tab==="settings"||tab==="statereq") ? "none" : "block";
   document.getElementById("addBtn").textContent = tab==="subs" ? "＋ Add subscription" : (tab==="customers" ? "＋ Add customer" : "＋ Add");
   document.getElementById("findBtn").style.display = tab==="leads" ? "block" : "none";
+  if(tab==="overview"){ renderOverview(); return; }
   if(tab==="builder"){ renderBuilder(); return; }
   if(tab==="settings"){ renderSettings(); return; }
   if(tab==="inbox"){ renderInbox(); return; }
@@ -414,6 +416,59 @@ async function renderSites(){
       renderSites();
     }catch(e){ alert("Network error"); }
   });
+}
+
+/* ===================== OVERVIEW (business at a glance) ===================== */
+async function renderOverview(){
+  document.getElementById("addBtn").style.display = "none";
+  const list = document.getElementById("list");
+  const money = (n)=>"$"+(Math.round((Number(n)||0)*100)/100).toLocaleString("en-US");
+  const card = (label,val,sub,accent)=>`<div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 20px"><div style="font-size:12px;color:#8c8998;text-transform:uppercase;letter-spacing:.06em">${label}</div><div style="font-family:'Fraunces',serif;font-size:30px;font-weight:700;margin-top:4px;color:${accent||'#f0eef2'}">${val}</div>${sub?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">${sub}</div>`:""}</div>`;
+  list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">Loading your business…</div>`;
+  // Pull everything in parallel; each block fails soft so one outage never blanks the page.
+  const [sitesR, inboxR, repsR] = await Promise.all([
+    fetch("/api/sites",{headers:authHeaders()}).then(r=>r.json()).catch(()=>({})),
+    fetch("/api/data?key="+encodeURIComponent("fda:contact:inbox"),{headers:authHeaders()}).then(r=>r.json()).catch(()=>({})),
+    fetch("/api/data?action=rep-list",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:"{}"}).then(r=>r.json()).catch(()=>({})),
+  ]);
+  const sites = Array.isArray(sitesR.sites)?sitesR.sites:[];
+  const liveSites = sites.filter(s=>(s.status||"active")==="active").length;
+  const views = sites.reduce((a,s)=>a+(Number(s.views)||0),0);
+  const inbox = Array.isArray(inboxR.value)?inboxR.value:[];
+  const weekAgo = Date.now()-7*86400000;
+  const newLeads = inbox.filter(m=>Number(m.id)>weekAgo).length;
+  const buildReqs = inbox.filter(m=>/build request/i.test(m.type||"")).length;
+  const mrr = (state.subs||[]).filter(x=>x.status==="active").reduce((a,x)=>a+(Number(x.price)||0),0);
+  const reps = Array.isArray(repsR.reps)?repsR.reps:[];
+  const owed = reps.reduce((a,r)=>a+((r.totals&&r.totals.pending)||0),0);
+  const repRev = reps.reduce((a,r)=>a+((r.totals&&r.totals.revenue)||0),0);
+  list.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+      ${card("Care-plan MRR",money(mrr),(state.subs||[]).length+" subscriptions","#2fd47f")}
+      ${card("Live client sites",liveSites,sites.length+" total · "+views.toLocaleString()+" views")}
+      ${card("Leads · 7 days",newLeads,inbox.length+" in inbox","#e8c476")}
+      ${card("Build requests",buildReqs,"awaiting your build","#e8c476")}
+      ${card("Pipeline",(state.leads||[]).length,"leads being worked")}
+      ${card("Clients",(state.clients||[]).length,"businesses served")}
+      ${card("Rep sales",money(repRev),reps.length+" reps on the team")}
+      ${card("Commissions owed",money(owed),"pay from Sales Team","#ff9f43")}
+    </div>
+    <div style="margin-top:18px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 20px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:10px">Quick actions</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="openBuilder({})" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px">🔨 New build</button>
+        <button onclick="switchTab('inbox')" style="background:rgba(45,212,191,.1);color:#2dd4bf;border:1px solid rgba(45,212,191,.35);cursor:pointer;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px">📨 Work the inbox${buildReqs?` (${buildReqs} builds)`:""}</button>
+        <a href="/salesteam.html" style="text-decoration:none;background:rgba(232,196,118,.12);color:#e8c476;border:1px solid rgba(232,196,118,.3);font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px">👥 Sales team${owed?` — ${money(owed)} owed`:""}</a>
+        <a href="/marketing.html" style="text-decoration:none;background:rgba(232,196,118,.12);color:#e8c476;border:1px solid rgba(232,196,118,.3);font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px">📣 Marketing</a>
+        <a href="/ava.html" style="text-decoration:none;background:rgba(45,212,191,.1);color:#2dd4bf;border:1px solid rgba(45,212,191,.35);font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px">🤖 Ava admin</a>
+      </div>
+    </div>`;
+}
+function switchTab(t){
+  tab=t;
+  document.querySelectorAll(".tab").forEach(x=>{x.style.background="transparent";x.style.color="#b6b2c2";});
+  const btn=document.querySelector('.tab[data-tab="'+t+'"]'); if(btn){btn.style.background="rgba(232,196,118,.14)";btn.style.color="#2dd4bf";}
+  render();
 }
 
 /* ===================== BUILDER (embedded) ===================== */

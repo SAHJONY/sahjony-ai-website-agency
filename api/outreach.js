@@ -10,6 +10,7 @@
 // Email: RESEND_API_KEY (+ OUTREACH_FROM).  SMS: TWILIO_*.  Voice: BLAND_API_KEY.
 
 import { safeEqual } from "../lib/guard.js";
+import { tgNotifyOwner } from "../lib/telegram.js";
 
 const BLAND = (process.env.BLAND_BASE_URL || "https://api.bland.ai").replace(/\/$/, "");
 
@@ -144,6 +145,36 @@ export default async function handler(req, res) {
         }
       }
     } catch (_) {}
+
+    // ---- Monday business digest: a weekly pulse to the owner's Telegram +
+    // email so the business runs itself even when the dashboard isn't open. ----
+    if (new Date().getUTCDay() === 1) {
+      try {
+        const inbox = (await getJSON("fda:contact:inbox", [])) || [];
+        const weekAgo = Date.now() - 7 * 86400000;
+        const newLeads = Array.isArray(inbox) ? inbox.filter((m) => Number(m.id) > weekAgo).length : 0;
+        const buildReqs = Array.isArray(inbox) ? inbox.filter((m) => Number(m.id) > weekAgo && /build request/i.test(m.type || "")).length : 0;
+        const sitesIdx = (await getJSON("fda:sites:index", [])) || [];
+        const liveSites = Array.isArray(sitesIdx) ? sitesIdx.filter((s) => (s.status || "active") === "active").length : 0;
+        const panel = (await getJSON("fda:panel:owner", {})) || {};
+        const mrr = (Array.isArray(panel.subs) ? panel.subs : []).filter((x) => x.status === "active").reduce((a, x) => a + (Number(x.price) || 0), 0);
+        let owed = 0;
+        const repsIdx = (await getJSON("fda:reps:index", [])) || [];
+        for (const e of (Array.isArray(repsIdx) ? repsIdx.slice(0, 50) : [])) {
+          const rp = await getJSON("fda:rep:" + e.id, null);
+          if (rp && Array.isArray(rp.sales)) rp.sales.forEach((sl) => { if (sl.status !== "paid") owed += Number(sl.commission) || 0; });
+        }
+        const money = (n) => "$" + (Math.round(n * 100) / 100).toLocaleString("en-US");
+        const text = `📊 Weekly pulse — frontdeskagents.com\n\n` +
+          `🆕 Leads this week: ${newLeads} (build requests: ${buildReqs})\n` +
+          `🌐 Live client sites: ${liveSites}\n` +
+          `💳 Care-plan MRR: ${money(mrr)}\n` +
+          `🤝 Commissions owed to reps: ${money(owed)}\n\n` +
+          `Open the dashboard to work the pipeline.`;
+        tgNotifyOwner(text.replace(/\n/g, "\n")).catch(() => {});
+        notifyOwner("📊 Weekly pulse — frontdeskagents.com", text).catch(() => {});
+      } catch (_) {}
+    }
 
     return res.status(200).json({ ok: true, posted, clientPosted });
   }

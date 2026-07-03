@@ -1,4 +1,5 @@
 // POST /api/generate  { prompt: string, maxTokens?: number }
+import { tgNotifyOwner } from "../lib/telegram.js";
 //
 // Multi-engine "brain" with autonomous fallback rotation. Keys are resolved from
 // process.env first, then from secrets stored in Upstash (managed in the
@@ -230,6 +231,70 @@ export default async function handler(req, res) {
   // Reuses the same engine rotation; multilingual; concise; captures intent.
   if (body && body.ava) {
     requestDeadline = Date.now() + REQUEST_BUDGET_MS;
+    // --- Lead capture: when the visitor shares a phone/email with Ava, persist
+    // it — to the client's own leads (fda:leads:<slug>), the owner inbox, and a
+    // Telegram ping. Without this, booking details vanished when the chat closed.
+    async function kv(path, opts) {
+      const u = process.env.UPSTASH_REDIS_REST_URL, t = process.env.UPSTASH_REDIS_REST_TOKEN;
+      if (!u || !t) return null;
+      return fetch(u.replace(/\/$/, "") + path, { ...opts, headers: { Authorization: "Bearer " + t, ...(opts && opts.headers) } });
+    }
+    async function kvGetJson(key, fb) {
+      const r = await kv("/get/" + encodeURIComponent(key), {});
+      if (!r) return fb;
+      const j = await r.json().catch(() => null);
+      if (j && j.result) { try { return JSON.parse(j.result); } catch { return fb; } }
+      return fb;
+    }
+    async function kvSetJson(key, v) {
+      await kv("/set/" + encodeURIComponent(key), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(v) });
+    }
+    async function captureAvaLead(slugArg, bizArg, msgsArg, cfgArg) {
+      try {
+        const userTexts = msgsArg.filter((m) => m && m.role !== "assistant").map((m) => String(m.content || "")).slice(-6);
+        const blob = userTexts.join("\n");
+        const email = (blob.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [])[0] || "";
+        const phoneRaw = (blob.match(/\+?\d[\d\s().-]{6,}\d/) || [])[0] || "";
+        const phone = phoneRaw && phoneRaw.replace(/\D/g, "").length >= 8 ? phoneRaw.trim() : "";
+        const contact = email || phone;
+        if (!contact) return;
+        const nameM = blob.match(/(?:my name is|i am|i'm|soy|me llamo)\s+([A-Za-zÀ-ÿ' -]{2,40})/i);
+        const name = nameM ? nameM[1].trim().replace(/\s+/g, " ") : "Ava chat visitor";
+        const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9@]/g, "");
+        const dayAgo = Date.now() - 86400000;
+        const entry = {
+          id: Date.now(), name, type: "Ava booking/lead", contact,
+          notes: userTexts.slice(-3).join(" · ").slice(0, 800),
+          bizSlug: slugArg || undefined, at: new Date().toISOString(),
+        };
+        // Client's own leads list (only when this Ava belongs to a hosted site).
+        if (slugArg) {
+          let leads = (await kvGetJson("fda:leads:" + slugArg, [])) || [];
+          if (!Array.isArray(leads)) leads = [];
+          if (leads.some((l) => norm(l.contact || "") === norm(contact) && Number(l.id) > dayAgo)) return; // same visitor, same day
+          leads.push(entry);
+          if (leads.length > 500) leads = leads.slice(-500);
+          await kvSetJson("fda:leads:" + slugArg, leads);
+        }
+        // Owner inbox (dedupe there too when no slug).
+        let inbox = (await kvGetJson("fda:contact:inbox", [])) || [];
+        if (!Array.isArray(inbox)) inbox = [];
+        if (!inbox.some((l) => norm(l.contact || "") === norm(contact) && Number(l.id) > dayAgo && (l.bizSlug || "") === (slugArg || ""))) {
+          inbox.push({ ...entry, city: slugArg || "" });
+          if (inbox.length > 500) inbox = inbox.slice(-500);
+          await kvSetJson("fda:contact:inbox", inbox);
+          tgNotifyOwner(`💬 <b>Ava captured a lead</b>${slugArg ? " (" + slugArg + ")" : ""}\n<b>${name}</b>\n📞 ${contact}\n📝 ${entry.notes.slice(0, 300)}`).catch(() => {});
+          // Also email the CLIENT if their Ava config has a notify email.
+          const to = cfgArg && cfgArg.notifyEmail, rk = process.env.RESEND_API_KEY;
+          if (to && rk) {
+            fetch("https://api.resend.com/emails", {
+              method: "POST", headers: { Authorization: "Bearer " + rk, "content-type": "application/json" },
+              body: JSON.stringify({ from: process.env.OUTREACH_FROM || "onboarding@resend.dev", to, subject: `💬 New lead from Ava — ${bizArg}`, text: `Ava just captured a lead on your website:\n\nName: ${name}\nContact: ${contact}\n\nWhat they said:\n${entry.notes}\n\nReply to them soon!` }),
+            }).catch(() => {});
+          }
+        }
+      } catch (_) { /* lead capture must never break the chat */ }
+    }
     const secrets = await loadSecrets();
     const getKey = (name) => process.env[name] || secrets[name] || "";
     // Per-client customization: load this site's Ava config (fda:ava:<slug>).
@@ -264,6 +329,9 @@ export default async function handler(req, res) {
       (facts ? `\nBusiness facts (use ONLY these, don't invent): ${facts}` : ` Answer questions about services, hours, pricing and location.`) +
       ` Never invent specific facts you weren't given — offer to have the team follow up. Greet warmly on the first message.`;
     const avaPrompt = sys + "\n\nConversation so far:\n" + (convo || "Customer: (started the chat)") + "\nAva:";
+    // Persist any contact info the visitor shared BEFORE replying (serverless may
+    // kill un-awaited work after the response; a lead is worth ~100ms).
+    await captureAvaLead(slug, biz, msgs, cfg);
     for (const engine of [tryClaude, tryOpenAI, tryGemini, tryGrok, tryGLM, tryNvidia]) {
       try {
         const r = await engine(avaPrompt, 400, getKey);

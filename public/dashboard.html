@@ -756,6 +756,58 @@ async function renderSettings(){
     return;
   }
   await loadSecrets();
+  renderBackupCard();
+}
+
+/* One-click business backup: downloads every business record (leads, clients,
+   subs, sites index, reps, marketing, per-site configs) as a dated JSON file.
+   Site HTML is skipped by default (can be huge) — toggle includes it. */
+function renderBackupCard(){
+  const list = document.getElementById("list");
+  if(!list || document.getElementById("bkBtn")) return;
+  const div = document.createElement("div");
+  div.style.cssText = "margin-top:18px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px;max-width:560px";
+  div.innerHTML = `
+    <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;margin-bottom:4px">🗄️ Business backup</div>
+    <div style="font-size:13px;color:#8c8998;line-height:1.55;margin-bottom:12px">Download everything — leads, clients, subscriptions, sites, reps, marketing, and per-client configs — as one JSON file. Keep a copy somewhere safe.</div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:#b6b2c2;margin-bottom:12px;cursor:pointer"><input id="bkHtml" type="checkbox" style="width:auto"> Include full website HTML (bigger file)</label>
+    <button id="bkBtn" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-weight:700;font-size:14px;padding:11px 18px;border-radius:10px">⬇ Download backup</button>
+    <span id="bkMsg" style="font-size:13px;color:#8c8998;margin-left:10px"></span>`;
+  list.appendChild(div);
+  document.getElementById("bkBtn").onclick = exportBackup;
+}
+async function exportBackup(){
+  const btn=document.getElementById("bkBtn"), m=document.getElementById("bkMsg");
+  btn.disabled=true; const say=(t)=>{ if(m) m.textContent=t; };
+  const out={ exportedAt:new Date().toISOString(), app:"frontdeskagents" };
+  const getKey=async(k)=>{ try{ const r=await fetch("/api/data?key="+encodeURIComponent(k),{headers:authHeaders()}); const j=await r.json(); return j.value; }catch(e){ return null; } };
+  try{
+    say("Reading core records…");
+    out.panel = await getKey("fda:panel:owner");
+    out.inbox = await getKey("fda:contact:inbox");
+    out.marketing = await getKey("fda:marketing");
+    out.sweepLeads = await getKey("fda:sweep:leads");
+    say("Reading reps…");
+    try{ const r=await fetch("/api/data?action=rep-list",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:"{}"}); const j=await r.json(); out.reps=j.reps||[]; }catch(e){ out.reps=[]; }
+    say("Reading sites…");
+    let sites=[]; try{ const r=await fetch("/api/sites",{headers:authHeaders()}); const j=await r.json(); sites=j.sites||[]; }catch(e){}
+    out.sitesIndex = sites;
+    const inclHtml = document.getElementById("bkHtml").checked;
+    out.sites = {};
+    for(const s of sites.slice(0,100)){
+      say("Site: "+s.slug+"…");
+      const rec = { ava: await getKey("fda:ava:"+s.slug), portal: await getKey("fda:portal:"+s.slug), content: await getKey("fda:content:"+s.slug), social: await getKey("fda:social:"+s.slug), leads: await getKey("fda:leads:"+s.slug) };
+      if(inclHtml) rec.site = await getKey("fda:site:"+s.slug);
+      out.sites[s.slug]=rec;
+    }
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="frontdeskagents-backup-"+new Date().toISOString().slice(0,10)+".json";
+    a.click(); URL.revokeObjectURL(a.href);
+    say("✓ Backup downloaded");
+  }catch(e){ say("Backup failed — try again."); }
+  btn.disabled=false;
 }
 
 function setMsg(text, ok){

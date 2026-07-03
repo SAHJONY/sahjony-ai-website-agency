@@ -928,6 +928,9 @@ else { document.getElementById("loginPw").focus(); }
     if(!c.adminPassword) warn.push("Your app is <b>UNLOCKED</b> — set <b>ADMIN_PASSWORD</b> in Vercel → Settings → Environment Variables so only you can open the dashboard, Ava admin, sales team, playbook & scripts.");
     if(!c.upstash) warn.push("<b>Upstash</b> isn't configured — cloud data & rate-limiting are off.");
     if(!c.rateLimit) warn.push("Public AI <b>rate-limit is disabled</b> (GEN_RATE_LIMIT=0) — the free builder could burn your AI credits.");
+    if(!c.email) warn.push("<b>Email is OFF</b> — set <b>RESEND_API_KEY</b> so lead alerts, weekly digests & client notifications can send.");
+    else if(!c.emailFrom) warn.push("Email works in <b>test mode only</b> — without <b>OUTREACH_FROM</b> (a sender on your verified domain), Resend only delivers to YOUR OWN account email, never to clients.");
+    else if(!c.emailNotify) warn.push("Set <b>NOTIFY_EMAIL</b> so owner alerts & the weekly digest reach your inbox.");
     if(warn.length){ var el=document.getElementById("secWarn"); el.innerHTML="⚠️ <b>Before you share this app:</b><br>• "+warn.join("<br>• "); el.style.display="block"; }
   }catch(e){}
 })();

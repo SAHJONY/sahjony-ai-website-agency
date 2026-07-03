@@ -122,6 +122,12 @@ export default async function handler(req, res) {
       googlePlaces: has("GOOGLE_PLACES_API_KEY"),
       secretsManager: !!process.env.ADMIN_PASSWORD,
       adminPassword: !!process.env.ADMIN_PASSWORD,
+      // Email readiness: key present, a verified sender set (without OUTREACH_FROM
+      // Resend's test sender only delivers to YOUR OWN account email), and an
+      // owner notify address for digests/alerts.
+      email: has("RESEND_API_KEY"),
+      emailFrom: !!process.env.OUTREACH_FROM,
+      emailNotify: !!(process.env.NOTIFY_EMAIL || process.env.SALES_EMAIL),
       rateLimit: Number(process.env.GEN_RATE_LIMIT || 60) > 0,
       paymentsPrimary: String(process.env.PAYMENTS_PRIMARY || "manual").toLowerCase(),
       model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",

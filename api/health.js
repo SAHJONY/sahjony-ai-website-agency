@@ -118,6 +118,7 @@ export default async function handler(req, res) {
       square: !!(process.env.SQUARE_ACCESS_TOKEN && process.env.SQUARE_LOCATION_ID),
       zelle: has("ZELLE_HANDLE"),
       cashapp: has("CASHAPP_CASHTAG"),
+      paypal: has("PAYPAL_HANDLE"),
       telegram: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_OWNER_CHAT),
       googlePlaces: has("GOOGLE_PLACES_API_KEY"),
       secretsManager: !!process.env.ADMIN_PASSWORD,

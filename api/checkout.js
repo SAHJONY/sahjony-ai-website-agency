@@ -43,6 +43,20 @@ async function squareLink(name, amount) {
   } catch (_) { return ""; }
 }
 
+// Build a PayPal.me link for `amount` from PAYPAL_HANDLE. Accepts a bare username
+// ("YourBiz"), a full paypal.me URL, or an email. PayPal.me pre-fills the amount
+// from the URL (…/paypal.me/YourBiz/149USD); emails are shown as-is (no API).
+function paypalLink(handle, amount) {
+  const h = String(handle || "").trim();
+  if (!h) return "";
+  if (h.includes("@")) return h; // email — PayPal.me can't encode it, show directly
+  let url = /^https?:\/\//i.test(h)
+    ? h.replace(/\/+$/, "")
+    : "https://paypal.me/" + h.replace(/^@/, "").replace(/^paypal\.me\//i, "");
+  if (amount > 0) url += "/" + (Math.round(amount * 100) / 100) + "USD";
+  return url;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -71,7 +85,8 @@ export default async function handler(req, res) {
   // agreement). Configure via env: ZELLE_HANDLE, CASHAPP_CASHTAG.
   const zelle = process.env.ZELLE_HANDLE || "";
   const cashapp = process.env.CASHAPP_CASHTAG || "";
-  const manual = { zelle, cashapp };
+  const paypalHandle = process.env.PAYPAL_HANDLE || "";
+  const manual = { zelle, cashapp, paypal: paypalHandle };
 
   // Installment plan + MINIMUM DOWN PAYMENT policy.
   //   MIN_DOWN_PCT (default 25) — min down as % of build.  MIN_DOWN_USD — min in $.
@@ -95,9 +110,14 @@ export default async function handler(req, res) {
       : `• Website build: ${money(build)} (ask about an installment plan if needed)`);
   }
   if (monthly > 0) opts.push(`• Care plan: ${money(monthly)}/month`);
+  // Amount the client pays now (plan down payment, else the build or the monthly).
+  const payNow = buildIsPlan && downPayment > 0 ? downPayment : (build > 0 ? build : monthly);
+  const paypalUrl = paypalLink(paypalHandle, payNow);
+  manual.paypal = paypalUrl || paypalHandle; // return the amount-filled link to the dashboard
   const manualLines = [];
   if (zelle) manualLines.push(`  – Zelle: ${zelle}`);
   if (cashapp) manualLines.push(`  – Cash App: ${cashapp}`);
+  if (paypalUrl) manualLines.push(`  – PayPal: ${paypalUrl}`);
 
   // PAYMENTS_PRIMARY controls which method leads. Default "manual" (Zelle + Cash
   // App) — zero processor fees, ideal while the business is getting going. Set it

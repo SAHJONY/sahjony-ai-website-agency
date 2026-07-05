@@ -297,6 +297,59 @@ async function handlePortal(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ---- Industry back-office operations (client-owned) ----------------------
+  // The per-industry operational modules (pipelines, ledgers, queues, dispatch…)
+  // live under ONE blob per site so a client owns their whole back-office through
+  // their own portal login — never the agency-admin gate. Shape:
+  //   fda:ops:<slug> = { modules: { <moduleId>: [ {..row..} ] }, visuals: { <moduleId>: url } }
+  const OPS_KEY = "fda:ops:" + slug;
+  const OPS_MAX_ROWS = 500, OPS_MAX_KEYS = 24, OPS_MAX_BYTES = 900 * 1024;
+
+  if (action === "ops-get") {
+    const rec = (await kvGet(OPS_KEY)) || {};
+    return res.status(200).json({
+      ok: true,
+      ops: { modules: (rec && rec.modules) || {}, visuals: (rec && rec.visuals) || {} },
+    });
+  }
+
+  if (action === "ops-save") {
+    const rec = (await kvGet(OPS_KEY)) || {};
+    rec.modules = rec.modules && typeof rec.modules === "object" ? rec.modules : {};
+    rec.visuals = rec.visuals && typeof rec.visuals === "object" ? rec.visuals : {};
+    const moduleId = String(body.module || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+    if (!moduleId) return res.status(400).json({ error: "Missing module id." });
+
+    // Persist a cinematic backdrop URL for this module (http/https only).
+    if (typeof body.visual === "string") {
+      rec.visuals[moduleId] = /^https?:\/\//i.test(body.visual) ? body.visual.slice(0, 2000) : "";
+    }
+    // Persist the module's rows. Generic sanitizer: object rows, capped count/keys,
+    // values coerced to a short string or finite number (no nested objects/HTML bombs).
+    if (Array.isArray(body.rows)) {
+      const clean = body.rows.slice(0, OPS_MAX_ROWS).map((row) => {
+        const out = {};
+        if (row && typeof row === "object") {
+          for (const k of Object.keys(row).slice(0, OPS_MAX_KEYS)) {
+            const key = String(k).replace(/[^a-zA-Z0-9_]/g, "").slice(0, 40);
+            if (!key) continue;
+            const v = row[k];
+            if (typeof v === "number" && isFinite(v)) out[key] = v;
+            else out[key] = String(v == null ? "" : v).slice(0, 400);
+          }
+        }
+        return out;
+      });
+      rec.modules[moduleId] = clean;
+    }
+
+    rec.updatedAt = new Date().toISOString();
+    const bytes = Buffer.byteLength(JSON.stringify(rec), "utf8");
+    if (bytes > OPS_MAX_BYTES) return res.status(413).json({ error: "Back-office data is too large. Remove some rows and try again." });
+    await kvSet(OPS_KEY, rec);
+    return res.status(200).json({ ok: true });
+  }
+
   return res.status(400).json({ error: "Unknown action." });
 }
 

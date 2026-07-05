@@ -111,6 +111,28 @@ the builder form has **no industry/vertical selector**. To make this spec real:
 5. **Cinematic dashboard visuals** come from `api/image.js` using the §5 five-field prompt block,
    not a Convex action.
 
+### 7d. AS BUILT — the per-industry back-office (what actually shipped)
+The plan in §7b was realised as a **registry-driven** system (not AI-generated), and
+reconciled with PR #27's client console so each business has ONE dashboard:
+
+- **`public/verticals.js`** — the single source of truth: each vertical → its ops
+  modules (columns, statuses, KPIs) + `inferVertical()` classifier. Imported by the
+  builder, the client console, and the agency view alike.
+- **Client-owned operations** live inside **`public/business.html`** → the
+  **"Operations" tab**. The client logs in with their own slug + portal password and
+  manages industry ops (pipelines/ledgers/queues/dispatch/KPIs) themselves.
+  Persistence: **`/api/site`** actions **`ops-get` / `ops-save`** → one blob per site
+  at `fda:ops:<slug>` = `{ modules:{<id>:[rows]}, visuals:{<id>:url} }`. Gated by the
+  same portal password as the rest of that dashboard — NEVER the agency-admin gate.
+- **Agency-side view** — **`public/backoffice.html`** (+ builder "Owner Back-Office"
+  button) is the SAME engine but for YOU, gated by the `fda_admin` token, persisting to
+  `/api/data` (`fda:bo:<slug>:*`). Use it to inspect/seed a client's ops; the client's
+  own copy is the `fda:ops:<slug>` blob above. (These are two stores by design — one
+  per audience. If you ever want them to be the same data, point backoffice.html at the
+  `/api/site` ops actions too.)
+- **Cinematic backdrops** (§5) are generated per module via **`/api/image`** using the
+  five-field prompt and cached in each store's `visuals` map, so they paint once.
+
 ### 7c. Guardrails specific to this repo
 - Never leak provider keys to the browser — all AI/asset calls go through `api/*.js`.
 - Respect the existing time budgets in `api/generate.js`; a second (back-office) generation must

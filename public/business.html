@@ -33,6 +33,25 @@
   .tab{padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-weight:600;font-size:13.5px}
   .tab.on{background:rgba(232,196,118,.14);color:var(--gold);border-color:rgba(232,196,118,.35)}
   .panel{display:none} .panel.on{display:block}
+  /* Operations back-office */
+  #opsBg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1s ease;pointer-events:none}
+  #opsBg.on{opacity:.32}
+  #opsVeil{position:absolute;inset:0;z-index:1;pointer-events:none;display:none;background:linear-gradient(180deg,rgba(10,12,16,.55),rgba(10,12,16,.9))}
+  #opsVeil.on{display:block}
+  #opsNav .tab{font-size:12.5px;padding:7px 12px}
+  .okpi{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden}
+  .okpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--gold)}
+  .okpi .l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .okpi .v{font-size:22px;font-weight:800;margin-top:6px}
+  #opsTbl th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line);white-space:nowrap}
+  #opsTbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05)}
+  #opsTbl input,#opsTbl select{width:100%;min-width:84px;background:transparent;border:1px solid transparent;color:var(--fg,#f2f0f6);font:inherit;font-size:13.5px;padding:6px 7px;border-radius:7px}
+  #opsTbl input:hover,#opsTbl select:hover{border-color:var(--line)}
+  #opsTbl input:focus,#opsTbl select:focus{outline:none;border-color:rgba(232,196,118,.55);background:rgba(255,255,255,.04)}
+  #opsTbl select option{background:#14151a;color:#f2f0f6}
+  .opsdel{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:5px 7px;border-radius:6px}
+  .opsdel:hover{color:#ff7a6e;background:rgba(255,122,110,.12)}
+  .opsempty{padding:34px;text-align:center;color:var(--muted)}
   .stat{display:flex;flex-direction:column;gap:2px}
   .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .lead{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
@@ -76,6 +95,7 @@
     <button class="tab" data-p="social">Social media</button>
     <button class="tab" data-p="leads">Leads &amp; bookings</button>
     <button class="tab" data-p="ava">Ava receptionist</button>
+    <button class="tab" data-p="ops" id="opsTab">Operations</button>
     <button class="tab" data-p="request">Request a change</button>
   </div>
 
@@ -193,6 +213,29 @@
       </div>
       <label>Notify email (new leads &amp; calls)</label><input id="av_notifyEmail" placeholder="you@business.com">
       <div style="margin-top:16px"><button class="btn gold" id="saveAva">Save Ava</button></div>
+    </div>
+  </div>
+
+  <!-- OPERATIONS (per-industry back-office, owned by the client) -->
+  <div class="panel" id="p_ops">
+    <div class="card" id="opsCard" style="position:relative;overflow:hidden">
+      <div id="opsBg"></div><div id="opsVeil"></div>
+      <div style="position:relative;z-index:2">
+        <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px" id="opsTitle">Operations</div>
+        <div class="muted" id="opsHint" style="margin-bottom:12px">Your industry back-office — private to your business.</div>
+        <div class="tabs" id="opsNav" style="margin-top:0"></div>
+        <div id="opsKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0"></div>
+        <div style="overflow:auto;border:1px solid var(--line);border-radius:12px">
+          <table id="opsTbl" style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px"><thead></thead><tbody></tbody></table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <span class="muted" id="opsNote">Ready</span>
+          <div style="display:flex;gap:9px;flex-wrap:wrap">
+            <button class="btn ghost" id="opsBackdrop" title="Generate a cinematic backdrop for this module">✨ Backdrop</button>
+            <button class="btn gold" id="opsAdd">+ Add row</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -515,11 +558,143 @@ async function saveSocial(){
   else msg((res.j&&res.j.error)||"Save failed",false);
 }
 
+// ===== Operations back-office (per-industry; owned by the client) =====
+// Modules come from the shared registry (window.__VERTICALS, loaded by the module
+// script below). Data is saved through /api/site ops-get/ops-save, gated by the
+// client's own portal login — same auth as the rest of this dashboard.
+var OPS={modules:{},visuals:{}}, OPSVERT=null, OPSCUR=null, opsTimer=null, opsInit=false;
+function opsMoney(n){var x=Number(n);return isFinite(x)?"$"+Math.round(x).toLocaleString():"$0";}
+function opsVertical(){
+  var V=window.__VERTICALS||{}, inf=window.__inferVertical||function(){return "general";};
+  return V[inf(INDUSTRY)]||V.general||null;
+}
+function opsRows(){OPS.modules[OPSCUR.id]=OPS.modules[OPSCUR.id]||[];return OPS.modules[OPSCUR.id];}
+function opsHue(label){
+  var hues=[145,205,45,275,15,175,320,95],list=OPSCUR.statuses||[],i=list.indexOf(label);
+  if(i<0){var h=0,s=String(label);for(var j=0;j<s.length;j++)h=(h*31+s.charCodeAt(j))>>>0;i=h;}
+  return hues[i%hues.length];
+}
+function opsStyleStatus(sel){
+  var label=sel.value;
+  if(!label){sel.style.color="";sel.style.borderColor="";sel.style.background="";return;}
+  var h=opsHue(label);
+  sel.style.color="hsl("+h+" 70% 72%)";sel.style.borderColor="hsl("+h+" 60% 45% / .5)";sel.style.background="hsl("+h+" 60% 50% / .12)";
+}
+function opsAccentWord(hex){
+  var h=String(hex||"").replace("#","");if(h.length===3)h=h.split("").map(function(c){return c+c;}).join("");
+  var n=parseInt(h,16);if(isNaN(n))return "cyber-cyan";
+  var r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,hue=0;
+  if(d){if(mx===r)hue=((g-b)/d)%6;else if(mx===g)hue=(b-r)/d+2;else hue=(r-g)/d+4;hue*=60;if(hue<0)hue+=360;}
+  if(hue<20||hue>=330)return "crimson";if(hue<45)return "amber-orange";if(hue<70)return "luminescent gold";
+  if(hue<160)return "emerald-mint";if(hue<200)return "cyber-cyan";if(hue<255)return "electric blue";if(hue<290)return "violet";return "magenta";
+}
+function opsBackdropPrompt(){
+  var v=OPSVERT,m=OPSCUR;
+  return ["MODEL: Soul V2 photoreal cinematic still",
+    "COMPOSITION: Cinematic ultra-wide hero, balanced dark-room framing, generous negative space, subject weighted to the right third",
+    'SUBJECT: Ultra-premium '+v.blurb+' operations environment for a '+v.label+', evoking the "'+m.title+'" workflow — sleek futuristic control surfaces with fluid glowing line charts and translucent glass data panels, fully abstract with NO readable text',
+    "LIGHTING: Obsidian-vacuum deep contrast on a near-black background, sharp luminescent "+opsAccentWord(v.accent)+" rim lighting, soft volumetric haze",
+    "AESTHETIC: Tesla/Apple flagship high-end luxury digital asset, 8k, photorealistic, color-graded, no text, no UI chrome, no watermark, no logo"].join("\n");
+}
+function opsApplyBg(){
+  var url=OPS.visuals[OPSCUR.id];
+  if(url){el("opsBg").style.backgroundImage='url("'+url+'")';el("opsBg").classList.add("on");el("opsVeil").classList.add("on");}
+  else{el("opsBg").classList.remove("on");el("opsVeil").classList.remove("on");el("opsBg").style.backgroundImage="";}
+}
+function opsKpi(k){
+  var rows=opsRows();
+  if(k.agg==="count")return String(rows.length);
+  if(k.agg==="countStatus"){var f=OPSCUR.statusField;return String(rows.filter(function(r){return r[f]===k.value;}).length);}
+  if(k.agg==="sum")return opsMoney(rows.reduce(function(a,r){return a+(Number(r[k.field])||0);},0));
+  if(k.agg==="sumProduct")return opsMoney(rows.reduce(function(a,r){return a+(Number(r[k.field])||0)*(Number(r[k.field2])||0);},0));
+  return "—";
+}
+function opsRenderKpis(){
+  var w=el("opsKpis");w.innerHTML="";
+  (OPSCUR.kpis||[]).forEach(function(k){var d=document.createElement("div");d.className="okpi";d.innerHTML='<div class="l">'+esc(k.label)+'</div><div class="v">'+esc(opsKpi(k))+'</div>';w.appendChild(d);});
+}
+function opsCell(col,row,idx){
+  var val=row[col.key]!=null?row[col.key]:"",e;
+  if(col.type==="status"||col.type==="select"){
+    e=document.createElement("select");
+    var opts=col.type==="status"?(OPSCUR.statuses||[]):((OPSCUR.options&&OPSCUR.options[col.key])||[]),html='<option value="">—</option>';
+    opts.forEach(function(o){html+='<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';});
+    e.innerHTML=html;
+    if(col.type==="status"){opsStyleStatus(e);e.addEventListener("change",function(){opsStyleStatus(e);});}
+  }else{
+    e=document.createElement("input");
+    e.type=(col.type==="money"||col.type==="num")?"number":(col.type==="date"?"date":"text");
+    if(col.type==="money")e.step="0.01";
+    e.value=(col.type==="date"&&val)?String(val).slice(0,10):val;
+  }
+  e.addEventListener("change",function(){var v=e.value;if(col.type==="money"||col.type==="num")v=(v===""?"":Number(v));opsRows()[idx][col.key]=v;opsRenderKpis();opsSchedule();});
+  return e;
+}
+function opsRenderTable(){
+  var rows=opsRows(),thead=el("opsTbl").querySelector("thead"),tbody=el("opsTbl").querySelector("tbody");
+  thead.innerHTML="<tr>"+OPSCUR.columns.map(function(c){return "<th>"+esc(c.label)+"</th>";}).join("")+"<th></th></tr>";
+  tbody.innerHTML="";
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="'+(OPSCUR.columns.length+1)+'"><div class="opsempty">No records yet. Click <b>+ Add row</b> to start.</div></td></tr>';return;}
+  rows.forEach(function(row,idx){
+    var tr=document.createElement("tr");
+    OPSCUR.columns.forEach(function(col){var td=document.createElement("td");td.appendChild(opsCell(col,row,idx));tr.appendChild(td);});
+    var td=document.createElement("td"),b=document.createElement("button");b.className="opsdel";b.title="Delete";b.textContent="✕";
+    b.onclick=function(){rows.splice(idx,1);opsRenderAll();opsSchedule();};td.appendChild(b);tr.appendChild(td);
+    tbody.appendChild(tr);
+  });
+}
+function opsRenderNav(){
+  var nav=el("opsNav");nav.innerHTML="";
+  OPSVERT.modules.forEach(function(m){var b=document.createElement("button");b.className="tab"+(m.id===OPSCUR.id?" on":"");b.textContent=(m.icon||"")+" "+m.title;b.onclick=function(){opsSelect(m.id);};nav.appendChild(b);});
+}
+function opsRenderAll(){
+  var n=opsRows().length;
+  el("opsTitle").textContent=(OPSCUR.icon||"")+" "+OPSCUR.title;
+  el("opsHint").textContent=OPSVERT.label+" · "+n+" record"+(n===1?"":"s")+" — private to your business.";
+  opsApplyBg();opsRenderKpis();opsRenderTable();
+}
+function opsSelect(id){OPSCUR=null;OPSVERT.modules.forEach(function(m){if(m.id===id)OPSCUR=m;});if(!OPSCUR)OPSCUR=OPSVERT.modules[0];opsRenderNav();opsRenderAll();}
+function opsSchedule(){
+  var note=el("opsNote");note.textContent="Saving…";
+  clearTimeout(opsTimer);var mid=OPSCUR.id,rows=opsRows().slice();
+  opsTimer=setTimeout(function(){api("ops-save",{module:mid,rows:rows}).then(function(res){note.textContent=res.ok?"✓ Saved":("⚠ "+((res.j&&res.j.error)||"save failed"));});},600);
+}
+function opsGenBackdrop(){
+  if(!OPSCUR)return;var btn=el("opsBackdrop"),mid=OPSCUR.id,old=btn.textContent;btn.disabled=true;btn.textContent="✨ Painting…";
+  fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:opsBackdropPrompt(),size:"1536x1024"})})
+    .then(function(r){return r.json().then(function(j){return {ok:r.ok,st:r.status,j:j};});})
+    .then(function(x){
+      if(!x.ok||!x.j.url){btn.textContent="⚠ "+String((x.j&&x.j.error)||("engine "+x.st)).slice(0,30);setTimeout(function(){btn.textContent=old;btn.disabled=false;},4000);return;}
+      OPS.visuals[mid]=x.j.url;api("ops-save",{module:mid,visual:x.j.url});
+      if(OPSCUR.id===mid)opsApplyBg();
+      btn.textContent="✓ Backdrop";setTimeout(function(){btn.textContent=old;btn.disabled=false;},2500);
+    })
+    .catch(function(){btn.textContent="⚠ Network";setTimeout(function(){btn.textContent=old;btn.disabled=false;},3000);});
+}
+function opsEnsure(){
+  if(opsInit)return;
+  OPSVERT=opsVertical();
+  if(!OPSVERT){el("opsHint").textContent="Loading operations…";return;}
+  opsInit=true;OPSCUR=OPSVERT.modules[0];el("opsNote").textContent="Loading…";
+  api("ops-get").then(function(res){
+    if(res.ok&&res.j&&res.j.ops){OPS.modules=res.j.ops.modules||{};OPS.visuals=res.j.ops.visuals||{};}
+    opsSelect(OPSCUR.id);el("opsNote").textContent="Ready";
+  });
+}
+el("opsAdd").onclick=function(){
+  if(!OPSCUR)return;var blank={};OPSCUR.columns.forEach(function(c){blank[c.key]="";});
+  if(OPSCUR.statusField&&OPSCUR.statuses)blank[OPSCUR.statusField]=OPSCUR.statuses[0];
+  opsRows().push(blank);opsRenderAll();opsSchedule();
+};
+el("opsBackdrop").onclick=opsGenBackdrop;
+window.opsEnsureRetry=opsEnsure; // let the registry module init ops if it loads after the tab is opened
+
 // Tabs
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
   document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
   document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("on");});
   t.classList.add("on"); el("p_"+t.dataset.p).classList.add("on");
+  if(t.dataset.p==="ops") opsEnsure();
 };});
 
 el("li_go").onclick=doLogin;
@@ -543,6 +718,16 @@ try{var saved=JSON.parse(sessionStorage.getItem("fda_biz")||"null");
     el("login").style.display="none";el("app").style.display="block";loadAll();
   }
 }catch(e){}
+</script>
+<!-- Shared per-industry registry — the SAME source of truth the agency-side
+     back-office and the site builder use, so a client's operations map matches
+     their industry consistently across the platform. -->
+<script type="module">
+  import { VERTICALS, inferVertical } from "/verticals.js";
+  window.__VERTICALS = VERTICALS;
+  window.__inferVertical = inferVertical;
+  // If the client already opened Operations before this loaded, initialise now.
+  try{ if(document.getElementById("p_ops").classList.contains("on") && window.opsEnsureRetry) window.opsEnsureRetry(); }catch(e){}
 </script>
 </body>
 </html>

@@ -177,7 +177,14 @@
           </div>
         </div>
 
-        <button id="buildBtn" style="margin-top:4px;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
+        <label style="display:block;font-size:12px;color:#8c8998;margin:14px 0 5px">✨ AI design engine</label>
+        <select id="aiModel" aria-label="AI design engine" style="width:100%;background:rgba(255,255,255,.06);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:14px;font-weight:600;padding:12px 13px;border-radius:10px;cursor:pointer">
+          <option value="claude-fable-5">Claude Fable 5 — highest quality (default)</option>
+          <option value="claude-opus-4-8">Claude Opus 4.8 — faster</option>
+          <option value="">Auto (any available engine)</option>
+        </select>
+
+        <button id="buildBtn" style="margin-top:14px;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
         <div id="err" style="color:#2dd4bf;font-size:14px;text-align:center;display:none"></div>
         <div style="font-size:13px;color:#8c8998;text-align:center">Runs on your own Claude key via the secure backend.</div>
       </div>
@@ -408,7 +415,8 @@ Translate EVERY label and all content into ${lang}.`;
   for(let attempt=0; attempt<2 && !gen; attempt++){
     try{
       if(attempt>0){ const lm=$("#loadMsg"); if(lm) lm.textContent="Retrying the design engine…"; }
-      const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt})});
+      const aiModelSel = $("#aiModel"); const model = aiModelSel ? aiModelSel.value : "claude-fable-5";
+      const r = await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt, model})});
       const j = await r.json();
       if(!r.ok) throw new Error(j.error||("Generator returned "+r.status));
       const match = (j.text||"").match(/\{[\s\S]*\}/);

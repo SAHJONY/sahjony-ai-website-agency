@@ -124,7 +124,7 @@ async function chatCompletions(url, key, model, prompt, maxTokens) {
 }
 
 // ---- Engine: Claude (Anthropic) — the primary, highest-quality brain ----
-async function tryClaude(prompt, maxTokens, getKey) {
+async function tryClaude(prompt, maxTokens, getKey, modelPref) {
   const key = getKey("ANTHROPIC_API_KEY");
   if (!key) return null;
   // Default to Claude Fable 5 — Anthropic's most capable model. (The original
@@ -142,7 +142,8 @@ async function tryClaude(prompt, maxTokens, getKey) {
   // NOTE: Fable 5 requires ≥30-day data retention (ZDR orgs 400 on every call)
   // and is premium-priced ($10/$50 per MTok) — set CLAUDE_MODEL=claude-opus-4-8
   // to fall back to the cheaper flagship.
-  const model = process.env.CLAUDE_MODEL || "claude-fable-5";
+  // Builder can request a specific model; the handler has already allowlisted it.
+  const model = modelPref || process.env.CLAUDE_MODEL || "claude-fable-5";
   const isFable = /fable|mythos/.test(model);
   // Give the primary engine real headroom — a full bespoke site is a large,
   // single-shot generation and the 18s per-engine cap would abort it. Bounded
@@ -383,6 +384,10 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== "string") {
     return res.status(400).json({ error: "Body must include a 'prompt' string." });
   }
+  // Optional Claude model override from the builder. Allowlisted so a client
+  // can't request an arbitrary/expensive model; anything else → env/default.
+  const ALLOWED_MODELS = ["claude-fable-5", "claude-opus-4-8"];
+  const modelPref = body && ALLOWED_MODELS.includes(body.model) ? body.model : "";
 
   // Cap the whole engine chain so we always return JSON before the function
   // times out (which would surface to the browser as a 504 -> generic fallback).
@@ -401,7 +406,7 @@ export default async function handler(req, res) {
 
   for (const engine of engines) {
     try {
-      const result = await engine(prompt, maxTokens, getKey);
+      const result = await engine(prompt, maxTokens, getKey, modelPref);
       if (!result) continue; // engine not configured -> skip silently
       configured++;
       return res.status(200).json(result); // { text, engine }

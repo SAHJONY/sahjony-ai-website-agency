@@ -127,31 +127,49 @@ async function chatCompletions(url, key, model, prompt, maxTokens) {
 async function tryClaude(prompt, maxTokens, getKey) {
   const key = getKey("ANTHROPIC_API_KEY");
   if (!key) return null;
-  // Default to Claude Opus 4.8 — the current flagship. The old default
-  // (claude-3-5-sonnet-20241022) was RETIRED 2025-10-28 and now 404s, which
-  // silently knocked the primary engine offline and forced every generation
-  // onto a fallback. Opus 4.8 uses adaptive-thinking-only params (no
-  // temperature/top_p/budget_tokens — those 400), so the request stays minimal;
-  // effort=medium balances design quality against the serverless time budget.
-  const model = process.env.CLAUDE_MODEL || "claude-opus-4-8";
+  // Default to Claude Fable 5 — Anthropic's most capable model. (The original
+  // default claude-3-5-sonnet-20241022 was RETIRED 2025-10-28 and 404'd, which
+  // silently knocked the primary engine offline.) Fable 5 API rules honored here:
+  //  - thinking is ALWAYS on → we omit the `thinking` param entirely (sending
+  //    it, even `{type:"disabled"}`, is a 400)
+  //  - no temperature/top_p/budget_tokens (all 400) → request stays minimal
+  //  - effort defaults low: on Fable 5 low still beats prior models' high and
+  //    keeps latency inside the serverless budget (thinking is always on, so
+  //    higher effort can run for minutes). Override via CLAUDE_EFFORT.
+  //  - refusal fallback: Fable 5 runs safety classifiers; we opt into the
+  //    server-side fallback to Opus 4.8 (beta header + `fallbacks`) so a benign
+  //    false-positive is transparently re-served instead of failing the request.
+  // NOTE: Fable 5 requires ≥30-day data retention (ZDR orgs 400 on every call)
+  // and is premium-priced ($10/$50 per MTok) — set CLAUDE_MODEL=claude-opus-4-8
+  // to fall back to the cheaper flagship.
+  const model = process.env.CLAUDE_MODEL || "claude-fable-5";
+  const isFable = /fable|mythos/.test(model);
   // Give the primary engine real headroom — a full bespoke site is a large,
   // single-shot generation and the 18s per-engine cap would abort it. Bounded
   // by the overall request deadline inside fetchT.
   const timeout = Number(process.env.CLAUDE_TIMEOUT_MS || 50000);
+  const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    output_config: { effort: process.env.CLAUDE_EFFORT || (isFable ? "low" : "medium") },
+    messages: [{ role: "user", content: prompt }],
+  };
+  if (isFable) {
+    // Opt into server-side refusal fallback (raw HTTP: beta goes in the header).
+    headers["anthropic-beta"] = "server-side-fallback-2026-06-01";
+    body.fallbacks = [{ model: "claude-opus-4-8" }];
+  }
   const r = await fetchT("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      output_config: { effort: process.env.CLAUDE_EFFORT || "medium" },
-      messages: [{ role: "user", content: prompt }],
-    }),
+    headers,
+    body: JSON.stringify(body),
   }, timeout);
   const data = await r.json();
   if (!r.ok) throw new Error((data && data.error && data.error.message) || "Claude API error");
   // A safety refusal is HTTP 200 with stop_reason "refusal" and empty content —
   // check before reading content so it degrades to the next engine cleanly.
+  // (With `fallbacks`, a final refusal means the whole chain declined.)
   if (data && data.stop_reason === "refusal") throw new Error("Claude declined the request (refusal)");
   const text = (data.content && data.content[0] && data.content[0].text) || "";
   if (!text) throw new Error("Claude returned empty text");

@@ -778,6 +778,251 @@ export const VERTICALS = {
     ],
   },
 
+  freelancer: {
+    id: "freelancer",
+    label: "Freelancer / Solo Pro",
+    accent: "#6366f1",
+    blurb: "Projects, Clients & Invoices",
+    modules: [
+      {
+        id: "pipeline",
+        title: "Project Pipeline",
+        icon: "🗂️",
+        kind: "pipeline",
+        statusField: "stage",
+        statuses: ["Lead", "Proposal", "Booked", "In Progress", "Delivered"],
+        columns: [
+          { key: "client", label: "Client", type: "text" },
+          { key: "project", label: "Project", type: "text" },
+          { key: "value", label: "Value", type: "money" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "stage", label: "Stage", type: "status" },
+        ],
+        kpis: [
+          { label: "Projects", agg: "count" },
+          { label: "Pipeline Value", agg: "sum", field: "value" },
+          { label: "In Progress", agg: "countStatus", value: "In Progress" },
+        ],
+      },
+      {
+        id: "clients",
+        title: "Clients",
+        icon: "👥",
+        kind: "table",
+        columns: [
+          { key: "name", label: "Name", type: "text" },
+          { key: "email", label: "Email", type: "text" },
+          { key: "company", label: "Company", type: "text" },
+          { key: "notes", label: "Notes", type: "text" },
+        ],
+        kpis: [{ label: "Clients", agg: "count" }],
+      },
+      {
+        id: "time",
+        title: "Time & Rates",
+        icon: "⏱️",
+        kind: "ledger",
+        columns: [
+          { key: "project", label: "Project", type: "text" },
+          { key: "date", label: "Date", type: "date" },
+          { key: "hours", label: "Hours", type: "num" },
+          { key: "rate", label: "Rate/hr", type: "money" },
+        ],
+        kpis: [
+          { label: "Entries", agg: "count" },
+          { label: "Billable Value", agg: "sumProduct", field: "hours", field2: "rate" },
+        ],
+      },
+      {
+        id: "invoices",
+        title: "Invoices",
+        icon: "🧾",
+        kind: "ledger",
+        statusField: "status",
+        statuses: ["Draft", "Sent", "Paid", "Overdue"],
+        columns: [
+          { key: "client", label: "Client", type: "text" },
+          { key: "amount", label: "Amount", type: "money" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Invoices", agg: "count" },
+          { label: "Invoiced", agg: "sum", field: "amount" },
+          { label: "Unpaid", agg: "countStatus", value: "Sent" },
+        ],
+      },
+    ],
+  },
+
+  creative: {
+    id: "creative",
+    label: "Artist / Musician / Creator",
+    accent: "#d946ef",
+    blurb: "Gigs, Commissions & Catalog",
+    modules: [
+      {
+        id: "gigs",
+        title: "Gigs & Bookings",
+        icon: "🎤",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Inquiry", "Booked", "Confirmed", "Played", "Cancelled"],
+        columns: [
+          { key: "event", label: "Event / Venue", type: "text" },
+          { key: "date", label: "Date", type: "date" },
+          { key: "fee", label: "Fee", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Gigs", agg: "count" },
+          { label: "Booked Fees", agg: "sum", field: "fee" },
+          { label: "Confirmed", agg: "countStatus", value: "Confirmed" },
+        ],
+      },
+      {
+        id: "commissions",
+        title: "Commissions",
+        icon: "🎨",
+        kind: "pipeline",
+        statusField: "stage",
+        statuses: ["Requested", "Quoted", "In Progress", "Delivered", "Paid"],
+        columns: [
+          { key: "client", label: "Client", type: "text" },
+          { key: "work", label: "Piece / Work", type: "text" },
+          { key: "price", label: "Price", type: "money" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "stage", label: "Stage", type: "status" },
+        ],
+        kpis: [
+          { label: "Commissions", agg: "count" },
+          { label: "Value", agg: "sum", field: "price" },
+          { label: "In Progress", agg: "countStatus", value: "In Progress" },
+        ],
+      },
+      {
+        id: "catalog",
+        title: "Catalog",
+        icon: "💿",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Draft", "Released", "Sold Out"],
+        columns: [
+          { key: "title", label: "Title", type: "text" },
+          { key: "type", label: "Type", type: "select" },
+          { key: "price", label: "Price", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { type: ["Song", "Album", "Artwork", "Print", "Merch", "Video", "Other"] },
+        kpis: [
+          { label: "Items", agg: "count" },
+          { label: "Released", agg: "countStatus", value: "Released" },
+        ],
+      },
+      {
+        id: "sales",
+        title: "Merch & Sales",
+        icon: "🛒",
+        kind: "ledger",
+        statusField: "status",
+        statuses: ["New", "Shipped", "Delivered", "Refunded"],
+        columns: [
+          { key: "item", label: "Item", type: "text" },
+          { key: "buyer", label: "Buyer", type: "text" },
+          { key: "amount", label: "Amount", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Orders", agg: "count" },
+          { label: "Revenue", agg: "sum", field: "amount" },
+          { label: "To Ship", agg: "countStatus", value: "New" },
+        ],
+      },
+    ],
+  },
+
+  rei: {
+    id: "rei",
+    label: "Real Estate Investing / Lending",
+    accent: "#eab308",
+    blurb: "Deal Pipeline, Buyers & Loan Book",
+    modules: [
+      {
+        id: "deals",
+        title: "Deal Pipeline",
+        icon: "🏚️",
+        kind: "pipeline",
+        statusField: "stage",
+        statuses: ["Lead", "Under Contract", "Assigned", "Funded", "Closed", "Dead"],
+        columns: [
+          { key: "property", label: "Property", type: "text" },
+          { key: "seller", label: "Seller", type: "text" },
+          { key: "offer", label: "Offer", type: "money" },
+          { key: "arv", label: "ARV", type: "money" },
+          { key: "stage", label: "Stage", type: "status" },
+        ],
+        kpis: [
+          { label: "Deals", agg: "count" },
+          { label: "Pipeline ARV", agg: "sum", field: "arv" },
+          { label: "Under Contract", agg: "countStatus", value: "Under Contract" },
+        ],
+      },
+      {
+        id: "buyers",
+        title: "Cash Buyers",
+        icon: "🤝",
+        kind: "table",
+        columns: [
+          { key: "name", label: "Buyer", type: "text" },
+          { key: "email", label: "Email", type: "text" },
+          { key: "criteria", label: "Buy box", type: "text" },
+          { key: "maxPrice", label: "Max Price", type: "money" },
+        ],
+        kpis: [{ label: "Buyers", agg: "count" }],
+      },
+      {
+        id: "loans",
+        title: "Loan Book",
+        icon: "🏦",
+        kind: "ledger",
+        statusField: "status",
+        statuses: ["Application", "Underwriting", "Funded", "Repaid", "Default"],
+        columns: [
+          { key: "borrower", label: "Borrower", type: "text" },
+          { key: "property", label: "Property", type: "text" },
+          { key: "principal", label: "Principal", type: "money" },
+          { key: "rate", label: "Rate %", type: "num" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Loans", agg: "count" },
+          { label: "Capital Out", agg: "sum", field: "principal" },
+          { label: "Funded", agg: "countStatus", value: "Funded" },
+        ],
+      },
+      {
+        id: "portfolio",
+        title: "Portfolio",
+        icon: "🏘️",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Owned", "Rehab", "Listed", "Sold"],
+        columns: [
+          { key: "address", label: "Address", type: "text" },
+          { key: "type", label: "Type", type: "select" },
+          { key: "purchase", label: "Purchase", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { type: ["Rental", "Flip", "Land", "Commercial", "Multifamily"] },
+        kpis: [
+          { label: "Properties", agg: "count" },
+          { label: "Invested", agg: "sum", field: "purchase" },
+          { label: "In Rehab", agg: "countStatus", value: "Rehab" },
+        ],
+      },
+    ],
+  },
+
   // Fallback for anything not matched above (professional services, misc.).
   // A tight, universal ops core.
   general: {
@@ -844,9 +1089,9 @@ export const VERTICALS = {
 
 // Ordered list for building selectors (general last — it's the catch-all).
 export const VERTICAL_ORDER = [
-  "real-estate", "medical", "legal", "logistics",
+  "real-estate", "rei", "medical", "legal", "logistics",
   "restaurant", "salon", "home-services", "fitness", "retail",
-  "hotel", "events", "general",
+  "hotel", "events", "freelancer", "creative", "general",
 ];
 
 // Best-effort mapping from a free-text business type → a vertical id, so the
@@ -856,6 +1101,9 @@ export const VERTICAL_ORDER = [
 export function inferVertical(typeText) {
   const t = String(typeText || "").toLowerCase();
   const has = (...w) => w.some((x) => t.includes(x));
+  // Real-estate INVESTING / private lending — BEFORE brokerage, since "real estate
+  // wholesaler" contains "real estate" but is a deal-pipeline business, not a broker.
+  if (has("wholesal", "hard money", "private lend", "private money", "fix and flip", "fix-and-flip", "house flip", "flipper", "real estate investor", "real estate investing", "real estate investment", "property investor", "cash buyer", "we buy houses", "landlord", "rental property", "turnkey", "reit")) return "rei";
   if (has("real estate", "realtor", "realty", "broker", "property", "properties", "homes")) return "real-estate";
   // medical: "counseling"/"mental health" routed here (before legal's "counsel").
   if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio", "counseling", "counselor", "mental health", "psycholog", "psychiatr")) return "medical";
@@ -874,7 +1122,12 @@ export function inferVertical(typeText) {
   if (has("restaurant", "cafe", "coffee", "bakery", "bread", "cake", "pizza", "taco", "grill", "bar", "diner", "deli", "cater", "kitchen", "eatery", "bbq", "sushi", "juice", "food")) return "restaurant";
   if (has("gym", "fitness", "yoga", "pilates", "crossfit", "martial", "dance", "bootcamp", "personal train")) return "fitness";
   if (has("lawn", "tree service", "fence", "pool service", "pressure wash", "repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage")) return "home-services";
-  // Marketing/advertising/etc. are professional services → general (before retail's "market").
+  // Artists / musicians / performers — AFTER salon so "tattoo artist"/"makeup artist"
+  // stay salon. Uses "artist"/"musician" (not bare "art"/"music") to avoid false hits.
+  if (has("musician", "band", "singer", "songwriter", "rapper", "composer", "dj", "deejay", "recording studio", "record label", "artist", "painter", "sculptor", "illustrator", "art gallery")) return "creative";
+  // Solo professionals / freelancers / consultants / coaches / creators-of-services.
+  if (has("freelance", "solopreneur", "consultant", "consulting", "coach", "tutor", "copywriter", "web design", "graphic design", "designer", "developer", "virtual assistant")) return "freelancer";
+  // Marketing/advertising agencies are professional services → general (before retail's "market").
   if (has("marketing", "advertising", "ad agency")) return "general";
   if (has("shop", "store", "retail", "boutique", "market", "goods", "product", "florist", "flower", "jewel", "furniture", "bike", "pet", "dealer", "dealership", "vehicle", "motors", "used car")) return "retail";
   return "general";
@@ -1023,6 +1276,36 @@ const PORTALS = {
       { key: "date", label: "Event date", type: "date", required: true },
       { key: "guests", label: "Guest count", type: "num" },
       { key: "notes", label: "Details", type: "textarea" },
+    ],
+  },
+  rei: {
+    headline: "Submit a deal or apply", blurb: "Selling a property, buying, or need funding? Send it over.",
+    cta: "Submit",
+    fields: [
+      { key: "interest", label: "I'm here to…", type: "select", required: true, options: ["Sell a property", "Get on the cash-buyers list", "Apply for a loan", "General inquiry"] },
+      { key: "address", label: "Property address", type: "text" },
+      { key: "price", label: "Price / loan amount", type: "num" },
+      { key: "details", label: "Details", type: "textarea" },
+    ],
+  },
+  freelancer: {
+    headline: "Work with me", blurb: "Tell me about your project and request a quote.",
+    cta: "Request a quote",
+    fields: [
+      { key: "projectType", label: "Project type", type: "text", required: true },
+      { key: "budget", label: "Budget", type: "num" },
+      { key: "timeline", label: "Ideal timeline", type: "text" },
+      { key: "details", label: "Project details", type: "textarea" },
+    ],
+  },
+  creative: {
+    headline: "Bookings & commissions", blurb: "Book a performance, commission a piece, or ask about merch.",
+    cta: "Send request",
+    fields: [
+      { key: "interest", label: "What do you need?", type: "select", required: true, options: ["Book a gig / performance", "Commission a piece", "Merch / buy inquiry", "Collaboration"] },
+      { key: "date", label: "Date (if a gig)", type: "date" },
+      { key: "budget", label: "Budget", type: "num" },
+      { key: "details", label: "Details", type: "textarea" },
     ],
   },
   general: {

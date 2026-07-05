@@ -76,8 +76,22 @@ test("inferVertical routes real-world business descriptions correctly", () => {
     ["marketing agency", "general"], ["digital advertising", "general"],
     ["pet food store", "retail"], ["health food store", "retail"], ["grocery store", "retail"],
     ["counseling center", "medical"], ["marriage counseling", "medical"],
-    ["it consulting", "general"], ["business consultant", "general"],
     ["law firm", "legal"], ["law office", "legal"],
+    // solopreneurs / freelancers / creatives (added):
+    ["freelance graphic designer", "freelancer"], ["it consultant", "freelancer"],
+    ["life coach", "freelancer"], ["web developer", "freelancer"], ["math tutor", "freelancer"],
+    ["business consultant", "freelancer"],
+    ["musician", "creative"], ["indie band", "creative"], ["dj services", "creative"],
+    ["recording studio", "creative"], ["art gallery", "creative"], ["portrait artist", "creative"],
+    // creatives must NOT steal salon/retail/events:
+    ["tattoo artist", "salon"], ["makeup artist", "salon"], ["music store", "retail"],
+    ["wedding photographer", "events"],
+    // real-estate investing / lending (added) — must beat the brokerage vertical:
+    ["real estate wholesaler", "rei"], ["hard money lender", "rei"], ["private money lender", "rei"],
+    ["fix and flip investor", "rei"], ["house flipper", "rei"], ["we buy houses", "rei"],
+    ["landlord rentals", "rei"], ["real estate investor", "rei"],
+    // brokerage still routes to real-estate (no REI token):
+    ["real estate broker", "real-estate"], ["realtor", "real-estate"], ["realty group", "real-estate"],
   ];
   for (const [input, expected] of cases) {
     assert.equal(inferVertical(input), expected, `"${input}" should route to ${expected}`);

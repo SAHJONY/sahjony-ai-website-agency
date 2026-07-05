@@ -16,6 +16,17 @@ function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]
 function normEmail(e) { return String(e || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 80); }
 function publicAccount(a) { if (!a) return null; const { code, ...safe } = a; return safe; }
 
+// Look up a customer account WITHOUT walking the prototype chain — a bare object
+// literal would let email="constructor"/"toString"/"hasOwnProperty" resolve to an
+// inherited value whose `.code` is undefined, and safeEqual("","") is true, so an
+// attacker with no account would pass the gate. Exported + pure for unit testing.
+export function resolveAccount(users, email) {
+  if (!email || !users || typeof users !== "object") return null;
+  if (!Object.prototype.hasOwnProperty.call(users, email)) return null;
+  const a = users[email];
+  return (a && typeof a === "object" && typeof a.code === "string") ? a : null;
+}
+
 // Compose a human-readable request line from a vertical's portal fields + the
 // customer's submitted form. Exported + pure so it's unit-tested (test/portal.test.mjs)
 // and shared by the cust-submit handler — no logic drift between the two.
@@ -27,7 +38,9 @@ export function composeRequestDetail(portal, form) {
     if (f.type === "num") { val = Number(val); if (!isFinite(val)) continue; }
     parts.push(String(f.label).replace(/\s*\(optional\)/i, "") + ": " + String(val).slice(0, 300));
   }
-  return parts.join(" · ").slice(0, 900);
+  // Cap to 400 to match ops-save's per-field sanitizer, so the owner's first edit
+  // of the requests module doesn't silently truncate a stored request line.
+  return parts.join(" · ").slice(0, 400);
 }
 
 function upstashBase() {
@@ -169,7 +182,7 @@ async function handleCustomerPortal(req, res, slug, body) {
     if (!email || !code || code.length < 4) return res.status(400).json({ error: "Enter your name, email, and a code of at least 4 characters." });
     let users = (await kvGet(USERS_KEY)) || {};
     if (typeof users !== "object" || Array.isArray(users)) users = {};
-    if (users[email]) return res.status(409).json({ error: "An account with that email already exists — sign in instead." });
+    if (Object.prototype.hasOwnProperty.call(users, email)) return res.status(409).json({ error: "An account with that email already exists — sign in instead." });
     if (Object.keys(users).length >= 5000) return res.status(429).json({ error: "Sign-ups are temporarily closed for this business." });
     users[email] = { name, email: String(body.email || "").trim().slice(0, 160), code, requests: [], createdAt: new Date().toISOString() };
     await kvSet(USERS_KEY, users);
@@ -179,7 +192,7 @@ async function handleCustomerPortal(req, res, slug, body) {
   // signin + submit require a valid account. One code check, rate-limited.
   let users = (await kvGet(USERS_KEY)) || {};
   if (typeof users !== "object" || Array.isArray(users)) users = {};
-  const acct = email ? users[email] : null;
+  const acct = resolveAccount(users, email);
   const code = String(body.code || "").trim();
   if (!acct || !safeEqual(String(acct.code || ""), code)) {
     const rl = await rateLimit(req, "custsignin", { limit: 20, windowSec: 600, key: clientIp(req) + ":" + slug });
@@ -204,8 +217,11 @@ async function handleCustomerPortal(req, res, slug, body) {
     const ops = (await kvGet(opsKey)) || {};
     ops.modules = (ops.modules && typeof ops.modules === "object") ? ops.modules : {};
     const list = Array.isArray(ops.modules[REQUESTS_MODULE_ID]) ? ops.modules[REQUESTS_MODULE_ID] : [];
-    if (list.length >= 1000) return res.status(429).json({ error: "This business isn't accepting new requests right now." });
+    // Rolling log capped at the SAME 500 as ops-save's OPS_MAX_ROWS — so the owner
+    // editing this module never silently truncates it, and a full queue can't
+    // permanently block new customer requests (no hard reject / intake DoS).
     list.unshift(row);
+    if (list.length > 500) list.length = 500;
     ops.modules[REQUESTS_MODULE_ID] = list;
     ops.updatedAt = new Date().toISOString();
     await kvSet(opsKey, ops);

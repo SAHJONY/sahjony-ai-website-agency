@@ -333,6 +333,10 @@ async function loadAll(){
   el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
   BIZNAME=(d.site&&d.site.name)||SLUG; INDUSTRY=(d.site&&d.site.industry)||""; CITY=(d.site&&d.site.city)||"";
   P=industryProfile(INDUSTRY); applyIndustry();
+  // INDUSTRY is now known — let the Operations tab derive its vertical, and if the
+  // user already opened it (and it deferred), initialise it now.
+  opsDataLoaded=true;
+  try{ if(document.getElementById("p_ops").classList.contains("on")) opsEnsure(); }catch(e){}
   var url=(d.site&&d.site.url)||("/s/"+SLUG);
   SITEURL=/^https?:\/\//.test(url)?url:(location.origin.replace(/\/$/,"")+url);
   el("viewSite").href=url; el("copyUrl").dataset.url=url;
@@ -562,7 +566,7 @@ async function saveSocial(){
 // Modules come from the shared registry (window.__VERTICALS, loaded by the module
 // script below). Data is saved through /api/site ops-get/ops-save, gated by the
 // client's own portal login — same auth as the rest of this dashboard.
-var OPS={modules:{},visuals:{}}, OPSVERT=null, OPSCUR=null, opsTimer=null, opsInit=false;
+var OPS={modules:{},visuals:{}}, OPSVERT=null, OPSCUR=null, opsTimer=null, opsInit=false, opsDataLoaded=false;
 function opsMoney(n){var x=Number(n);return isFinite(x)?"$"+Math.round(x).toLocaleString():"$0";}
 function opsVertical(){
   var V=window.__VERTICALS||{}, inf=window.__inferVertical||function(){return "general";};
@@ -673,6 +677,9 @@ function opsGenBackdrop(){
 }
 function opsEnsure(){
   if(opsInit)return;
+  // Wait for loadAll to populate INDUSTRY before deriving the vertical — otherwise
+  // opening Operations mid-load would latch OPSVERT to "general" for the session.
+  if(!opsDataLoaded){el("opsHint").textContent="Loading operations…";return;}
   OPSVERT=opsVertical();
   if(!OPSVERT){el("opsHint").textContent="Loading operations…";return;}
   opsInit=true;OPSCUR=OPSVERT.modules[0];el("opsNote").textContent="Loading…";

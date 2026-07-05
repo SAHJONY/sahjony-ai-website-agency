@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VERTICALS, VERTICAL_ORDER, REQUESTS_MODULE_ID, getVertical, inferVertical } from "../public/verticals.js";
-import { composeRequestDetail } from "../api/site.js";
+import { composeRequestDetail, resolveAccount } from "../api/site.js";
 
 const KPI_AGGS = new Set(["count", "countStatus", "sum", "sumProduct"]);
 
@@ -70,6 +70,14 @@ test("inferVertical routes real-world business descriptions correctly", () => {
     ["boutique hotel", "hotel"], ["bed and breakfast", "hotel"], ["mountain resort", "hotel"],
     ["wedding venue", "events"], ["banquet hall", "events"], ["wedding photographer", "events"],
     ["", "general"], ["something unrecognizable", "general"],
+    // substring-misroute regressions (found in review):
+    ["lawn care service", "home-services"], ["lawn mowing", "home-services"],
+    ["delivery service", "logistics"], ["courier delivery", "logistics"],
+    ["marketing agency", "general"], ["digital advertising", "general"],
+    ["pet food store", "retail"], ["health food store", "retail"], ["grocery store", "retail"],
+    ["counseling center", "medical"], ["marriage counseling", "medical"],
+    ["it consulting", "general"], ["business consultant", "general"],
+    ["law firm", "legal"], ["law office", "legal"],
   ];
   for (const [input, expected] of cases) {
     assert.equal(inferVertical(input), expected, `"${input}" should route to ${expected}`);
@@ -100,4 +108,24 @@ test("composeRequestDetail strips the '(optional)' hint from field labels", () =
   const detail = composeRequestDetail(salon, { stylist: "Ana" });
   assert.match(detail, /Preferred stylist: Ana/);
   assert.doesNotMatch(detail, /optional/i);
+});
+
+test("composeRequestDetail caps output at 400 chars (matches the ops-save field cap)", () => {
+  const g = getVertical("general").portal; // subject + notes(textarea)
+  const detail = composeRequestDetail(g, { subject: "x", notes: "y".repeat(5000) });
+  assert.ok(detail.length <= 400, `detail length ${detail.length} should be <= 400`);
+});
+
+test("resolveAccount ignores prototype-chain keys (auth-bypass guard)", () => {
+  const users = { "real_user_x_com": { code: "abcd", name: "Real" } };
+  // Built-in property names must NOT resolve to an inherited value.
+  for (const evil of ["constructor", "hasOwnProperty", "toString", "valueOf", "isPrototypeOf", "__proto__"]) {
+    assert.equal(resolveAccount(users, evil), null, `"${evil}" must not resolve to an account`);
+  }
+  // A real own account still resolves.
+  assert.equal(resolveAccount(users, "real_user_x_com").name, "Real");
+  // Missing/blank email and non-object values return null.
+  assert.equal(resolveAccount(users, ""), null);
+  assert.equal(resolveAccount(users, "nope"), null);
+  assert.equal(resolveAccount({ x: { name: "no code" } }, "x"), null, "account without a string code is rejected");
 });

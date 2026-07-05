@@ -606,7 +606,10 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // scoped to this site's slug (bound on publish) and vertical. __SITE_SLUG__ is
   // replaced with the real slug when the site is published; downloaded/unpublished
   // sites carry the placeholder and the portal shows an "activates on publish" note.
-  const acctVert = (window.__inferVertical ? window.__inferVertical(type) : "general");
+  // Use __resolveVertical (defined in this page's module script) — it honors an
+  // explicit #fIndustry pick and falls back to inferVertical(type). __inferVertical
+  // is NOT defined here, so referencing it would silently pin every link to "general".
+  const acctVert = (window.__resolveVertical ? window.__resolveVertical(type) : "general");
   const accountUrl = ORIGIN + "/account.html?slug=__SITE_SLUG__&v=" + encodeURIComponent(acctVert) + "&biz=" + encodeURIComponent(name);
 
   // Reusable cinematic bits.

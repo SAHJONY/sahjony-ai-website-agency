@@ -857,17 +857,25 @@ export function inferVertical(typeText) {
   const t = String(typeText || "").toLowerCase();
   const has = (...w) => w.some((x) => t.includes(x));
   if (has("real estate", "realtor", "realty", "broker", "property", "properties", "homes")) return "real-estate";
-  if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio")) return "medical";
-  if (has("law", "legal", "attorney", "lawyer", "counsel", "paralegal", "accountant", "accounting", "bookkeep", "notary", "insurance", "tax", "consult")) return "legal";
-  if (has("logistic", "freight", "trucking", "fleet", "shipping", "courier", "haul")) return "logistics";
+  // medical: "counseling"/"mental health" routed here (before legal's "counsel").
+  if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio", "counseling", "counselor", "mental health", "psycholog", "psychiatr")) return "medical";
+  // legal: NO bare "law" (would swallow "lawn care") and NO bare "consult" (would
+  // swallow every IT/marketing/business consultancy) — use specific phrases.
+  if (has("law firm", "law office", "law group", "legal", "attorney", "lawyer", "counsel", "paralegal", "accountant", "accounting", "bookkeep", "notary", "insurance", "tax prep", "tax service")) return "legal";
+  if (has("logistic", "freight", "trucking", "fleet", "shipping", "courier", "haul", "delivery")) return "logistics";
   // Hotels / lodging — guard BEFORE retail so "boutique hotel" isn't read as a store.
   if (has("hotel", "motel", "hostel", "resort", "lodge", "airbnb", "bnb", "b&b", "bed and breakfast", "bed & breakfast", "guesthouse")) return "hotel";
   // Events / venues — before restaurant so "banquet hall" / "wedding venue" isn't caught by "cater".
   if (has("event", "wedding", "banquet", "venue", "reception hall", "gala", "photograph", "videograph", "quinceanera")) return "events";
+  // Food-selling RETAIL (grocery/pet-food/etc.) — before restaurant so "food" doesn't
+  // pull a store into the reservations/tickets dashboard.
+  if (has("grocery", "supermarket", "food store", "food shop", "food market", "pet food", "liquor store", "convenience store")) return "retail";
   if (has("salon", "barber", "spa", "beauty", "nail", "hair", "lash", "makeup", "wax", "tattoo", "brow", "esthet")) return "salon";
   if (has("restaurant", "cafe", "coffee", "bakery", "bread", "cake", "pizza", "taco", "grill", "bar", "diner", "deli", "cater", "kitchen", "eatery", "bbq", "sushi", "juice", "food")) return "restaurant";
   if (has("gym", "fitness", "yoga", "pilates", "crossfit", "martial", "dance", "bootcamp", "personal train")) return "fitness";
-  if (has("repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage")) return "home-services";
+  if (has("lawn", "tree service", "fence", "pool service", "pressure wash", "repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage")) return "home-services";
+  // Marketing/advertising/etc. are professional services → general (before retail's "market").
+  if (has("marketing", "advertising", "ad agency")) return "general";
   if (has("shop", "store", "retail", "boutique", "market", "goods", "product", "florist", "flower", "jewel", "furniture", "bike", "pet", "dealer", "dealership", "vehicle", "motors", "used car")) return "retail";
   return "general";
 }

@@ -314,6 +314,7 @@ const INBOX_KEY = "fda:contact:inbox";
 let inboxCache = [];
 let inboxFilter = "all";
 async function renderInbox(){
+  const esc=(s)=>String(s||"").replace(/[<>"&]/g,c=>({"<":"&lt;",">":"&gt;",'"':"&quot;","&":"&amp;"}[c]));
   document.getElementById("addBtn").style.display = "none";
   const list = document.getElementById("list");
   list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">Loading…</div>`;
@@ -334,10 +335,10 @@ async function renderInbox(){
   list.innerHTML = filterBar + (shown.length?"":`<div style="color:#8c8998;font-size:14px;padding:20px">No build requests yet.</div>`) + shown.map((m)=>{ const i=inboxCache.indexOf(m); return `
     <div style="background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div style="min-width:0"><div style="font-weight:700;font-size:15px">${m.name||"(no name)"} <span style="color:#8c8998;font-weight:500;font-size:13px">· ${m.type||""}</span></div>
-        <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${m.contact||""}${m.city?(" · "+m.city):""}</div>
-        ${m.url?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">site: ${m.url}</div>`:""}
-        ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${m.notes}”</div>`:""}
+        <div style="min-width:0"><div style="font-weight:700;font-size:15px">${esc(m.name)||"(no name)"} <span style="color:#8c8998;font-weight:500;font-size:13px">· ${esc(m.type)}</span></div>
+        <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${esc(m.contact)}${m.city?(" · "+esc(m.city)):""}</div>
+        ${m.url?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">site: ${esc(m.url)}</div>`:""}
+        ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${esc(m.notes)}”</div>`:""}
         <div style="font-size:11.5px;color:#5c5c66;margin-top:6px">${(m.at||"").slice(0,16).replace("T"," ")}</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
           ${isBuild(m)?`<button data-i="${i}" class="ibBuild" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:12px;font-weight:800;padding:7px 12px;border-radius:8px">🔨 Start build</button>`:""}

@@ -111,6 +111,12 @@
         </div>
         <div><label class="lbl">Business name *</label><input id="fName" placeholder="e.g. Maria's Bakery"></div>
         <div><label class="lbl">What kind of business? *</label><input id="fType" placeholder="bakery, salon, auto shop, law firm…"></div>
+        <div><label class="lbl">🗂️ Owner back-office <span style="color:#8c8998;font-weight:500;font-size:12.5px">— the industry dashboard we build for them</span></label>
+          <select id="fIndustry" style="width:100%;padding:14px 16px;border-radius:11px;border:1px solid rgba(255,255,255,.16);background:#0d1a2d;color:#f0eef2;font-size:15px;font-weight:600;cursor:pointer">
+            <option value="auto">Auto-detect from business type</option>
+          </select>
+          <div style="font-size:12px;color:#8c8998;margin-top:6px">Each industry gets its own operational tools — not a generic dashboard.</div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
           <div><label class="lbl">City &amp; country</label><input id="fCity" placeholder="Houston, TX, USA"></div>
           <div><label class="lbl">Language</label><input id="fLang" placeholder="English" value="English"></div>
@@ -784,6 +790,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
         <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
         <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🚀 Save & Publish</button>
         <button id="dlBtn" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
+        <button id="boBtn" style="background:rgba(90,120,255,.18);color:#bcd0ff;border:1px solid rgba(120,150,255,.4);cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🗂️ Owner Back-Office →</button>
       </div>
     </div></div>
     <div id="siteRoot" style="background:#0a0b0e;color:#f5f6f8">${siteHtml}</div>`;
@@ -798,6 +805,11 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
   document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead, lang);
   document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city);
+  document.getElementById("boBtn").onclick=()=>{
+    const vert=(window.__resolveVertical?window.__resolveVertical(type):"general");
+    const u="/backoffice.html?vertical="+encodeURIComponent(vert)+"&biz="+encodeURIComponent(name);
+    window.open(u,"_blank");
+  };
 }
 
 function getCookie(n){ const m=document.cookie.match(new RegExp('(?:^|; )'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=([^;]+)')); return m?decodeURIComponent(m[1]):""; }
@@ -971,6 +983,27 @@ $("#autoBtn").onclick = autoBuild;
     }catch(_){}
   }, 2500);
 })();
+</script>
+<!-- Industry back-office selector: populated from the shared vertical registry so
+     the dashboard the owner gets is decided by the SAME source of truth as /backoffice.html. -->
+<script type="module">
+  import { VERTICALS, VERTICAL_ORDER, inferVertical } from "/verticals.js";
+  const sel = document.getElementById("fIndustry");
+  if(sel){
+    VERTICAL_ORDER.forEach(id=>{
+      const v=VERTICALS[id]; if(!v) return;
+      const o=document.createElement("option");
+      o.value=id; o.textContent=v.label+" — "+v.blurb;
+      sel.appendChild(o);
+    });
+  }
+  // Resolve the chosen vertical: explicit pick wins; "auto" infers from the typed
+  // business type. Used by the "Owner Back-Office" button after a site is built.
+  window.__resolveVertical = function(typeText){
+    const picked = sel ? sel.value : "auto";
+    if(picked && picked!=="auto") return picked;
+    return inferVertical(typeText || (document.getElementById("fType")||{}).value || "");
+  };
 </script>
 </body>
 </html>

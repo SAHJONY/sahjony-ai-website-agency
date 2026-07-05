@@ -18,7 +18,15 @@
     radial-gradient(700px 500px at -5% 5%, rgba(80,90,140,.10), transparent 55%),
     var(--bg);}
   a{color:inherit}
-  .wrap{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  /* ---- cinematic backdrop (Higgsfield) ---- */
+  .bgfx{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.1s ease;pointer-events:none;filter:saturate(1.05)}
+  .bgfx.on{opacity:.42}
+  .bgfx-veil{position:fixed;inset:0;z-index:0;pointer-events:none;display:none;
+    background:linear-gradient(180deg,rgba(8,9,12,.62),rgba(8,9,12,.9) 70%,rgba(8,9,12,.97)),
+      radial-gradient(1100px 700px at 82% -12%, transparent, rgba(8,9,12,.55))}
+  .bgfx-veil.on{display:block}
+  .wrap{position:relative;z-index:1;display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  aside,main{position:relative;z-index:1}
   /* ---- sidebar ---- */
   aside{border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh;overflow:auto;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
   .brand{font-weight:800;letter-spacing:.14em;font-size:12px;color:var(--muted);text-transform:uppercase}
@@ -86,6 +94,8 @@
 </style>
 </head>
 <body>
+<div class="bgfx" id="bgfx"></div>
+<div class="bgfx-veil" id="bgfxVeil"></div>
 <div class="wrap">
   <aside>
     <div class="brand">SAHJONY · Back-Office</div>
@@ -103,7 +113,10 @@
         <h1 id="modTitle">Loading…</h1>
         <div class="sub" id="modSub"></div>
       </div>
-      <button class="btn primary" id="addBtn">+ Add row</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="fxBtn" title="Generate a cinematic Higgsfield backdrop for this module">✨ Backdrop</button>
+        <button class="btn primary" id="addBtn">+ Add row</button>
+      </div>
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="panel">
@@ -161,7 +174,7 @@ async function doUnlock(){
     const r = await fetch("/api/data?action=login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({password:pw})});
     const j = await r.json();
     if(!r.ok || !j.ok){ document.getElementById("lockErr").textContent = j.error || "Wrong password"; return; }
-    setToken(pw); hideLock(); loadModule(current.id);
+    setToken(pw); hideLock(); await loadVisuals(); loadModule(current.id);
   }catch(e){ document.getElementById("lockErr").textContent = "Network error — try again."; }
 }
 
@@ -181,6 +194,69 @@ async function saveRows(modId, rows){
   if(r.status===401){ showLock("Session expired — sign in again."); throw new Error("auth"); }
   if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.error||("save failed "+r.status)); }
 }
+
+// ---------- cinematic backdrops (Higgsfield via /api/image) ----------
+// URLs are cached in Upstash so a module's backdrop is generated ONCE, then
+// reused on every load — no repeated credit burn. Key: fda:bo:<slug>:_visuals
+let visuals = {};
+const bgfx = document.getElementById("bgfx");
+const bgfxVeil = document.getElementById("bgfxVeil");
+async function loadVisuals(){
+  try{
+    const r = await fetch("/api/data?key="+encodeURIComponent(`fda:bo:${slug}:_visuals`), { headers: authHeaders() });
+    if(!r.ok) return;
+    const j = await r.json();
+    if(j && j.value && typeof j.value==="object") visuals = j.value;
+  }catch(_){}
+}
+async function saveVisuals(){
+  try{
+    await fetch("/api/data?key="+encodeURIComponent(`fda:bo:${slug}:_visuals`),{
+      method:"POST", headers: authHeaders({"content-type":"application/json"}), body: JSON.stringify(visuals)
+    });
+  }catch(_){}
+}
+function applyBackdrop(modId){
+  const url = visuals[modId];
+  if(url){ bgfx.style.backgroundImage = `url("${url}")`; bgfx.classList.add("on"); bgfxVeil.classList.add("on"); }
+  else{ bgfx.classList.remove("on"); bgfxVeil.classList.remove("on"); bgfx.style.backgroundImage=""; }
+}
+// hue → rough color word so the LIGHTING field names the accent the UI actually uses.
+function accentWord(hex){
+  let h=String(hex||"").replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join("");
+  const n=parseInt(h,16); if(isNaN(n)) return "electric cyan";
+  const r=(n>>16&255)/255, g=(n>>8&255)/255, b=(n&255)/255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn; let hue=0;
+  if(d){ if(mx===r) hue=((g-b)/d)%6; else if(mx===g) hue=(b-r)/d+2; else hue=(r-g)/d+4; hue*=60; if(hue<0)hue+=360; }
+  if(hue<20||hue>=330) return "crimson";
+  if(hue<45) return "amber-orange"; if(hue<70) return "luminescent gold";
+  if(hue<160) return "emerald-mint"; if(hue<200) return "cyber-cyan";
+  if(hue<255) return "electric blue"; if(hue<290) return "violet"; return "magenta";
+}
+// AGENTS.md §5 five-field prompt block, specialized per module.
+function backdropPrompt(){
+  const v=vertical, m=current;
+  return [
+    "MODEL: Soul V2 photoreal cinematic still",
+    "COMPOSITION: Cinematic ultra-wide hero, balanced dark-room framing, generous negative space, subject weighted to the right third",
+    `SUBJECT: Ultra-premium ${v.blurb} operations environment for a ${v.label}, evoking the "${m.title}" workflow — sleek futuristic control surfaces with fluid glowing line charts and translucent glass data panels, fully abstract with NO readable text`,
+    `LIGHTING: Obsidian-vacuum deep contrast on a near-black background, sharp luminescent ${accentWord(v.accent)} rim lighting, soft volumetric haze`,
+    "AESTHETIC: Tesla/Apple flagship high-end luxury digital asset, 8k, photorealistic, color-graded, no text, no UI chrome, no watermark, no logo"
+  ].join("\n");
+}
+async function generateBackdrop(){
+  const btn=document.getElementById("fxBtn"); const modId=current.id; const old=btn.textContent;
+  btn.disabled=true; btn.textContent="✨ Painting…";
+  try{
+    const r=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:backdropPrompt(), size:"1536x1024"})});
+    const j=await r.json();
+    if(!r.ok || !j.url){ btn.textContent="⚠ "+String(j.error||("engine "+r.status)).slice(0,40); setTimeout(()=>{btn.textContent=old;btn.disabled=false;},4000); return; }
+    visuals[modId]=j.url; saveVisuals();
+    if(current.id===modId) applyBackdrop(modId);
+    btn.textContent="✓ Backdrop"; setTimeout(()=>{btn.textContent=old;btn.disabled=false;},2500);
+  }catch(e){ btn.textContent="⚠ Network"; setTimeout(()=>{btn.textContent=old;btn.disabled=false;},3000); }
+}
+document.getElementById("fxBtn").onclick = generateBackdrop;
 
 // ---------- helpers ----------
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
@@ -302,6 +378,7 @@ function renderAll(){
 async function loadModule(id){
   current = vertical.modules.find(m=>m.id===id) || vertical.modules[0];
   markNav(current.id);
+  applyBackdrop(current.id);
   document.getElementById("saveNote").textContent="Loading…";
   document.getElementById("saveNote").className="savenote";
   try{
@@ -322,7 +399,7 @@ document.getElementById("addBtn").onclick = addRow;
 document.getElementById("addBtn2").onclick = addRow;
 
 // ---------- go ----------
-loadModule(current.id);
+(async ()=>{ await loadVisuals(); loadModule(current.id); })();
 </script>
 </body>
 </html>

@@ -149,28 +149,31 @@ async function tryClaude(prompt, maxTokens, getKey, modelPref) {
   // single-shot generation and the 18s per-engine cap would abort it. Bounded
   // by the overall request deadline inside fetchT.
   const timeout = Number(process.env.CLAUDE_TIMEOUT_MS || 50000);
-  const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
-  const body = {
-    model,
-    max_tokens: maxTokens,
-    output_config: { effort: process.env.CLAUDE_EFFORT || (isFable ? "low" : "medium") },
-    messages: [{ role: "user", content: prompt }],
+  const url = "https://api.anthropic.com/v1/messages";
+  const baseHeaders = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
+  // `rich` adds effort tuning + (for Fable) the server-side refusal-fallback beta.
+  // Those are the newest surfaces and the ones most likely to 4xx on an account
+  // that hasn't enabled them — so on any 4xx we retry once with a bare, maximally
+  // compatible body. A retirement/access/key problem fails both and rolls to the
+  // next engine cleanly.
+  const call = (rich) => {
+    const headers = { ...baseHeaders };
+    const body = { model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] };
+    if (rich) {
+      body.output_config = { effort: process.env.CLAUDE_EFFORT || (isFable ? "low" : "medium") };
+      if (isFable) {
+        headers["anthropic-beta"] = "server-side-fallback-2026-06-01";
+        body.fallbacks = [{ model: "claude-opus-4-8" }];
+      }
+    }
+    return fetchT(url, { method: "POST", headers, body: JSON.stringify(body) }, timeout);
   };
-  if (isFable) {
-    // Opt into server-side refusal fallback (raw HTTP: beta goes in the header).
-    headers["anthropic-beta"] = "server-side-fallback-2026-06-01";
-    body.fallbacks = [{ model: "claude-opus-4-8" }];
-  }
-  const r = await fetchT("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  }, timeout);
+  let r = await call(true);
+  if (!r.ok && r.status >= 400 && r.status < 500) r = await call(false);
   const data = await r.json();
-  if (!r.ok) throw new Error((data && data.error && data.error.message) || "Claude API error");
+  if (!r.ok) throw new Error("Claude HTTP " + r.status + ": " + ((data && data.error && data.error.message) || "error"));
   // A safety refusal is HTTP 200 with stop_reason "refusal" and empty content —
   // check before reading content so it degrades to the next engine cleanly.
-  // (With `fallbacks`, a final refusal means the whole chain declined.)
   if (data && data.stop_reason === "refusal") throw new Error("Claude declined the request (refusal)");
   const text = (data.content && data.content[0] && data.content[0].text) || "";
   if (!text) throw new Error("Claude returned empty text");
@@ -396,6 +399,18 @@ export default async function handler(req, res) {
   // Resolve keys: env first, then secrets stored in the DB.
   const secrets = await loadSecrets();
   const getKey = (name) => process.env[name] || secrets[name] || "";
+
+  // Diagnostic: run ONLY the Claude engine and report its outcome verbatim, so a
+  // winning fallback engine can't mask why Claude failed. Returns the thrown
+  // error (which includes the HTTP status) — never a key. Opt-in via body.
+  if (body && body.debug === "claude") {
+    try {
+      const r = await tryClaude(prompt, maxTokens, getKey, modelPref);
+      return res.status(200).json(r || { error: "ANTHROPIC_API_KEY not set" });
+    } catch (e) {
+      return res.status(200).json({ error: (e && e.message) || "claude failed", model: modelPref || process.env.CLAUDE_MODEL || "claude-fable-5" });
+    }
+  }
 
   // Ordered rotation: FAST, reliable brains first so a working engine answers in
   // seconds. Slow free models (NVIDIA NIM) are a backstop, tried only after the

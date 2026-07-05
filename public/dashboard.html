@@ -24,6 +24,15 @@
     .dgrid > aside{border-right:none!important;border-bottom:1px solid rgba(255,255,255,.07)}
     .dgrid > main{padding:20px 16px!important}
   }
+  /* Command-center polish: micro-interactions (additive — inline styles preserved,
+     these target properties not set inline so there's no conflict). */
+  .tab{transition:transform .14s ease,background .18s ease,color .18s ease}
+  .tab:hover{transform:translateX(3px)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:#e8c476!important;box-shadow:0 0 0 3px rgba(232,196,118,.18)}
+  button{transition:transform .13s ease,box-shadow .2s ease,filter .18s ease}
+  button:hover{filter:brightness(1.07)}
+  button:active{transform:translateY(1px)}
+  @media(prefers-reduced-motion:reduce){.tab,button{transition:none}.tab:hover{transform:none}}
 </style>
 </head>
 <body data-i18n-auto>

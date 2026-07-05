@@ -34,6 +34,8 @@ jobs:
             [ -f "$f" ] || continue
             node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" && echo "ok: $f"
           done
+      - name: Run tests (registry invariants, classifier, portal logic)
+        run: node --test
 
   claude-smoke:
     runs-on: ubuntu-latest

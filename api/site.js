@@ -16,6 +16,20 @@ function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]
 function normEmail(e) { return String(e || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 80); }
 function publicAccount(a) { if (!a) return null; const { code, ...safe } = a; return safe; }
 
+// Compose a human-readable request line from a vertical's portal fields + the
+// customer's submitted form. Exported + pure so it's unit-tested (test/portal.test.mjs)
+// and shared by the cust-submit handler — no logic drift between the two.
+export function composeRequestDetail(portal, form) {
+  const parts = [];
+  for (const f of (portal && portal.fields) || []) {
+    let val = form ? form[f.key] : undefined;
+    if (val == null || val === "") continue;
+    if (f.type === "num") { val = Number(val); if (!isFinite(val)) continue; }
+    parts.push(String(f.label).replace(/\s*\(optional\)/i, "") + ": " + String(val).slice(0, 300));
+  }
+  return parts.join(" · ").slice(0, 900);
+}
+
 function upstashBase() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -181,15 +195,8 @@ async function handleCustomerPortal(req, res, slug, body) {
     const rl = await rateLimit(req, "custsubmit", { limit: 12, windowSec: 600, key: clientIp(req) + ":" + slug });
     if (rl.limited) return res.status(429).json({ error: "Too many requests — slow down a moment." });
     const form = (body.form && typeof body.form === "object") ? body.form : {};
-    const parts = [];
-    for (const f of portal.fields) {
-      let val = form[f.key];
-      if (val == null || val === "") continue;
-      if (f.type === "num") { val = Number(val); if (!isFinite(val)) continue; }
-      parts.push(String(f.label).replace(/\s*\(optional\)/i, "") + ": " + String(val).slice(0, 300));
-    }
-    if (!parts.length) return res.status(400).json({ error: "Add at least one detail to your request." });
-    const detail = parts.join(" · ").slice(0, 900);
+    const detail = composeRequestDetail(portal, form);
+    if (!detail) return res.status(400).json({ error: "Add at least one detail to your request." });
     const row = { customer: acct.name || acct.email, detail, contact: acct.email, date: new Date().toISOString().slice(0, 10), status: "New" };
 
     // Append to the owner's back-office — ONLY the customer-writable module.

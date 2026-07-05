@@ -111,7 +111,13 @@ export default async function handler(req, res) {
       // Industry + city drive the industry-specific client dashboard and contract.
       const bizType = String(body.bizType || (prev && prev.bizType) || "").slice(0, 80);
       const bizCity = String(body.bizCity || (prev && prev.bizCity) || "").slice(0, 80);
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity }));
+      // Branches of a multi-location business — powers the back-office location filter
+      // and the customer portal's location picker (names only; capped).
+      const locations = (Array.isArray(body.locations) ? body.locations : (prev && prev.locations) || [])
+        .slice(0, 40)
+        .map((l) => ({ name: String((l && l.name) || "").slice(0, 120), address: String((l && l.address) || "").slice(0, 200) }))
+        .filter((l) => l.name || l.address);
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations }));
 
       const existing = index.find((s) => s.slug === slug);
       if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }

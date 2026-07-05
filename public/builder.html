@@ -818,7 +818,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   try{ cineInit(lang); }catch(_){ }
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
   document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead, lang);
-  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city);
+  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]));
   document.getElementById("boBtn").onclick=()=>{
     const vert=(window.__resolveVertical?window.__resolveVertical(type):"general");
     const u="/backoffice.html?vertical="+encodeURIComponent(vert)+"&biz="+encodeURIComponent(name);
@@ -838,13 +838,13 @@ function buildDoc(name, inner, fontsHref, seoHead, lang){
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>${seoHead||""}<link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}html,body{overflow-x:hidden;max-width:100%}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0b0e;color:#f5f6f8}section{scroll-margin-top:80px}img,iframe,video{max-width:100%;height:auto}img{height:auto}</style></head><body>${inner}${track}${controller}</body></html>`;
 }
 
-async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity){
+async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity, locations){
   const token = getCookie("fda_auth");
   if(!token){ alert("Log into your Owner Dashboard first — only you can publish sites."); location.href="/dashboard.html"; return; }
   const btn=document.getElementById("pubBtn"); const old=btn.textContent; btn.textContent="Publishing…"; btn.disabled=true;
   try{
     const doc = buildDoc(name, inner, fontsHref, seoHead, lang);
-    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||""})});
+    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||"", locations:Array.isArray(locations)?locations:[]})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Publish failed."); return; }
     const full = location.origin + j.url;

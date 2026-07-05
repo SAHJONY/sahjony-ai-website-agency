@@ -97,6 +97,7 @@ const vertId = qs.get("v") || "general";
 const bizParam = qs.get("biz") || "";
 const vertical = getVertical(vertId);
 const portal = vertical.portal;
+let LOCATIONS = []; // branches (from cust-info); a Location picker appears when >1
 
 const $ = (id) => document.getElementById(id);
 document.documentElement.style.setProperty("--accent", vertical.accent);
@@ -125,6 +126,13 @@ async function api(action, extra) {
 // ---- form fields (industry-tailored, from the registry) ----
 function renderFields() {
   const wrap = $("fields"); wrap.innerHTML = "";
+  // Multi-location businesses: require the customer to pick a branch first.
+  if (LOCATIONS.length > 1) {
+    const lab = document.createElement("label"); lab.textContent = "Location *"; lab.htmlFor = "locSelect";
+    const sel = document.createElement("select"); sel.id = "locSelect";
+    sel.innerHTML = '<option value="">Select a location…</option>' + LOCATIONS.map((l) => `<option>${esc(l.name || l.address)}</option>`).join("");
+    wrap.appendChild(lab); wrap.appendChild(sel);
+  }
   portal.fields.forEach((f) => {
     const lab = document.createElement("label"); lab.textContent = f.label + (f.required ? " *" : ""); lab.htmlFor = "ff_" + f.key;
     let inp;
@@ -160,7 +168,7 @@ function requiredMissing() {
 function renderHistory(list) {
   const h = $("history");
   if (!list || !list.length) { h.innerHTML = '<div class="muted" style="font-size:14px">No requests yet.</div>'; return; }
-  h.innerHTML = list.map((r) => `<div class="hist"><div class="d">${esc(r.detail || "")}</div><div class="m">${esc(r.at || "")} · <span class="pill">${esc(r.status || "New")}</span></div></div>`).join("");
+  h.innerHTML = list.map((r) => `<div class="hist"><div class="d">${esc(r.detail || "")}</div><div class="m">${esc(r.at || "")}${r.location ? (" · " + esc(r.location)) : ""} · <span class="pill">${esc(r.status || "New")}</span></div></div>`).join("");
 }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 
@@ -201,12 +209,14 @@ $("signupBtn").onclick = async () => {
 };
 $("submitBtn").onclick = async () => {
   $("submitErr").textContent = "";
+  const location = (LOCATIONS.length > 1) ? (($("locSelect") || {}).value || "") : "";
+  if (LOCATIONS.length > 1 && !location) { $("submitErr").textContent = "Please choose a location."; return; }
   const miss = requiredMissing();
   if (miss) { $("submitErr").textContent = "Please fill in: " + miss.replace(/\s*\*$/, ""); return; }
   const form = collectForm();
   if (!Object.keys(form).length) { $("submitErr").textContent = "Add at least one detail."; return; }
   const btn = $("submitBtn"); btn.disabled = true; btn.textContent = "Sending…";
-  const res = await api("cust-submit", { email: creds.email, code: creds.code, form });
+  const res = await api("cust-submit", { email: creds.email, code: creds.code, form, location });
   btn.disabled = false; btn.textContent = portal.cta || "Send request";
   if (!res.ok) { $("submitErr").textContent = (res.j && res.j.error) || "Could not send."; return; }
   $("submitErr").innerHTML = '<span class="ok">✓ Request sent — we\'ll be in touch.</span>';
@@ -223,6 +233,14 @@ function guard() {
 // ---- resume session ----
 (async () => {
   if (!slug) return;
+  // Load authoritative business name + locations (no auth needed) before any render.
+  try {
+    const info = await api("cust-info");
+    if (info.ok && info.j) {
+      LOCATIONS = Array.isArray(info.j.locations) ? info.j.locations : [];
+      if (info.j.business) { $("brand").textContent = info.j.business; document.title = info.j.business + " · My Account"; }
+    }
+  } catch (e) {}
   const s = readSession();
   if (s && s.email && s.code) {
     const res = await api("cust-signin", { email: s.email, code: s.code });

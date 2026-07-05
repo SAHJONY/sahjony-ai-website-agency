@@ -172,7 +172,7 @@ async function handleCustomerPortal(req, res, slug, body) {
   // Public: business name + which vertical + the form spec (no auth needed to
   // render the sign-in screen with the right industry copy).
   if (action === "cust-info") {
-    return res.status(200).json({ ok: true, business: site.name || slug, vertical: vertical.id, portal });
+    return res.status(200).json({ ok: true, business: site.name || slug, vertical: vertical.id, portal, locations: Array.isArray(site.locations) ? site.locations : [] });
   }
 
   if (action === "cust-signup") {
@@ -206,7 +206,16 @@ async function handleCustomerPortal(req, res, slug, body) {
     const form = (body.form && typeof body.form === "object") ? body.form : {};
     const detail = composeRequestDetail(portal, form);
     if (!detail) return res.status(400).json({ error: "Add at least one detail to your request." });
-    const row = { customer: acct.name || acct.email, detail, contact: acct.email, date: new Date().toISOString().slice(0, 10), status: "New" };
+    // Multi-location: require a valid location (matched against the site's branches).
+    const siteLocs = Array.isArray(site.locations) ? site.locations : [];
+    let chosenLoc = "";
+    if (siteLocs.length > 1) {
+      const want = String(body.location || "").trim();
+      const match = siteLocs.find((l) => (l.name || "") === want);
+      if (!match) return res.status(400).json({ error: "Please choose a location." });
+      chosenLoc = match.name;
+    }
+    const row = { customer: acct.name || acct.email, detail, contact: acct.email, date: new Date().toISOString().slice(0, 10), location: chosenLoc, status: "New" };
 
     // Append to the owner's back-office — ONLY the customer-writable module.
     const opsKey = "fda:ops:" + slug;
@@ -224,7 +233,7 @@ async function handleCustomerPortal(req, res, slug, body) {
 
     // Record in the customer's own history (per-key write — no shared-map race).
     acct.requests = Array.isArray(acct.requests) ? acct.requests : [];
-    acct.requests.unshift({ detail, at: row.date, status: "New" });
+    acct.requests.unshift({ detail, at: row.date, location: chosenLoc, status: "New" });
     acct.requests = acct.requests.slice(0, 50);
     await kvSet(userKey, acct);
 
@@ -232,7 +241,7 @@ async function handleCustomerPortal(req, res, slug, body) {
     try {
       const INBOX = "fda:contact:inbox";
       let inbox = (await kvGet(INBOX)) || []; if (!Array.isArray(inbox)) inbox = [];
-      inbox.push({ id: Date.now(), name: site.name || slug, type: "Customer request", contact: "portal:" + slug + " · " + acct.email, notes: detail, at: new Date().toISOString() });
+      inbox.push({ id: Date.now(), name: site.name || slug, type: "Customer request", contact: "portal:" + slug + " · " + acct.email, notes: (chosenLoc ? "[" + chosenLoc + "] " : "") + detail, at: new Date().toISOString() });
       if (inbox.length > 500) inbox = inbox.slice(-500);
       await kvSet(INBOX, inbox);
     } catch (_) {}
@@ -283,6 +292,7 @@ async function handlePortal(req, res) {
     url: (site.domain ? "https://" + String(site.domain).replace(/^https?:\/\//, "") : origin + "/s/" + slug),
     ava: site.ava !== false,
     industry: site.bizType || "", city: site.bizCity || "",
+    locations: Array.isArray(site.locations) ? site.locations : [],
   };
 
   if (action === "login") {

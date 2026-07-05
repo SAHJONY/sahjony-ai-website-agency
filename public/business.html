@@ -223,6 +223,7 @@
       <div style="position:relative;z-index:2">
         <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px" id="opsTitle">Operations</div>
         <div class="muted" id="opsHint" style="margin-bottom:12px">Your industry back-office — private to your business.</div>
+        <div id="opsLocBar" style="margin-bottom:10px"></div>
         <div class="tabs" id="opsNav" style="margin-top:0"></div>
         <div id="opsKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0"></div>
         <div style="overflow:auto;border:1px solid var(--line);border-radius:12px">
@@ -333,6 +334,8 @@ async function loadAll(){
   el("hdrName").textContent=(d.site&&d.site.name)||SLUG;
   BIZNAME=(d.site&&d.site.name)||SLUG; INDUSTRY=(d.site&&d.site.industry)||""; CITY=(d.site&&d.site.city)||"";
   P=industryProfile(INDUSTRY); applyIndustry();
+  // Branches for the Operations location filter (names; empty for single-location).
+  OPSLOCS=(d.site&&Array.isArray(d.site.locations))?d.site.locations.map(function(l){return (l&&l.name)||(l&&l.address)||"";}).filter(Boolean):[];
   // INDUSTRY is now known — let the Operations tab derive its vertical, and if the
   // user already opened it (and it deferred), initialise it now.
   opsDataLoaded=true;
@@ -566,7 +569,10 @@ async function saveSocial(){
 // Modules come from the shared registry (window.__VERTICALS, loaded by the module
 // script below). Data is saved through /api/site ops-get/ops-save, gated by the
 // client's own portal login — same auth as the rest of this dashboard.
-var OPS={modules:{},visuals:{}}, OPSVERT=null, OPSCUR=null, opsTimer=null, opsInit=false, opsDataLoaded=false;
+var OPS={modules:{},visuals:{}}, OPSVERT=null, OPSCUR=null, opsTimer=null, opsInit=false, opsDataLoaded=false, OPSLOCS=[], OPSLOCFILTER="__all";
+function opsMulti(){return OPSLOCS.length>1;}
+// Rows visible under the active location filter (all rows when "All locations").
+function opsVisibleRows(){var rows=opsRows();return (opsMulti()&&OPSLOCFILTER!=="__all")?rows.filter(function(r){return (r.location||"")===OPSLOCFILTER;}):rows;}
 function opsMoney(n){var x=Number(n);return isFinite(x)?"$"+Math.round(x).toLocaleString():"$0";}
 function opsVertical(){
   var V=window.__VERTICALS||{}, inf=window.__inferVertical||function(){return "general";};
@@ -606,7 +612,7 @@ function opsApplyBg(){
   else{el("opsBg").classList.remove("on");el("opsVeil").classList.remove("on");el("opsBg").style.backgroundImage="";}
 }
 function opsKpi(k){
-  var rows=opsRows();
+  var rows=opsVisibleRows();
   if(k.agg==="count")return String(rows.length);
   if(k.agg==="countStatus"){var f=OPSCUR.statusField;return String(rows.filter(function(r){return r[f]===k.value;}).length);}
   if(k.agg==="sum")return opsMoney(rows.reduce(function(a,r){return a+(Number(r[k.field])||0);},0));
@@ -634,28 +640,47 @@ function opsCell(col,row,idx){
   e.addEventListener("change",function(){var v=e.value;if(col.type==="money"||col.type==="num")v=(v===""?"":Number(v));opsRows()[idx][col.key]=v;opsRenderKpis();opsSchedule();});
   return e;
 }
+function opsLocCell(row,idx){
+  var e=document.createElement("select");
+  e.innerHTML='<option value="">—</option>'+OPSLOCS.map(function(n){return '<option'+(n===row.location?" selected":"")+'>'+esc(n)+'</option>';}).join("");
+  e.addEventListener("change",function(){opsRows()[idx].location=e.value;opsRenderAll();opsSchedule();});
+  return e;
+}
 function opsRenderTable(){
-  var rows=opsRows(),thead=el("opsTbl").querySelector("thead"),tbody=el("opsTbl").querySelector("tbody");
-  thead.innerHTML="<tr>"+OPSCUR.columns.map(function(c){return "<th>"+esc(c.label)+"</th>";}).join("")+"<th></th></tr>";
+  var rows=opsRows(),thead=el("opsTbl").querySelector("thead"),tbody=el("opsTbl").querySelector("tbody"),multi=opsMulti();
+  thead.innerHTML="<tr>"+OPSCUR.columns.map(function(c){return "<th>"+esc(c.label)+"</th>";}).join("")+(multi?"<th>Location</th>":"")+"<th></th></tr>";
   tbody.innerHTML="";
-  if(!rows.length){tbody.innerHTML='<tr><td colspan="'+(OPSCUR.columns.length+1)+'"><div class="opsempty">No records yet. Click <b>+ Add row</b> to start.</div></td></tr>';return;}
+  var colCount=OPSCUR.columns.length+(multi?1:0)+1;
+  var shown=0;
   rows.forEach(function(row,idx){
+    if(multi&&OPSLOCFILTER!=="__all"&&(row.location||"")!==OPSLOCFILTER)return; // hidden by location filter
+    shown++;
     var tr=document.createElement("tr");
     OPSCUR.columns.forEach(function(col){var td=document.createElement("td");td.appendChild(opsCell(col,row,idx));tr.appendChild(td);});
+    if(multi){var ltd=document.createElement("td");ltd.appendChild(opsLocCell(row,idx));tr.appendChild(ltd);}
     var td=document.createElement("td"),b=document.createElement("button");b.className="opsdel";b.title="Delete";b.textContent="✕";
-    b.onclick=function(){rows.splice(idx,1);opsRenderAll();opsSchedule();};td.appendChild(b);tr.appendChild(td);
+    b.onclick=function(){opsRows().splice(idx,1);opsRenderAll();opsSchedule();};td.appendChild(b);tr.appendChild(td);
     tbody.appendChild(tr);
   });
+  if(!shown){tbody.innerHTML='<tr><td colspan="'+colCount+'"><div class="opsempty">'+(rows.length?"No records for this location.":"No records yet. Click <b>+ Add row</b> to start.")+'</div></td></tr>';}
 }
 function opsRenderNav(){
   var nav=el("opsNav");nav.innerHTML="";
   OPSVERT.modules.forEach(function(m){var b=document.createElement("button");b.className="tab"+(m.id===OPSCUR.id?" on":"");b.textContent=(m.icon||"")+" "+m.title;b.onclick=function(){opsSelect(m.id);};nav.appendChild(b);});
 }
+function opsRenderLocBar(){
+  var bar=el("opsLocBar");if(!bar)return;
+  if(!opsMulti()){bar.innerHTML="";return;}
+  var opts='<option value="__all">All locations</option>'+OPSLOCS.map(function(n){return '<option value="'+esc(n)+'"'+(n===OPSLOCFILTER?" selected":"")+'>'+esc(n)+'</option>';}).join("");
+  bar.innerHTML='<label style="font-size:12px;color:var(--muted);font-weight:600;margin-right:8px">📍 Location</label><select id="opsLocSel" style="background:#0c0d11;color:var(--fg,#f2f0f6);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;font-weight:600">'+opts+'</select>';
+  el("opsLocSel").onchange=function(){OPSLOCFILTER=this.value;opsRenderAll();};
+}
 function opsRenderAll(){
-  var n=opsRows().length;
+  var n=opsVisibleRows().length;
   el("opsTitle").textContent=(OPSCUR.icon||"")+" "+OPSCUR.title;
-  el("opsHint").textContent=OPSVERT.label+" · "+n+" record"+(n===1?"":"s")+" — private to your business.";
-  opsApplyBg();opsRenderKpis();opsRenderTable();
+  var scope=(opsMulti()&&OPSLOCFILTER!=="__all")?(" · "+OPSLOCFILTER):"";
+  el("opsHint").textContent=OPSVERT.label+scope+" · "+n+" record"+(n===1?"":"s")+" — private to your business.";
+  opsRenderLocBar();opsApplyBg();opsRenderKpis();opsRenderTable();
 }
 function opsSelect(id){OPSCUR=null;OPSVERT.modules.forEach(function(m){if(m.id===id)OPSCUR=m;});if(!OPSCUR)OPSCUR=OPSVERT.modules[0];opsRenderNav();opsRenderAll();}
 function opsSchedule(){
@@ -691,6 +716,8 @@ function opsEnsure(){
 el("opsAdd").onclick=function(){
   if(!OPSCUR)return;var blank={};OPSCUR.columns.forEach(function(c){blank[c.key]="";});
   if(OPSCUR.statusField&&OPSCUR.statuses)blank[OPSCUR.statusField]=OPSCUR.statuses[0];
+  // Stamp the active location so the new row stays visible under the current filter.
+  if(opsMulti()&&OPSLOCFILTER!=="__all")blank.location=OPSLOCFILTER;
   opsRows().push(blank);opsRenderAll();opsSchedule();
 };
 el("opsBackdrop").onclick=opsGenBackdrop;

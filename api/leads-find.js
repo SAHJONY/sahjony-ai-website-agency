@@ -460,6 +460,40 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ---- Social auto-discovery (owner-only; no Places key needed) ----
+  // POST { socialScan:true, url } -> fetches the business's existing site and
+  // extracts its social profile links, so the builder can bake them into the
+  // new website automatically (Google Maps/Places never exposes socials).
+  let earlyBody = req.body;
+  if (typeof earlyBody === "string") { try { earlyBody = JSON.parse(earlyBody); } catch { earlyBody = {}; } }
+  if (req.method === "POST" && earlyBody && earlyBody.socialScan) {
+    const admin = process.env.ADMIN_PASSWORD;
+    if (admin && req.headers["x-admin-token"] !== admin) return res.status(401).json({ error: "Unauthorized." });
+    let u = String(earlyBody.url || "").trim();
+    if (!u) return res.status(400).json({ error: "Missing url." });
+    if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+    try {
+      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(u, { redirect: "follow", signal: ctrl.signal, headers: { "user-agent": "Mozilla/5.0 (compatible; FrontDeskAgents/1.0)" } });
+      clearTimeout(t);
+      const html = (await r.text()).slice(0, 600000);
+      const find = (re) => { const m = html.match(re); return m ? m[0].replace(/["'<>\\)]+$/, "") : ""; };
+      const social = {
+        facebook: find(/https?:\/\/(?:www\.)?facebook\.com\/(?!sharer|share|plugins)[A-Za-z0-9_.\/-]{2,80}/i),
+        instagram: find(/https?:\/\/(?:www\.)?instagram\.com\/[A-Za-z0-9_.]{2,40}/i),
+        tiktok: find(/https?:\/\/(?:www\.)?tiktok\.com\/@[A-Za-z0-9_.]{2,40}/i),
+        youtube: find(/https?:\/\/(?:www\.)?youtube\.com\/(?:@|channel\/|c\/|user\/)[A-Za-z0-9_.-]{2,60}/i),
+        x: find(/https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{2,20}/i),
+        linkedin: find(/https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/[A-Za-z0-9_.-]{2,60}/i),
+        whatsapp: find(/https?:\/\/(?:wa\.me|api\.whatsapp\.com\/send)[^"'<>\s]{0,60}/i),
+      };
+      Object.keys(social).forEach((k) => { if (!social[k]) delete social[k]; });
+      return res.status(200).json({ ok: true, social });
+    } catch (e) {
+      return res.status(200).json({ ok: false, social: {}, error: "Could not reach that site." });
+    }
+  }
+
   const secrets = await loadSecrets();
   const key = process.env.GOOGLE_PLACES_API_KEY || secrets.GOOGLE_PLACES_API_KEY;
   if (!key) return res.status(500).json({ error: "Set GOOGLE_PLACES_API_KEY to use the lead finder." });

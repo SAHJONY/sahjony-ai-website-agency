@@ -249,6 +249,22 @@ const qp = new URLSearchParams(location.search);
 if(qp.get("mode")==="url"){ setMode("url"); }
 if(qp.get("url")){ $("#fUrl").value = qp.get("url"); setMode("url"); }
 
+// Social auto-discovery: when a business URL is entered, scan their existing
+// site for social profile links and pre-fill any empty social fields — so every
+// build ships with the business's real Facebook/Instagram/TikTok/YouTube/etc.
+$("#fUrl").addEventListener("blur", async function(){
+  const u=this.value.trim(); if(!u) return;
+  try{
+    const tok=getCookie("fda_auth")||"";
+    const r=await fetch("/api/leads-find",{method:"POST",headers:{"content-type":"application/json","x-admin-token":tok},body:JSON.stringify({socialScan:true,url:u})});
+    const j=await r.json(); const so=(j&&j.social)||{};
+    const map={facebook:"sFacebook",instagram:"sInstagram",tiktok:"sTiktok",youtube:"sYoutube",x:"sX",whatsapp:"sWhatsapp",linkedin:"sLinkedin"};
+    let found=0;
+    Object.keys(map).forEach(k=>{ const el=$("#"+map[k]); if(so[k]&&el&&!el.value.trim()){ el.value=so[k]; found++; } });
+    if(found) console.log("Auto-filled "+found+" social links from "+u);
+  }catch(e){}
+});
+
 function val(id){ return ($("#"+id).value||"").trim(); }
 function deriveName(u){ try{ const h=u.replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0].split(".")[0]; return h.charAt(0).toUpperCase()+h.slice(1); }catch(e){ return "Your Business"; } }
 function initials(n){ const w=(n||"").trim().split(/\s+/).filter(Boolean); return w.length?(w[0][0]+(w[1]?w[1][0]:"")).toUpperCase():"★"; }

@@ -123,18 +123,36 @@ async function chatCompletions(url, key, model, prompt, maxTokens) {
   return text;
 }
 
-// ---- Engine: Claude (Anthropic) ----
+// ---- Engine: Claude (Anthropic) — the primary, highest-quality brain ----
 async function tryClaude(prompt, maxTokens, getKey) {
   const key = getKey("ANTHROPIC_API_KEY");
   if (!key) return null;
-  const model = process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022";
+  // Default to Claude Opus 4.8 — the current flagship. The old default
+  // (claude-3-5-sonnet-20241022) was RETIRED 2025-10-28 and now 404s, which
+  // silently knocked the primary engine offline and forced every generation
+  // onto a fallback. Opus 4.8 uses adaptive-thinking-only params (no
+  // temperature/top_p/budget_tokens — those 400), so the request stays minimal;
+  // effort=medium balances design quality against the serverless time budget.
+  const model = process.env.CLAUDE_MODEL || "claude-opus-4-8";
+  // Give the primary engine real headroom — a full bespoke site is a large,
+  // single-shot generation and the 18s per-engine cap would abort it. Bounded
+  // by the overall request deadline inside fetchT.
+  const timeout = Number(process.env.CLAUDE_TIMEOUT_MS || 50000);
   const r = await fetchT("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
-  });
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      output_config: { effort: process.env.CLAUDE_EFFORT || "medium" },
+      messages: [{ role: "user", content: prompt }],
+    }),
+  }, timeout);
   const data = await r.json();
   if (!r.ok) throw new Error((data && data.error && data.error.message) || "Claude API error");
+  // A safety refusal is HTTP 200 with stop_reason "refusal" and empty content —
+  // check before reading content so it degrades to the next engine cleanly.
+  if (data && data.stop_reason === "refusal") throw new Error("Claude declined the request (refusal)");
   const text = (data.content && data.content[0] && data.content[0].text) || "";
   if (!text) throw new Error("Claude returned empty text");
   return { text, engine: "claude:" + model };
@@ -175,7 +193,7 @@ async function tryOpenAI(prompt, maxTokens, getKey) {
 async function tryGrok(prompt, maxTokens, getKey) {
   const key = getKey("XAI_API_KEY");
   if (!key) return null;
-  const model = process.env.XAI_MODEL || "grok-2-latest";
+  const model = process.env.XAI_MODEL || "grok-4";
   const text = await chatCompletions("https://api.x.ai/v1/chat/completions", key, model, prompt, maxTokens);
   return { text, engine: "grok:" + model };
 }

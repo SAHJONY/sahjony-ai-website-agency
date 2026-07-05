@@ -130,7 +130,7 @@ export default async function handler(req, res) {
       emailNotify: !!(process.env.NOTIFY_EMAIL || process.env.SALES_EMAIL),
       rateLimit: Number(process.env.GEN_RATE_LIMIT || 60) > 0,
       paymentsPrimary: String(process.env.PAYMENTS_PRIMARY || "manual").toLowerCase(),
-      model: process.env.CLAUDE_MODEL || "claude-3-5-sonnet-20241022",
+      model: process.env.CLAUDE_MODEL || "claude-opus-4-8",
     },
     engineRotation: ["claude (primary)", "openai", "gemini", "grok", "glm (z.ai)", "nvidia nim (rotating)"],
     social,

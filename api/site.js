@@ -10,8 +10,11 @@
 //   fda:site:<slug>    (name/status, read-only)     fda:leads:<slug> (its leads)
 // It can never read another business's data or any admin/secret key.
 import { rateLimit, safeEqual, clientIp } from "../lib/guard.js";
+import { getVertical, inferVertical, REQUESTS_MODULE_ID } from "../public/verticals.js";
 
 function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
+function normEmail(e) { return String(e || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 80); }
+function publicAccount(a) { if (!a) return null; const { code, ...safe } = a; return safe; }
 
 function upstashBase() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -125,6 +128,103 @@ function hexA(hex, a) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
+// Per-industry CUSTOMER portal (account.html). Slug-scoped, self-authed by the
+// customer's own email + code. Requests append to the owner's back-office under
+// the single customer-writable "requests" module — enforced here, so a customer
+// can never touch any other module or another business's data.
+async function handleCustomerPortal(req, res, slug, body) {
+  const action = body.action;
+  const site = await kvGet("fda:site:" + slug);
+  if (!site) return res.status(404).json({ error: "We couldn't find that business." });
+  const vertical = getVertical(inferVertical(site.bizType || ""));
+  const portal = vertical.portal;
+  const USERS_KEY = "fda:portalusers:" + slug;
+  const email = normEmail(body.email);
+
+  // Public: business name + which vertical + the form spec (no auth needed to
+  // render the sign-in screen with the right industry copy).
+  if (action === "cust-info") {
+    return res.status(200).json({ ok: true, business: site.name || slug, vertical: vertical.id, portal });
+  }
+
+  if (action === "cust-signup") {
+    const rl = await rateLimit(req, "custsignup", { limit: 8, windowSec: 3600, key: clientIp(req) + ":" + slug });
+    if (rl.limited) return res.status(429).json({ error: "Too many sign-ups from this connection — try again later." });
+    const name = String(body.name || "").trim().slice(0, 120);
+    const code = String(body.code || "").trim();
+    if (!email || !code || code.length < 4) return res.status(400).json({ error: "Enter your name, email, and a code of at least 4 characters." });
+    let users = (await kvGet(USERS_KEY)) || {};
+    if (typeof users !== "object" || Array.isArray(users)) users = {};
+    if (users[email]) return res.status(409).json({ error: "An account with that email already exists — sign in instead." });
+    if (Object.keys(users).length >= 5000) return res.status(429).json({ error: "Sign-ups are temporarily closed for this business." });
+    users[email] = { name, email: String(body.email || "").trim().slice(0, 160), code, requests: [], createdAt: new Date().toISOString() };
+    await kvSet(USERS_KEY, users);
+    return res.status(200).json({ ok: true, account: publicAccount(users[email]), business: site.name || slug, vertical: vertical.id });
+  }
+
+  // signin + submit require a valid account. One code check, rate-limited.
+  let users = (await kvGet(USERS_KEY)) || {};
+  if (typeof users !== "object" || Array.isArray(users)) users = {};
+  const acct = email ? users[email] : null;
+  const code = String(body.code || "").trim();
+  if (!acct || !safeEqual(String(acct.code || ""), code)) {
+    const rl = await rateLimit(req, "custsignin", { limit: 20, windowSec: 600, key: clientIp(req) + ":" + slug });
+    if (rl.limited) return res.status(429).json({ error: "Too many attempts — wait a few minutes." });
+    return res.status(401).json({ error: "Wrong email or code." });
+  }
+
+  if (action === "cust-signin") {
+    return res.status(200).json({ ok: true, account: publicAccount(acct), business: site.name || slug, vertical: vertical.id });
+  }
+
+  if (action === "cust-submit") {
+    const rl = await rateLimit(req, "custsubmit", { limit: 12, windowSec: 600, key: clientIp(req) + ":" + slug });
+    if (rl.limited) return res.status(429).json({ error: "Too many requests — slow down a moment." });
+    const form = (body.form && typeof body.form === "object") ? body.form : {};
+    const parts = [];
+    for (const f of portal.fields) {
+      let val = form[f.key];
+      if (val == null || val === "") continue;
+      if (f.type === "num") { val = Number(val); if (!isFinite(val)) continue; }
+      parts.push(String(f.label).replace(/\s*\(optional\)/i, "") + ": " + String(val).slice(0, 300));
+    }
+    if (!parts.length) return res.status(400).json({ error: "Add at least one detail to your request." });
+    const detail = parts.join(" · ").slice(0, 900);
+    const row = { customer: acct.name || acct.email, detail, contact: acct.email, date: new Date().toISOString().slice(0, 10), status: "New" };
+
+    // Append to the owner's back-office — ONLY the customer-writable module.
+    const opsKey = "fda:ops:" + slug;
+    const ops = (await kvGet(opsKey)) || {};
+    ops.modules = (ops.modules && typeof ops.modules === "object") ? ops.modules : {};
+    const list = Array.isArray(ops.modules[REQUESTS_MODULE_ID]) ? ops.modules[REQUESTS_MODULE_ID] : [];
+    if (list.length >= 1000) return res.status(429).json({ error: "This business isn't accepting new requests right now." });
+    list.unshift(row);
+    ops.modules[REQUESTS_MODULE_ID] = list;
+    ops.updatedAt = new Date().toISOString();
+    await kvSet(opsKey, ops);
+
+    // Record in the customer's own history.
+    acct.requests = Array.isArray(acct.requests) ? acct.requests : [];
+    acct.requests.unshift({ detail, at: row.date, status: "New" });
+    acct.requests = acct.requests.slice(0, 50);
+    users[email] = acct;
+    await kvSet(USERS_KEY, users);
+
+    // Drop it in the owner's inbox so it surfaces alongside other messages.
+    try {
+      const INBOX = "fda:contact:inbox";
+      let inbox = (await kvGet(INBOX)) || []; if (!Array.isArray(inbox)) inbox = [];
+      inbox.push({ id: Date.now(), name: site.name || slug, type: "Customer request", contact: "portal:" + slug + " · " + acct.email, notes: detail, at: new Date().toISOString() });
+      if (inbox.length > 500) inbox = inbox.slice(-500);
+      await kvSet(INBOX, inbox);
+    } catch (_) {}
+
+    return res.status(200).json({ ok: true, request: { detail, at: row.date, status: "New" }, account: publicAccount(acct) });
+  }
+
+  return res.status(400).json({ error: "Unknown action." });
+}
+
 async function handlePortal(req, res) {
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
@@ -132,6 +232,15 @@ async function handlePortal(req, res) {
   const action = body.action;
   const slug = cleanSlug(body.slug);
   if (!slug) return res.status(400).json({ error: "Missing site." });
+
+  // CUSTOMER portal actions run BEFORE the owner-password gate — the business's
+  // own customers authenticate with their email + a code they set, never the
+  // owner's portal password. They can only ever reach fda:portalusers:<slug> and
+  // APPEND to the one customer-writable module in fda:ops:<slug>.
+  if (action && action.indexOf("cust-") === 0) {
+    try { return await handleCustomerPortal(req, res, slug, body); }
+    catch (e) { return res.status(500).json({ error: e.message || "Portal request failed" }); }
+  }
 
   // Brute-force guard: cap password attempts per IP (and per IP+slug) so a
   // client's portal password can't be guessed by hammering this endpoint.

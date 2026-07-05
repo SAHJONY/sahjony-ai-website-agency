@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>My Account</title>
+<style>
+  :root{ --accent:#e8c476; --bg:#08090c; --panel:rgba(255,255,255,.045); --line:rgba(255,255,255,.1); --ink:#f2f0f6; --muted:#8b8896; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;background:radial-gradient(900px 520px at 80% -10%, color-mix(in srgb,var(--accent) 15%, transparent), transparent 60%), radial-gradient(700px 500px at -5% 0%, rgba(80,90,140,.10), transparent 55%), var(--bg)}
+  .wrap{max-width:640px;margin:0 auto;padding:56px 20px 80px}
+  .brand{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:8px 0 4px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:30px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px;margin-bottom:18px}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+  input,select,textarea{width:100%;padding:12px 14px;border-radius:11px;border:1px solid var(--line);background:#0c0d11;color:var(--ink);font:inherit;font-size:15px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:color-mix(in srgb,var(--accent) 55%, transparent)}
+  select option{background:#14151a}
+  textarea{min-height:84px;resize:vertical}
+  .btn{width:100%;margin-top:20px;padding:13px;border-radius:11px;border:none;background:var(--accent);color:#0a0a0a;font-weight:800;font-size:15px;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.08)} .btn:disabled{opacity:.55;cursor:default}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:700}
+  .switch{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
+  .switch a{color:var(--accent);font-weight:700;text-decoration:none;cursor:pointer}
+  .err{color:#ff7a6e;font-size:14px;min-height:20px;margin-top:10px;font-weight:600}
+  .ok{color:#46d39a}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .hist{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px}
+  .hist .d{font-size:14.5px;line-height:1.5}
+  .hist .m{font-size:12px;color:var(--muted);margin-top:5px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--accent) 16%, transparent);color:var(--accent)}
+  .note{background:rgba(255,180,80,.1);border:1px solid rgba(255,180,80,.3);color:#ffd08a;border-radius:12px;padding:14px 16px;font-size:14px;margin-bottom:18px}
+  .muted{color:var(--muted)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand" id="brand">My Account</div>
+  <h1 id="headline">My Account</h1>
+  <div class="sub" id="blurb">Sign in to manage your requests.</div>
+  <div class="note hidden" id="unpub">This account portal activates once the website is published. (No site ID yet.)</div>
+
+  <!-- SIGNED OUT -->
+  <div id="authCard" class="card">
+    <div id="signinForm">
+      <label for="ai_email">Email</label>
+      <input id="ai_email" type="email" autocomplete="email" placeholder="you@email.com">
+      <label for="ai_code">Access code</label>
+      <input id="ai_code" type="password" autocomplete="current-password" placeholder="Your code">
+      <button class="btn" id="signinBtn">Sign in</button>
+      <div class="switch">New here? <a id="toSignup">Create an account</a></div>
+    </div>
+    <div id="signupForm" class="hidden">
+      <label for="su_name">Your name</label>
+      <input id="su_name" type="text" autocomplete="name" placeholder="First & last name">
+      <label for="su_email">Email</label>
+      <input id="su_email" type="email" autocomplete="email" placeholder="you@email.com">
+      <label for="su_code">Choose an access code</label>
+      <input id="su_code" type="password" autocomplete="new-password" placeholder="At least 4 characters">
+      <button class="btn" id="signupBtn">Create account</button>
+      <div class="switch">Already have one? <a id="toSignin">Sign in</a></div>
+    </div>
+    <div class="err" id="authErr"></div>
+  </div>
+
+  <!-- SIGNED IN -->
+  <div id="appArea" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div><b id="greet">Welcome</b><div class="muted" id="whoEmail" style="font-size:13px"></div></div>
+        <button class="btn ghost" id="logoutBtn" style="width:auto;margin:0;padding:9px 16px">Sign out</button>
+      </div>
+      <div id="reqTitle" style="font-weight:700;font-size:17px;margin-bottom:2px">Send a request</div>
+      <div class="muted" style="font-size:13.5px;margin-bottom:8px" id="reqSub">We'll get back to you.</div>
+      <div id="fields"></div>
+      <button class="btn" id="submitBtn">Send request</button>
+      <div class="err" id="submitErr"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">Your requests</div>
+      <div id="history"><div class="muted" style="font-size:14px">No requests yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { getVertical } from "/verticals.js";
+
+const qs = new URLSearchParams(location.search);
+const rawSlug = qs.get("slug") || "";
+const slug = /^[a-z0-9-]+$/i.test(rawSlug) ? rawSlug.toLowerCase() : "";      // unbound "__SITE_SLUG__" fails this → treated as unpublished
+const vertId = qs.get("v") || "general";
+const bizParam = qs.get("biz") || "";
+const vertical = getVertical(vertId);
+const portal = vertical.portal;
+
+const $ = (id) => document.getElementById(id);
+document.documentElement.style.setProperty("--accent", vertical.accent);
+
+// ---- header ----
+$("brand").textContent = (bizParam || "My Account");
+$("headline").textContent = portal.headline || "My Account";
+$("blurb").textContent = portal.blurb || "Sign in to manage your requests.";
+$("reqTitle").textContent = portal.cta || "Send a request";
+document.title = (bizParam ? bizParam + " · " : "") + "My Account";
+if (!slug) { $("unpub").classList.remove("hidden"); }
+
+// ---- auth session ----
+const SKEY = "fda_cust_" + (slug || "none");
+function saveSession(email, code) { try { sessionStorage.setItem(SKEY, JSON.stringify({ email, code })); } catch (e) {} }
+function readSession() { try { return JSON.parse(sessionStorage.getItem(SKEY) || "null"); } catch (e) { return null; } }
+function clearSession() { try { sessionStorage.removeItem(SKEY); } catch (e) {} }
+let creds = null; // {email, code}
+
+async function api(action, extra) {
+  const r = await fetch("/api/site", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ action, slug }, extra || {})) });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, j };
+}
+
+// ---- form fields (industry-tailored, from the registry) ----
+function renderFields() {
+  const wrap = $("fields"); wrap.innerHTML = "";
+  portal.fields.forEach((f) => {
+    const lab = document.createElement("label"); lab.textContent = f.label + (f.required ? " *" : ""); lab.htmlFor = "ff_" + f.key;
+    let inp;
+    if (f.type === "select") {
+      inp = document.createElement("select");
+      inp.innerHTML = '<option value="">Select…</option>' + (f.options || []).map((o) => `<option>${o}</option>`).join("");
+    } else if (f.type === "textarea") {
+      inp = document.createElement("textarea");
+    } else {
+      inp = document.createElement("input");
+      inp.type = f.type === "num" ? "number" : (f.type === "date" ? "date" : "text");
+    }
+    inp.id = "ff_" + f.key;
+    wrap.appendChild(lab); wrap.appendChild(inp);
+  });
+}
+function collectForm() {
+  const out = {};
+  for (const f of portal.fields) {
+    const v = ($("ff_" + f.key) || {}).value;
+    if (v != null && String(v).trim() !== "") out[f.key] = v;
+  }
+  return out;
+}
+function requiredMissing() {
+  for (const f of portal.fields) {
+    if (f.required && !($("ff_" + f.key) || {}).value) return f.label;
+  }
+  return null;
+}
+
+// ---- history ----
+function renderHistory(list) {
+  const h = $("history");
+  if (!list || !list.length) { h.innerHTML = '<div class="muted" style="font-size:14px">No requests yet.</div>'; return; }
+  h.innerHTML = list.map((r) => `<div class="hist"><div class="d">${esc(r.detail || "")}</div><div class="m">${esc(r.at || "")} · <span class="pill">${esc(r.status || "New")}</span></div></div>`).join("");
+}
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+// ---- views ----
+function showApp(account) {
+  $("authCard").classList.add("hidden");
+  $("appArea").classList.remove("hidden");
+  $("greet").textContent = "Welcome, " + (account.name || "").split(" ")[0] || "Welcome";
+  $("whoEmail").textContent = account.email || "";
+  renderFields();
+  renderHistory(account.requests || []);
+}
+function showAuth() { $("appArea").classList.add("hidden"); $("authCard").classList.remove("hidden"); }
+
+// ---- actions ----
+$("toSignup").onclick = () => { $("signinForm").classList.add("hidden"); $("signupForm").classList.remove("hidden"); $("authErr").textContent = ""; };
+$("toSignin").onclick = () => { $("signupForm").classList.add("hidden"); $("signinForm").classList.remove("hidden"); $("authErr").textContent = ""; };
+
+$("signinBtn").onclick = async () => {
+  if (!guard()) return;
+  const email = $("ai_email").value.trim(), code = $("ai_code").value.trim();
+  if (!email || !code) { $("authErr").textContent = "Enter your email and code."; return; }
+  const btn = $("signinBtn"); btn.disabled = true; btn.textContent = "Signing in…";
+  const res = await api("cust-signin", { email, code });
+  btn.disabled = false; btn.textContent = "Sign in";
+  if (!res.ok) { $("authErr").textContent = (res.j && res.j.error) || "Sign in failed."; return; }
+  creds = { email, code }; saveSession(email, code); showApp(res.j.account);
+};
+$("signupBtn").onclick = async () => {
+  if (!guard()) return;
+  const name = $("su_name").value.trim(), email = $("su_email").value.trim(), code = $("su_code").value.trim();
+  if (!name || !email || code.length < 4) { $("authErr").textContent = "Enter your name, email, and a code (4+ characters)."; return; }
+  const btn = $("signupBtn"); btn.disabled = true; btn.textContent = "Creating…";
+  const res = await api("cust-signup", { name, email, code });
+  btn.disabled = false; btn.textContent = "Create account";
+  if (!res.ok) { $("authErr").textContent = (res.j && res.j.error) || "Could not create account."; return; }
+  creds = { email, code }; saveSession(email, code); showApp(res.j.account);
+};
+$("submitBtn").onclick = async () => {
+  $("submitErr").textContent = "";
+  const miss = requiredMissing();
+  if (miss) { $("submitErr").textContent = "Please fill in: " + miss.replace(/\s*\*$/, ""); return; }
+  const form = collectForm();
+  if (!Object.keys(form).length) { $("submitErr").textContent = "Add at least one detail."; return; }
+  const btn = $("submitBtn"); btn.disabled = true; btn.textContent = "Sending…";
+  const res = await api("cust-submit", { email: creds.email, code: creds.code, form });
+  btn.disabled = false; btn.textContent = portal.cta || "Send request";
+  if (!res.ok) { $("submitErr").textContent = (res.j && res.j.error) || "Could not send."; return; }
+  $("submitErr").innerHTML = '<span class="ok">✓ Request sent — we\'ll be in touch.</span>';
+  renderFields();
+  renderHistory((res.j.account && res.j.account.requests) || []);
+};
+$("logoutBtn").onclick = () => { clearSession(); creds = null; location.reload(); };
+
+function guard() {
+  if (!slug) { $("authErr").textContent = "This portal isn't active yet — the site needs to be published first."; return false; }
+  return true;
+}
+
+// ---- resume session ----
+(async () => {
+  if (!slug) return;
+  const s = readSession();
+  if (s && s.email && s.code) {
+    const res = await api("cust-signin", { email: s.email, code: s.code });
+    if (res.ok) { creds = { email: s.email, code: s.code }; showApp(res.j.account); }
+    else clearSession();
+  }
+})();
+</script>
+</body>
+</html>

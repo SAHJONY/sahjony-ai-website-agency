@@ -744,3 +744,145 @@ export function inferVertical(typeText) {
 export function getVertical(id) {
   return VERTICALS[id] || VERTICALS.general;
 }
+
+// ============================ CUSTOMER PORTAL ==============================
+// The per-industry CUSTOMER portal (account.html) mirrors the owner back-office:
+// registry-driven and industry-tailored. Customers of the business sign in and
+// submit an industry-appropriate request; every request lands as a row in the
+// owner's back-office under this ONE shared, customer-writable module — the only
+// module a customer may ever append to (enforced server-side in api/site.js).
+export const REQUESTS_MODULE_ID = "requests";
+const REQUESTS_MODULE = {
+  id: REQUESTS_MODULE_ID,
+  title: "Customer Requests",
+  icon: "📥",
+  kind: "queue",
+  statusField: "status",
+  statuses: ["New", "In Progress", "Handled", "Closed"],
+  columns: [
+    { key: "customer", label: "Customer", type: "text" },
+    { key: "detail", label: "Request", type: "text" },
+    { key: "contact", label: "Contact", type: "text" },
+    { key: "date", label: "Received", type: "date" },
+    { key: "status", label: "Status", type: "status" },
+  ],
+  kpis: [
+    { label: "Requests", agg: "count" },
+    { label: "New", agg: "countStatus", value: "New" },
+    { label: "Handled", agg: "countStatus", value: "Handled" },
+  ],
+  customerWritable: true, // the ONLY module the public portal can append to
+};
+
+// Industry-tailored customer-facing forms. `fields` drive account.html; the
+// server composes a request `detail` from the filled fields. type ∈
+// text | num | date | textarea | select (select needs `options`).
+const PORTALS = {
+  "real-estate": {
+    headline: "Your home search", blurb: "Request a showing and track your interest.",
+    cta: "Request a showing",
+    fields: [
+      { key: "property", label: "Property or area of interest", type: "text", required: true },
+      { key: "budget", label: "Budget", type: "num" },
+      { key: "time", label: "Preferred date/time", type: "date" },
+      { key: "notes", label: "Anything we should know?", type: "textarea" },
+    ],
+  },
+  medical: {
+    headline: "Appointments & requests", blurb: "Request an appointment with our practice.",
+    cta: "Request an appointment",
+    fields: [
+      { key: "reason", label: "Reason for visit", type: "text", required: true },
+      { key: "provider", label: "Preferred provider (optional)", type: "text" },
+      { key: "time", label: "Preferred date/time", type: "date" },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+  },
+  legal: {
+    headline: "Your matters", blurb: "Request a consultation with our firm.",
+    cta: "Request a consultation",
+    fields: [
+      { key: "matter", label: "What do you need help with?", type: "text", required: true },
+      { key: "practice", label: "Practice area", type: "select", options: ["Litigation", "Corporate", "Family", "Real Estate", "Criminal", "Estate", "Other"] },
+      { key: "time", label: "Preferred date/time", type: "date" },
+      { key: "notes", label: "Details", type: "textarea" },
+    ],
+  },
+  logistics: {
+    headline: "Shipments & quotes", blurb: "Request a freight quote or track a shipment.",
+    cta: "Request a quote",
+    fields: [
+      { key: "origin", label: "Origin", type: "text", required: true },
+      { key: "destination", label: "Destination", type: "text", required: true },
+      { key: "weight", label: "Weight (lb)", type: "num" },
+      { key: "notes", label: "Freight details", type: "textarea" },
+    ],
+  },
+  restaurant: {
+    headline: "Reservations", blurb: "Request a table and see your bookings.",
+    cta: "Request a reservation",
+    fields: [
+      { key: "size", label: "Party size", type: "num", required: true },
+      { key: "time", label: "Date & time", type: "date", required: true },
+      { key: "notes", label: "Special requests (allergies, occasion…)", type: "textarea" },
+    ],
+  },
+  salon: {
+    headline: "Appointments", blurb: "Book an appointment and manage your visits.",
+    cta: "Book an appointment",
+    fields: [
+      { key: "service", label: "Service", type: "text", required: true },
+      { key: "stylist", label: "Preferred stylist (optional)", type: "text" },
+      { key: "time", label: "Preferred date/time", type: "date" },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+  },
+  "home-services": {
+    headline: "Service requests", blurb: "Request service or a free estimate.",
+    cta: "Request service / estimate",
+    fields: [
+      { key: "service", label: "What do you need done?", type: "text", required: true },
+      { key: "address", label: "Service address", type: "text" },
+      { key: "time", label: "Preferred date", type: "date" },
+      { key: "notes", label: "Details", type: "textarea" },
+    ],
+  },
+  fitness: {
+    headline: "Classes & membership", blurb: "Book a class, join, or ask about membership.",
+    cta: "Send request",
+    fields: [
+      { key: "interest", label: "I'd like to…", type: "select", required: true, options: ["Join / membership", "Book a class", "Personal training", "Tour the gym"] },
+      { key: "time", label: "Preferred date/time", type: "date" },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+  },
+  retail: {
+    headline: "Orders & inquiries", blurb: "Ask about products, stock, or an order.",
+    cta: "Send inquiry",
+    fields: [
+      { key: "product", label: "Product / item", type: "text", required: true },
+      { key: "notes", label: "Your question", type: "textarea" },
+    ],
+  },
+  general: {
+    headline: "Requests", blurb: "Send us a request — we'll get back to you.",
+    cta: "Send request",
+    fields: [
+      { key: "subject", label: "Subject", type: "text", required: true },
+      { key: "notes", label: "Message", type: "textarea" },
+    ],
+  },
+};
+
+// Attach the shared Requests module (owner-visible) + the portal spec to every
+// vertical. Runs once at import, in both browser and node. Deep-clone the module
+// so verticals don't share a single row-less reference.
+(function attachPortalLayer() {
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  for (const id of VERTICAL_ORDER) {
+    const v = VERTICALS[id];
+    if (!v) continue;
+    if (!v.modules.some((m) => m.id === REQUESTS_MODULE_ID)) v.modules.push(clone(REQUESTS_MODULE));
+    v.portal = PORTALS[id] || PORTALS.general;
+  }
+})();

@@ -16,15 +16,16 @@ function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]
 function normEmail(e) { return String(e || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 80); }
 function publicAccount(a) { if (!a) return null; const { code, ...safe } = a; return safe; }
 
-// Look up a customer account WITHOUT walking the prototype chain — a bare object
-// literal would let email="constructor"/"toString"/"hasOwnProperty" resolve to an
-// inherited value whose `.code` is undefined, and safeEqual("","") is true, so an
-// attacker with no account would pass the gate. Exported + pure for unit testing.
-export function resolveAccount(users, email) {
-  if (!email || !users || typeof users !== "object") return null;
-  if (!Object.prototype.hasOwnProperty.call(users, email)) return null;
-  const a = users[email];
-  return (a && typeof a === "object" && typeof a.code === "string") ? a : null;
+// One Redis key per customer account: fda:portaluser:<slug>:<normalized-email>.
+// A namespaced key lookup (not object indexing) makes the prototype-chain auth
+// bypass structurally impossible, and per-key writes remove the lost-update race
+// that a single shared account map had. Exported + pure for unit testing.
+export function custUserKey(slug, email) {
+  return "fda:portaluser:" + slug + ":" + normEmail(email);
+}
+// Accept a stored account only if it's a real record with a string code.
+function validAccount(rec) {
+  return (rec && typeof rec === "object" && typeof rec.code === "string") ? rec : null;
 }
 
 // Compose a human-readable request line from a vertical's portal fields + the
@@ -165,8 +166,8 @@ async function handleCustomerPortal(req, res, slug, body) {
   if (!site) return res.status(404).json({ error: "We couldn't find that business." });
   const vertical = getVertical(inferVertical(site.bizType || ""));
   const portal = vertical.portal;
-  const USERS_KEY = "fda:portalusers:" + slug;
   const email = normEmail(body.email);
+  const userKey = email ? custUserKey(slug, email) : "";
 
   // Public: business name + which vertical + the form spec (no auth needed to
   // render the sign-in screen with the right industry copy).
@@ -180,19 +181,14 @@ async function handleCustomerPortal(req, res, slug, body) {
     const name = String(body.name || "").trim().slice(0, 120);
     const code = String(body.code || "").trim();
     if (!email || !code || code.length < 4) return res.status(400).json({ error: "Enter your name, email, and a code of at least 4 characters." });
-    let users = (await kvGet(USERS_KEY)) || {};
-    if (typeof users !== "object" || Array.isArray(users)) users = {};
-    if (Object.prototype.hasOwnProperty.call(users, email)) return res.status(409).json({ error: "An account with that email already exists — sign in instead." });
-    if (Object.keys(users).length >= 5000) return res.status(429).json({ error: "Sign-ups are temporarily closed for this business." });
-    users[email] = { name, email: String(body.email || "").trim().slice(0, 160), code, requests: [], createdAt: new Date().toISOString() };
-    await kvSet(USERS_KEY, users);
-    return res.status(200).json({ ok: true, account: publicAccount(users[email]), business: site.name || slug, vertical: vertical.id });
+    if (validAccount(await kvGet(userKey))) return res.status(409).json({ error: "An account with that email already exists — sign in instead." });
+    const account = { name, email: String(body.email || "").trim().slice(0, 160), code, requests: [], createdAt: new Date().toISOString() };
+    await kvSet(userKey, account);
+    return res.status(200).json({ ok: true, account: publicAccount(account), business: site.name || slug, vertical: vertical.id });
   }
 
   // signin + submit require a valid account. One code check, rate-limited.
-  let users = (await kvGet(USERS_KEY)) || {};
-  if (typeof users !== "object" || Array.isArray(users)) users = {};
-  const acct = resolveAccount(users, email);
+  const acct = userKey ? validAccount(await kvGet(userKey)) : null;
   const code = String(body.code || "").trim();
   if (!acct || !safeEqual(String(acct.code || ""), code)) {
     const rl = await rateLimit(req, "custsignin", { limit: 20, windowSec: 600, key: clientIp(req) + ":" + slug });
@@ -226,12 +222,11 @@ async function handleCustomerPortal(req, res, slug, body) {
     ops.updatedAt = new Date().toISOString();
     await kvSet(opsKey, ops);
 
-    // Record in the customer's own history.
+    // Record in the customer's own history (per-key write — no shared-map race).
     acct.requests = Array.isArray(acct.requests) ? acct.requests : [];
     acct.requests.unshift({ detail, at: row.date, status: "New" });
     acct.requests = acct.requests.slice(0, 50);
-    users[email] = acct;
-    await kvSet(USERS_KEY, users);
+    await kvSet(userKey, acct);
 
     // Drop it in the owner's inbox so it surfaces alongside other messages.
     try {
@@ -258,7 +253,7 @@ async function handlePortal(req, res) {
 
   // CUSTOMER portal actions run BEFORE the owner-password gate — the business's
   // own customers authenticate with their email + a code they set, never the
-  // owner's portal password. They can only ever reach fda:portalusers:<slug> and
+  // owner's portal password. They can only ever reach fda:portaluser:<slug>:* and
   // APPEND to the one customer-writable module in fda:ops:<slug>.
   if (action && action.indexOf("cust-") === 0) {
     try { return await handleCustomerPortal(req, res, slug, body); }

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VERTICALS, VERTICAL_ORDER, REQUESTS_MODULE_ID, getVertical, inferVertical } from "../public/verticals.js";
-import { composeRequestDetail, resolveAccount } from "../api/site.js";
+import { composeRequestDetail, custUserKey } from "../api/site.js";
 
 const KPI_AGGS = new Set(["count", "countStatus", "sum", "sumProduct"]);
 
@@ -116,16 +116,15 @@ test("composeRequestDetail caps output at 400 chars (matches the ops-save field 
   assert.ok(detail.length <= 400, `detail length ${detail.length} should be <= 400`);
 });
 
-test("resolveAccount ignores prototype-chain keys (auth-bypass guard)", () => {
-  const users = { "real_user_x_com": { code: "abcd", name: "Real" } };
-  // Built-in property names must NOT resolve to an inherited value.
-  for (const evil of ["constructor", "hasOwnProperty", "toString", "valueOf", "isPrototypeOf", "__proto__"]) {
-    assert.equal(resolveAccount(users, evil), null, `"${evil}" must not resolve to an account`);
-  }
-  // A real own account still resolves.
-  assert.equal(resolveAccount(users, "real_user_x_com").name, "Real");
-  // Missing/blank email and non-object values return null.
-  assert.equal(resolveAccount(users, ""), null);
-  assert.equal(resolveAccount(users, "nope"), null);
-  assert.equal(resolveAccount({ x: { name: "no code" } }, "x"), null, "account without a string code is rejected");
+test("custUserKey builds a safe, slug-scoped, per-customer key (no object indexing)", () => {
+  // Accounts are stored one-per-Redis-key, so the prototype-chain auth bypass is
+  // structurally impossible — there is no object to index with "constructor" etc.
+  const k = custUserKey("acme", "Jo.Doe+tag@Email.com");
+  assert.match(k, /^fda:portaluser:acme:/, "key is slug-scoped under the portaluser namespace");
+  assert.match(k.split(":").pop(), /^[a-z0-9_]+$/, "email fragment is sanitized to safe key chars");
+  // Different emails → different keys; same email is stable (idempotent normalization).
+  assert.notEqual(custUserKey("acme", "a@x.com"), custUserKey("acme", "b@x.com"));
+  assert.equal(custUserKey("acme", "a@x.com"), custUserKey("acme", "A@X.COM"));
+  // Built-in property names are just ordinary key fragments, not a lookup on a shared object.
+  assert.equal(custUserKey("acme", "constructor"), "fda:portaluser:acme:constructor");
 });

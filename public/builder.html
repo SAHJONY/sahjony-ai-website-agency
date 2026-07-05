@@ -605,7 +605,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
 
   // Reusable cinematic bits.
   const eyebrow = (t)=>`<div class="reveal cine-eyebrow">${t||""}</div>`;
-  const navExtra = (isAuto?`<a href="#g-financing" class="cnav-link">${L.financingNav||"Financing"}</a>`:"") + `<a href="${portalUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`;
+  // The customer "My Account" portal (/portal.html) is car-dealer specific —
+  // vehicle, financing & payments. It must ONLY appear on auto-sales sites; a
+  // restaurant or salon must never link customers to a vehicle-financing portal.
+  const navExtra = isAuto
+    ? `<a href="#g-financing" class="cnav-link">${L.financingNav||"Financing"}</a><a href="${portalUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`
+    : "";
   const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" class="cnav-link">${l}</a>`).join("") + navExtra;
   const langOptions = (()=>{ const have=CINE_LANGS.some(([v])=>v===lang); const list=have?CINE_LANGS:[[lang,lang],...CINE_LANGS]; return list.map(([v,n])=>`<option value="${v}"${v===lang?" selected":""}>${n}</option>`).join(""); })();
   const svcHtml = svc.map((s,i)=>`<div class="ccard reveal" style="padding:34px 30px"><div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:${acc};letter-spacing:.1em;margin-bottom:18px">${String(i+1).padStart(2,"0")}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${acc};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:var(--muted);margin-top:10px;line-height:1.6">${s.desc||""}</div></div>`).join("");

@@ -222,22 +222,28 @@ var qs=new URLSearchParams(location.search);
 function industryProfile(t){
   t=(t||"").toLowerCase();
   if(/restaurant|food|cafe|coffee|bakery|bread|cake|pizza|taco|grill|\bbar\b|diner|deli|cater|kitchen|eatery|bbq|sushi|juice/.test(t))
-    return {list:"Menu & prices",item:"dish",title:"Menu",kicker:"Menu",sec:"Course / section (e.g. Starters)"};
+    return {list:"Menu & prices",item:"dish",title:"Menu",kicker:"Menu",sec:"Course / section (e.g. Starters)",metaPh:"Dietary / details (vegan, GF, spicy…)",soldLabel:"Sold out"};
   if(/auto|car|dealer|vehicle|motors|dealership|used cars/.test(t))
-    return {list:"Inventory & pricing",item:"vehicle",title:"Our Inventory",kicker:"Inventory",sec:"Category (New / Used / Certified)"};
+    return {list:"Inventory & pricing",item:"vehicle",title:"Our Inventory",kicker:"Inventory",sec:"Category (New / Used / Certified)",metaPh:"Year · Mileage · Transmission (2019 · 42k mi · Auto)",soldLabel:"SOLD"};
   if(/repair|mechanic|plumb|electric|hvac|contractor|construction|handyman|roof|landscap|clean|pest|moving|paint|garage/.test(t))
-    return {list:"Services & rates",item:"service",title:"Services & Rates",kicker:"Services",sec:"Category (optional)"};
+    return {list:"Services & rates",item:"service",title:"Services & Rates",kicker:"Services",sec:"Category (optional)",metaPh:"Details (response time, warranty…)",soldLabel:"Unavailable"};
   if(/law|legal|attorney|accountant|account|finance|consult|insurance|realtor|estate|tax|notary|agency|marketing|bookkeep/.test(t))
-    return {list:"Services & fees",item:"service",title:"Services & Fees",kicker:"Services",sec:"Practice area (optional)"};
+    return {list:"Services & fees",item:"service",title:"Services & Fees",kicker:"Services",sec:"Practice area (optional)",metaPh:"Details (consultation length, what's included…)",soldLabel:"Not accepting"};
   if(/salon|barber|spa|beauty|nail|hair|lash|makeup|\bwax\b|tattoo|brow|esthet/.test(t))
-    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Menu",sec:"Category (e.g. Color, Cuts)"};
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Menu",sec:"Category (e.g. Color, Cuts)",metaPh:"Duration (45 min) · stylist level",soldLabel:"Fully booked"};
   if(/gym|fitness|yoga|pilates|crossfit|train|martial|dance|studio|bootcamp/.test(t))
-    return {list:"Classes & plans",item:"class or plan",title:"Classes & Memberships",kicker:"Pricing",sec:"Type (Class / Membership)"};
+    return {list:"Classes & plans",item:"class or plan",title:"Classes & Memberships",kicker:"Pricing",sec:"Type (Class / Membership)",metaPh:"Schedule (Mon/Wed 6pm) · level",soldLabel:"Class full"};
   if(/dental|dentist|medical|clinic|doctor|health|chiro|therap|\bvet\b|wellness|med spa|physio|optom/.test(t))
-    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Services",sec:"Category (optional)"};
+    return {list:"Services & pricing",item:"service",title:"Services & Pricing",kicker:"Services",sec:"Category (optional)",metaPh:"Duration · insurance accepted",soldLabel:"Not accepting patients"};
   if(/shop|store|retail|boutique|market|goods|product|florist|flower|jewel|furniture|bike|pet store/.test(t))
-    return {list:"Products & prices",item:"product",title:"Products",kicker:"Shop",sec:"Category (optional)"};
-  return {list:"Services & prices",item:"item",title:"Services & Prices",kicker:"Pricing",sec:"Category (optional)"};
+    return {list:"Products & prices",item:"product",title:"Products",kicker:"Shop",sec:"Category (optional)",metaPh:"Size / color / brand details",soldLabel:"Out of stock"};
+  if(/hotel|motel|inn|lodg|hostel|bnb|airbnb|resort|rental/.test(t))
+    return {list:"Rooms & rates",item:"room",title:"Rooms & Rates",kicker:"Stay",sec:"Room type (Suite / Double…)",metaPh:"Sleeps 4 · king bed · city view",soldLabel:"Fully booked"};
+  if(/real ?estate|realt|properties|broker/.test(t))
+    return {list:"Listings & prices",item:"listing",title:"Featured Listings",kicker:"Listings",sec:"Type (House / Condo / Lot)",metaPh:"3 bd · 2 ba · 1,800 sqft",soldLabel:"SOLD"};
+  if(/event|wedding|party|dj|photograph|videograph|catering hall|venue|entertain/.test(t))
+    return {list:"Packages & pricing",item:"package",title:"Packages",kicker:"Packages",sec:"Type (Wedding / Corporate…)",metaPh:"Hours included · staff · extras",soldLabel:"Booked out"};
+  return {list:"Services & prices",item:"item",title:"Services & Prices",kicker:"Pricing",sec:"Category (optional)",metaPh:"Details (optional)",soldLabel:"Unavailable"};
 }
 var P=industryProfile("");
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
@@ -332,12 +338,24 @@ function menuRow(it){
   var d=document.createElement("div");
   d.className="lead"; d.dataset.item="1";
   d.innerHTML='<div class="row"><input data-f="name" placeholder="'+cap(P.item)+' name" style="'+inpS+'"><input data-f="price" placeholder="Price (e.g. $12)" style="'+inpS+'"></div>'+
-    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="'+P.sec+'" style="'+inpS+'"><input data-f="desc" placeholder="Short description (optional)" style="'+inpS+'"></div>'+
-    '<div style="text-align:right;margin-top:8px"><button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+    '<div class="row" style="margin-top:8px"><input data-f="category" placeholder="'+P.sec+'" style="'+inpS+'"><input data-f="meta" placeholder="'+P.metaPh+'" style="'+inpS+'"></div>'+
+    '<input data-f="desc" placeholder="Short description (optional)" style="'+inpS+';margin-top:8px">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;align-items:center">'+
+    '<button class="btn ghost" data-sold style="padding:6px 12px;font-size:12px">'+(it.sold?('✓ '+P.soldLabel+' — tap to relist'):('Mark '+P.soldLabel.toLowerCase()))+'</button>'+
+    '<button class="btn ghost" data-rm style="padding:6px 12px;font-size:12px">Remove</button></div>';
+  d.dataset.sold=it.sold?"1":"";
   d.querySelector('[data-f="name"]').value=it.name||"";
   d.querySelector('[data-f="price"]').value=it.price||"";
   d.querySelector('[data-f="category"]').value=it.category||"";
+  d.querySelector('[data-f="meta"]').value=it.meta||"";
   d.querySelector('[data-f="desc"]').value=it.desc||"";
+  var sb=d.querySelector("[data-sold]");
+  sb.onclick=function(){
+    var on=d.dataset.sold==="1"; d.dataset.sold=on?"":"1";
+    sb.textContent=on?("Mark "+P.soldLabel.toLowerCase()):("✓ "+P.soldLabel+" — tap to relist");
+    d.style.opacity=on?"1":"0.55";
+  };
+  if(it.sold)d.style.opacity="0.55";
   d.querySelector("[data-rm]").onclick=function(){d.remove();};
   return d;
 }
@@ -397,7 +415,7 @@ function sharePromo(title, body){
 }
 function collectContent(){
   var menu=[].map.call(document.querySelectorAll('#menuRows [data-item]'),function(r){
-    return {name:fieldGet(r,"name"),price:fieldGet(r,"price"),category:fieldGet(r,"category"),desc:fieldGet(r,"desc")};
+    return {name:fieldGet(r,"name"),price:fieldGet(r,"price"),category:fieldGet(r,"category"),meta:fieldGet(r,"meta"),desc:fieldGet(r,"desc"),sold:r.dataset.sold==="1"};
   }).filter(function(i){return i.name||i.price;});
   var promos=[].map.call(document.querySelectorAll('#promoRows [data-promo]'),function(r){
     var o={title:fieldGet(r,"title"),body:fieldGet(r,"body"),starts:fieldGet(r,"starts"),ends:fieldGet(r,"ends")};
@@ -405,7 +423,7 @@ function collectContent(){
     if(url) o.media={type:fieldGet(r,"mtype")||"image",url:url};
     return o;
   }).filter(function(p){return p.title||p.body||(p.media&&p.media.url);});
-  return {menu:menu,promos:promos,
+  return {menu:menu,promos:promos,soldLabel:P.soldLabel,
     menuTitle:el("mn_title").value.trim(),menuKicker:el("mn_kicker").value.trim(),
     promoTitle:el("pr_title").value.trim(),promoKicker:el("pr_kicker").value.trim()};
 }

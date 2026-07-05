@@ -80,10 +80,11 @@ function renderContent(content, acc, accText) {
     const cats = []; const byCat = {};
     menu.slice(0, MAX_MENU).forEach((i) => { const c = String(i.category || "").trim() || "__"; if (!byCat[c]) { byCat[c] = []; cats.push(c); } byCat[c].push(i); });
     const groups = cats.map((c) => {
+      const soldLabel = esc(content.soldLabel || "Unavailable");
       const rows = byCat[c].map((i) => `
-        <div style="display:flex;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px dashed ${hexA(acc,.16)}">
-          <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:17px;color:#eef3fb">${esc(i.name || "")}</div>${i.desc ? `<div style="font-size:14px;color:#9fb3c9;margin-top:3px;line-height:1.5">${esc(i.desc)}</div>` : ""}</div>
-          ${i.price ? `<div style="font-weight:800;font-size:17px;color:${esc(acc)};white-space:nowrap">${esc(i.price)}</div>` : ""}
+        <div style="display:flex;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px dashed ${hexA(acc,.16)};${i.sold ? "opacity:.5" : ""}">
+          <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:17px;color:#eef3fb;${i.sold ? "text-decoration:line-through" : ""}">${esc(i.name || "")}${i.sold ? ` <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ff9f9f;border:1px solid rgba(255,107,107,.5);border-radius:6px;padding:2px 7px;text-decoration:none;display:inline-block;margin-left:6px">${soldLabel}</span>` : ""}</div>${i.meta ? `<div style="font-size:13px;color:${esc(acc)};margin-top:2px;font-weight:600">${esc(i.meta)}</div>` : ""}${i.desc ? `<div style="font-size:14px;color:#9fb3c9;margin-top:3px;line-height:1.5">${esc(i.desc)}</div>` : ""}</div>
+          ${i.price ? `<div style="font-weight:800;font-size:17px;color:${esc(acc)};white-space:nowrap;${i.sold ? "text-decoration:line-through" : ""}">${esc(i.price)}</div>` : ""}
         </div>`).join("");
       return `<div style="${card};padding:22px 26px;margin-bottom:18px">${c !== "__" ? `<div style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:8px">${esc(c)}</div>` : ""}${rows}</div>`;
     }).join("");
@@ -229,6 +230,8 @@ async function handlePortal(req, res) {
       price: String(i && i.price || "").slice(0, 40),
       desc: String(i && i.desc || "").slice(0, 400),
       category: String(i && i.category || "").slice(0, 60),
+      meta: String(i && i.meta || "").slice(0, 160),
+      sold: !!(i && i.sold),
     })).filter((i) => i.name || i.price);
     const promos = (Array.isArray(c.promos) ? c.promos : []).slice(0, MAX_PROMOS).map((p) => {
       const out = {
@@ -246,6 +249,7 @@ async function handlePortal(req, res) {
     const record = {
       menu, promos,
       menuTitle: String(c.menuTitle || "").slice(0, 80),
+      soldLabel: String(c.soldLabel || "").slice(0, 40),
       menuKicker: String(c.menuKicker || "").slice(0, 40),
       promoTitle: String(c.promoTitle || "").slice(0, 80),
       promoKicker: String(c.promoKicker || "").slice(0, 40),

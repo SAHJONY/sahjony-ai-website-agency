@@ -648,8 +648,138 @@ export const VERTICALS = {
     ],
   },
 
-  // Fallback for anything not matched above (hotels, events, professional
-  // services…). A tight, universal ops core.
+  hotel: {
+    id: "hotel",
+    label: "Hotel / Lodging",
+    accent: "#a78bfa",
+    blurb: "Reservations, Rooms & Housekeeping",
+    modules: [
+      {
+        id: "bookings",
+        title: "Reservations",
+        icon: "🛎️",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Booked", "Checked-in", "Checked-out", "Cancelled"],
+        columns: [
+          { key: "guest", label: "Guest", type: "text" },
+          { key: "roomType", label: "Room", type: "select" },
+          { key: "checkIn", label: "Check-in", type: "date" },
+          { key: "nights", label: "Nights", type: "num" },
+          { key: "rate", label: "Rate/night", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { roomType: ["Standard", "Deluxe", "Suite", "King", "Double", "Family"] },
+        kpis: [
+          { label: "Reservations", agg: "count" },
+          { label: "Room Revenue", agg: "sumProduct", field: "rate", field2: "nights" },
+          { label: "In-house", agg: "countStatus", value: "Checked-in" },
+        ],
+      },
+      {
+        id: "rooms",
+        title: "Rooms",
+        icon: "🚪",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Available", "Occupied", "Cleaning", "Maintenance"],
+        columns: [
+          { key: "room", label: "Room #", type: "text" },
+          { key: "type", label: "Type", type: "select" },
+          { key: "rate", label: "Rate", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { type: ["Standard", "Deluxe", "Suite", "King", "Double", "Family"] },
+        kpis: [
+          { label: "Rooms", agg: "count" },
+          { label: "Available", agg: "countStatus", value: "Available" },
+          { label: "Occupied", agg: "countStatus", value: "Occupied" },
+        ],
+      },
+      {
+        id: "housekeeping",
+        title: "Housekeeping",
+        icon: "🧹",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Pending", "In Progress", "Done"],
+        columns: [
+          { key: "room", label: "Room", type: "text" },
+          { key: "task", label: "Task", type: "text" },
+          { key: "assigned", label: "Assigned", type: "text" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Tasks", agg: "count" },
+          { label: "Pending", agg: "countStatus", value: "Pending" },
+        ],
+      },
+    ],
+  },
+
+  events: {
+    id: "events",
+    label: "Events / Venue",
+    accent: "#f472b6",
+    blurb: "Event Pipeline, Packages & Run-of-Show",
+    modules: [
+      {
+        id: "pipeline",
+        title: "Event Pipeline",
+        icon: "🎉",
+        kind: "pipeline",
+        statusField: "stage",
+        statuses: ["Inquiry", "Proposal", "Booked", "Completed", "Lost"],
+        columns: [
+          { key: "client", label: "Client", type: "text" },
+          { key: "eventType", label: "Event", type: "select" },
+          { key: "date", label: "Date", type: "date" },
+          { key: "amount", label: "Value", type: "money" },
+          { key: "stage", label: "Stage", type: "status" },
+        ],
+        options: { eventType: ["Wedding", "Corporate", "Birthday", "Gala", "Conference", "Party", "Other"] },
+        kpis: [
+          { label: "Events", agg: "count" },
+          { label: "Pipeline Value", agg: "sum", field: "amount" },
+          { label: "Booked", agg: "countStatus", value: "Booked" },
+        ],
+      },
+      {
+        id: "packages",
+        title: "Packages",
+        icon: "📦",
+        kind: "table",
+        columns: [
+          { key: "name", label: "Package", type: "text" },
+          { key: "includes", label: "Includes", type: "text" },
+          { key: "price", label: "Price", type: "money" },
+        ],
+        kpis: [{ label: "Packages", agg: "count" }],
+      },
+      {
+        id: "timeline",
+        title: "Run-of-Show",
+        icon: "📋",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["To Do", "In Progress", "Done"],
+        columns: [
+          { key: "event", label: "Event", type: "text" },
+          { key: "task", label: "Task", type: "text" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "owner", label: "Owner", type: "text" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Tasks", agg: "count" },
+          { label: "Open", agg: "countStatus", value: "To Do" },
+        ],
+      },
+    ],
+  },
+
+  // Fallback for anything not matched above (professional services, misc.).
+  // A tight, universal ops core.
   general: {
     id: "general",
     label: "Local Business (General)",
@@ -715,7 +845,8 @@ export const VERTICALS = {
 // Ordered list for building selectors (general last — it's the catch-all).
 export const VERTICAL_ORDER = [
   "real-estate", "medical", "legal", "logistics",
-  "restaurant", "salon", "home-services", "fitness", "retail", "general",
+  "restaurant", "salon", "home-services", "fitness", "retail",
+  "hotel", "events", "general",
 ];
 
 // Best-effort mapping from a free-text business type → a vertical id, so the
@@ -729,9 +860,10 @@ export function inferVertical(typeText) {
   if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio")) return "medical";
   if (has("law", "legal", "attorney", "lawyer", "counsel", "paralegal", "accountant", "accounting", "bookkeep", "notary", "insurance", "tax", "consult")) return "legal";
   if (has("logistic", "freight", "trucking", "fleet", "shipping", "courier", "haul")) return "logistics";
-  // Hotels / lodging + events have no dedicated ops vertical yet → catch-all,
-  // but guard them BEFORE retail so "boutique hotel" isn't read as a store.
-  if (has("hotel", "motel", "hostel", "resort", "lodge", "airbnb", "bnb", "guesthouse")) return "general";
+  // Hotels / lodging — guard BEFORE retail so "boutique hotel" isn't read as a store.
+  if (has("hotel", "motel", "hostel", "resort", "lodge", "airbnb", "bnb", "b&b", "bed and breakfast", "bed & breakfast", "guesthouse")) return "hotel";
+  // Events / venues — before restaurant so "banquet hall" / "wedding venue" isn't caught by "cater".
+  if (has("event", "wedding", "banquet", "venue", "reception hall", "gala", "photograph", "videograph", "quinceanera")) return "events";
   if (has("salon", "barber", "spa", "beauty", "nail", "hair", "lash", "makeup", "wax", "tattoo", "brow", "esthet")) return "salon";
   if (has("restaurant", "cafe", "coffee", "bakery", "bread", "cake", "pizza", "taco", "grill", "bar", "diner", "deli", "cater", "kitchen", "eatery", "bbq", "sushi", "juice", "food")) return "restaurant";
   if (has("gym", "fitness", "yoga", "pilates", "crossfit", "martial", "dance", "bootcamp", "personal train")) return "fitness";
@@ -862,6 +994,27 @@ const PORTALS = {
     fields: [
       { key: "product", label: "Product / item", type: "text", required: true },
       { key: "notes", label: "Your question", type: "textarea" },
+    ],
+  },
+  hotel: {
+    headline: "Reservations", blurb: "Request a room and manage your stay.",
+    cta: "Request a booking",
+    fields: [
+      { key: "roomType", label: "Room type", type: "select", required: true, options: ["Standard", "Deluxe", "Suite", "King", "Double", "Family"] },
+      { key: "checkIn", label: "Check-in date", type: "date", required: true },
+      { key: "nights", label: "Nights", type: "num" },
+      { key: "guests", label: "Guests", type: "num" },
+      { key: "notes", label: "Special requests", type: "textarea" },
+    ],
+  },
+  events: {
+    headline: "Event inquiries", blurb: "Tell us about your event and request a quote.",
+    cta: "Request a quote",
+    fields: [
+      { key: "eventType", label: "Event type", type: "select", required: true, options: ["Wedding", "Corporate", "Birthday", "Gala", "Conference", "Party", "Other"] },
+      { key: "date", label: "Event date", type: "date", required: true },
+      { key: "guests", label: "Guest count", type: "num" },
+      { key: "notes", label: "Details", type: "textarea" },
     ],
   },
   general: {

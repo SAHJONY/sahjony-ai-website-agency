@@ -24,6 +24,11 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#04080f;color:#f0eef2}
   @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes indet{0%{left:-40%;width:40%}50%{width:56%}100%{left:100%;width:40%}}
+  .indet-track{position:relative;height:4px;border-radius:999px;background:rgba(232,196,118,.14);overflow:hidden;max-width:280px;margin:18px auto 0}
+  .indet-track > span{position:absolute;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#e8c476,#f6dba2,#2dd4bf);animation:indet 1.5s ease-in-out infinite}
+  @media(prefers-reduced-motion:reduce){.indet-track > span{animation:none;left:0;width:100%;opacity:.6}}
+  #loadMsg{transition:opacity .3s ease}
   input,textarea,select{font-family:inherit}
   a{color:inherit}
   .gsec{scroll-margin-top:80px}
@@ -200,7 +205,8 @@
       <div id="loadPane" style="display:none;text-align:center">
         <div style="width:60px;height:60px;border:4px solid rgba(232,196,118,.2);border-top-color:#e8c476;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 24px"></div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700">Building your website…</div>
-        <div id="loadMsg" style="font-size:13px;color:#e8916b;font-weight:700;margin-top:6px">✦ SAHJONY™ is crafting every word</div>
+        <div id="loadMsg" style="font-size:13.5px;color:#e8c476;font-weight:700;margin-top:8px;min-height:19px">✦ SAHJONY™ is crafting every word</div>
+        <div class="indet-track" aria-hidden="true"><span></span></div>
       </div>
     </div>
   </div>
@@ -948,5 +954,23 @@ $("#autoBtn").onclick = autoBuild;
 })();
 </script>
 <script src="/i18n.js"></script>
+<script>/* Staged build messages: cycle reassuring steps while the loading pane is up.
+   Advances once through the list per build (resets when a new build starts), then
+   stops so later explicit messages (retry / hero image / video) win. Fault-isolated. */
+(function(){
+  var steps=["✦ Researching your business…","🎨 Choosing a bespoke palette & fonts…","✍️ Writing every section…","🖼️ Composing the layout…","🧱 Assembling your site…","✨ Adding the finishing polish…"];
+  var i=0, wasVisible=false;
+  setInterval(function(){
+    try{
+      var pane=document.getElementById("loadPane"), lm=document.getElementById("loadMsg");
+      if(!pane||!lm) return;
+      var vis = pane.style.display!=="none";
+      if(vis && !wasVisible) i=0;   // new build → restart the sequence
+      wasVisible=vis;
+      if(vis && i<steps.length){ lm.textContent=steps[i]; i++; }
+    }catch(_){}
+  }, 2500);
+})();
+</script>
 </body>
 </html>

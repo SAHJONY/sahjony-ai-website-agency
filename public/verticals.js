@@ -317,8 +317,339 @@ export const VERTICALS = {
     ],
   },
 
-  // Fallback for the long tail the factory actually sells to most: restaurants,
-  // salons, roofers, gyms, auto shops, cleaners… A tight, universal ops core.
+  restaurant: {
+    id: "restaurant",
+    label: "Restaurant / Food",
+    accent: "#ff5a5f",
+    blurb: "Reservations, Tickets & the 86 Board",
+    modules: [
+      {
+        id: "reservations",
+        title: "Reservations",
+        icon: "🍽️",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Booked", "Seated", "Done", "No-show"],
+        columns: [
+          { key: "party", label: "Party", type: "text" },
+          { key: "size", label: "Guests", type: "num" },
+          { key: "time", label: "Time", type: "date" },
+          { key: "phone", label: "Phone", type: "text" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Reservations", agg: "count" },
+          { label: "Covers", agg: "sum", field: "size" },
+          { label: "Seated", agg: "countStatus", value: "Seated" },
+        ],
+      },
+      {
+        id: "tickets",
+        title: "Open Tickets",
+        icon: "🧾",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Open", "Fired", "Served", "Paid"],
+        columns: [
+          { key: "table", label: "Table", type: "text" },
+          { key: "server", label: "Server", type: "text" },
+          { key: "items", label: "Items", type: "text" },
+          { key: "total", label: "Total", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Tickets", agg: "count" },
+          { label: "Sales", agg: "sum", field: "total" },
+          { label: "Open", agg: "countStatus", value: "Open" },
+        ],
+      },
+      {
+        id: "eightysix",
+        title: "86 Board",
+        icon: "🚫",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Available", "86'd"],
+        columns: [
+          { key: "item", label: "Item", type: "text" },
+          { key: "station", label: "Station", type: "select" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { station: ["Kitchen", "Bar", "Grill", "Pastry", "Prep"] },
+        kpis: [
+          { label: "Tracked Items", agg: "count" },
+          { label: "86'd Now", agg: "countStatus", value: "86'd" },
+        ],
+      },
+    ],
+  },
+
+  salon: {
+    id: "salon",
+    label: "Salon / Beauty / Barber",
+    accent: "#e879c9",
+    blurb: "Chair Schedule, Clients & Services",
+    modules: [
+      {
+        id: "appointments",
+        title: "Appointments",
+        icon: "💇",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Booked", "In Chair", "Done", "No-show"],
+        columns: [
+          { key: "client", label: "Client", type: "text" },
+          { key: "service", label: "Service", type: "text" },
+          { key: "stylist", label: "Stylist", type: "text" },
+          { key: "time", label: "Time", type: "date" },
+          { key: "price", label: "Price", type: "money" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Appointments", agg: "count" },
+          { label: "Booked Value", agg: "sum", field: "price" },
+          { label: "No-shows", agg: "countStatus", value: "No-show" },
+        ],
+      },
+      {
+        id: "clients",
+        title: "Clients",
+        icon: "👤",
+        kind: "table",
+        columns: [
+          { key: "name", label: "Name", type: "text" },
+          { key: "phone", label: "Phone", type: "text" },
+          { key: "lastVisit", label: "Last Visit", type: "date" },
+          { key: "notes", label: "Notes / Formula", type: "text" },
+        ],
+        kpis: [{ label: "Clients", agg: "count" }],
+      },
+      {
+        id: "services",
+        title: "Service Menu",
+        icon: "✂️",
+        kind: "table",
+        columns: [
+          { key: "service", label: "Service", type: "text" },
+          { key: "category", label: "Category", type: "select" },
+          { key: "price", label: "Price", type: "money" },
+          { key: "duration", label: "Min", type: "num" },
+        ],
+        options: { category: ["Cut", "Color", "Style", "Nails", "Spa", "Barber", "Add-on"] },
+        kpis: [{ label: "Services", agg: "count" }],
+      },
+    ],
+  },
+
+  "home-services": {
+    id: "home-services",
+    label: "Home Services / Trades",
+    accent: "#ffb400",
+    blurb: "Work Orders, Estimates & Invoices",
+    modules: [
+      {
+        id: "jobs",
+        title: "Work Orders",
+        icon: "🔧",
+        kind: "dispatch",
+        statusField: "status",
+        statuses: ["Quoted", "Scheduled", "In Progress", "Done", "Invoiced"],
+        columns: [
+          { key: "customer", label: "Customer", type: "text" },
+          { key: "address", label: "Address", type: "text" },
+          { key: "service", label: "Service", type: "text" },
+          { key: "crew", label: "Crew", type: "text" },
+          { key: "date", label: "Date", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Jobs", agg: "count" },
+          { label: "In Progress", agg: "countStatus", value: "In Progress" },
+          { label: "Scheduled", agg: "countStatus", value: "Scheduled" },
+        ],
+      },
+      {
+        id: "estimates",
+        title: "Estimate Pipeline",
+        icon: "📝",
+        kind: "pipeline",
+        statusField: "stage",
+        statuses: ["Lead", "Estimated", "Won", "Lost"],
+        columns: [
+          { key: "customer", label: "Customer", type: "text" },
+          { key: "scope", label: "Scope", type: "text" },
+          { key: "amount", label: "Amount", type: "money" },
+          { key: "stage", label: "Stage", type: "status" },
+        ],
+        kpis: [
+          { label: "Estimates", agg: "count" },
+          { label: "Pipeline Value", agg: "sum", field: "amount" },
+          { label: "Won", agg: "countStatus", value: "Won" },
+        ],
+      },
+      {
+        id: "invoices",
+        title: "Invoices",
+        icon: "💵",
+        kind: "ledger",
+        statusField: "status",
+        statuses: ["Draft", "Sent", "Paid", "Overdue"],
+        columns: [
+          { key: "customer", label: "Customer", type: "text" },
+          { key: "amount", label: "Amount", type: "money" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Invoices", agg: "count" },
+          { label: "Invoiced", agg: "sum", field: "amount" },
+          { label: "Overdue", agg: "countStatus", value: "Overdue" },
+        ],
+      },
+    ],
+  },
+
+  fitness: {
+    id: "fitness",
+    label: "Gym / Fitness Studio",
+    accent: "#4ade80",
+    blurb: "Members, Classes & Billing",
+    modules: [
+      {
+        id: "members",
+        title: "Members",
+        icon: "🏋️",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Active", "Frozen", "Cancelled"],
+        columns: [
+          { key: "name", label: "Name", type: "text" },
+          { key: "plan", label: "Plan", type: "select" },
+          { key: "phone", label: "Phone", type: "text" },
+          { key: "joined", label: "Joined", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { plan: ["Drop-in", "Monthly", "Annual", "Class Pack", "Personal Training"] },
+        kpis: [
+          { label: "Members", agg: "count" },
+          { label: "Active", agg: "countStatus", value: "Active" },
+        ],
+      },
+      {
+        id: "classes",
+        title: "Class Schedule",
+        icon: "🧘",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["Scheduled", "Full", "Done", "Cancelled"],
+        columns: [
+          { key: "className", label: "Class", type: "text" },
+          { key: "coach", label: "Coach", type: "text" },
+          { key: "when", label: "When", type: "date" },
+          { key: "capacity", label: "Capacity", type: "num" },
+          { key: "booked", label: "Booked", type: "num" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Classes", agg: "count" },
+          { label: "Full", agg: "countStatus", value: "Full" },
+        ],
+      },
+      {
+        id: "billing",
+        title: "Membership Billing",
+        icon: "💳",
+        kind: "ledger",
+        statusField: "status",
+        statuses: ["Current", "Due", "Overdue"],
+        columns: [
+          { key: "member", label: "Member", type: "text" },
+          { key: "plan", label: "Plan", type: "select" },
+          { key: "amount", label: "Amount", type: "money" },
+          { key: "due", label: "Due", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { plan: ["Monthly", "Annual", "Class Pack", "Personal Training"] },
+        kpis: [
+          { label: "Recurring Revenue", agg: "sum", field: "amount" },
+          { label: "Overdue", agg: "countStatus", value: "Overdue" },
+        ],
+      },
+    ],
+  },
+
+  retail: {
+    id: "retail",
+    label: "Retail / Store",
+    accent: "#38bdf8",
+    blurb: "Inventory, Orders & Restock",
+    modules: [
+      {
+        id: "products",
+        title: "Inventory",
+        icon: "🛍️",
+        kind: "table",
+        statusField: "status",
+        statuses: ["In Stock", "Low", "Out"],
+        columns: [
+          { key: "product", label: "Product", type: "text" },
+          { key: "sku", label: "SKU", type: "text" },
+          { key: "category", label: "Category", type: "select" },
+          { key: "price", label: "Price", type: "money" },
+          { key: "stock", label: "Stock", type: "num" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        options: { category: ["Apparel", "Accessories", "Home", "Electronics", "Beauty", "Other"] },
+        kpis: [
+          { label: "SKUs", agg: "count" },
+          { label: "Inventory Value", agg: "sumProduct", field: "price", field2: "stock" },
+          { label: "Out of Stock", agg: "countStatus", value: "Out" },
+        ],
+      },
+      {
+        id: "orders",
+        title: "Orders",
+        icon: "📦",
+        kind: "queue",
+        statusField: "status",
+        statuses: ["New", "Packed", "Shipped", "Delivered"],
+        columns: [
+          { key: "customer", label: "Customer", type: "text" },
+          { key: "items", label: "Items", type: "text" },
+          { key: "total", label: "Total", type: "money" },
+          { key: "date", label: "Date", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Orders", agg: "count" },
+          { label: "Sales", agg: "sum", field: "total" },
+          { label: "To Ship", agg: "countStatus", value: "New" },
+        ],
+      },
+      {
+        id: "restock",
+        title: "Restock",
+        icon: "🔄",
+        kind: "table",
+        statusField: "status",
+        statuses: ["Ordered", "In Transit", "Received"],
+        columns: [
+          { key: "product", label: "Product", type: "text" },
+          { key: "supplier", label: "Supplier", type: "text" },
+          { key: "qty", label: "Qty", type: "num" },
+          { key: "eta", label: "ETA", type: "date" },
+          { key: "status", label: "Status", type: "status" },
+        ],
+        kpis: [
+          { label: "Restock Orders", agg: "count" },
+          { label: "Received", agg: "countStatus", value: "Received" },
+        ],
+      },
+    ],
+  },
+
+  // Fallback for anything not matched above (hotels, events, professional
+  // services…). A tight, universal ops core.
   general: {
     id: "general",
     label: "Local Business (General)",
@@ -382,17 +713,30 @@ export const VERTICALS = {
 };
 
 // Ordered list for building selectors (general last — it's the catch-all).
-export const VERTICAL_ORDER = ["real-estate", "medical", "legal", "logistics", "general"];
+export const VERTICAL_ORDER = [
+  "real-estate", "medical", "legal", "logistics",
+  "restaurant", "salon", "home-services", "fitness", "retail", "general",
+];
 
 // Best-effort mapping from a free-text business type → a vertical id, so the
-// builder can pre-select the right dashboard from what the owner already typed.
+// builder / client console can pick the right dashboard from what was typed.
+// ORDER MATTERS: more specific / higher-precedence checks come first. Notably
+// salon is tested before restaurant so "barber" isn't caught by "bar".
 export function inferVertical(typeText) {
   const t = String(typeText || "").toLowerCase();
   const has = (...w) => w.some((x) => t.includes(x));
   if (has("real estate", "realtor", "realty", "broker", "property", "properties", "homes")) return "real-estate";
-  if (has("clinic", "medical", "doctor", "dental", "dentist", "health", "physician", "therapy", "chiro", "med spa", "wellness")) return "medical";
-  if (has("law", "legal", "attorney", "lawyer", "firm", "counsel", "paralegal")) return "legal";
-  if (has("logistic", "freight", "trucking", "fleet", "dispatch", "shipping", "courier", "delivery", "haul")) return "logistics";
+  if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio")) return "medical";
+  if (has("law", "legal", "attorney", "lawyer", "counsel", "paralegal", "accountant", "accounting", "bookkeep", "notary", "insurance", "tax", "consult")) return "legal";
+  if (has("logistic", "freight", "trucking", "fleet", "shipping", "courier", "haul")) return "logistics";
+  // Hotels / lodging + events have no dedicated ops vertical yet → catch-all,
+  // but guard them BEFORE retail so "boutique hotel" isn't read as a store.
+  if (has("hotel", "motel", "hostel", "resort", "lodge", "airbnb", "bnb", "guesthouse")) return "general";
+  if (has("salon", "barber", "spa", "beauty", "nail", "hair", "lash", "makeup", "wax", "tattoo", "brow", "esthet")) return "salon";
+  if (has("restaurant", "cafe", "coffee", "bakery", "bread", "cake", "pizza", "taco", "grill", "bar", "diner", "deli", "cater", "kitchen", "eatery", "bbq", "sushi", "juice", "food")) return "restaurant";
+  if (has("gym", "fitness", "yoga", "pilates", "crossfit", "martial", "dance", "bootcamp", "personal train")) return "fitness";
+  if (has("repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage")) return "home-services";
+  if (has("shop", "store", "retail", "boutique", "market", "goods", "product", "florist", "flower", "jewel", "furniture", "bike", "pet", "dealer", "dealership", "vehicle", "motors", "used car")) return "retail";
   return "general";
 }
 

@@ -192,6 +192,17 @@
       <input id="mkDetail" placeholder="e.g. 20% off this weekend, new fall menu, open house Saturday, now booking">
       <div style="margin-top:14px"><button class="btn gold" id="mkGen">✨ Generate campaign</button></div>
       <div id="mkOut" style="margin-top:14px"></div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="fd" style="font-size:15px;font-weight:700">📞 AI phone campaign <span class="muted" style="font-weight:400;font-size:12px">via Bland.ai</span></div>
+        <div class="muted" style="font-size:13px">An AI voice agent calls your list and delivers the campaign, answering questions live. Only call customers who've agreed to be contacted.</div>
+        <label style="margin-top:10px">Call script <span class="muted" style="font-weight:400">(auto-filled from your campaign — edit freely)</span></label>
+        <textarea id="mkScript" rows="4" placeholder="What the AI should say on the call…"></textarea>
+        <label style="margin-top:10px">Phone numbers <span class="muted" style="font-weight:400">(one per line or comma-separated, up to 20)</span></label>
+        <textarea id="mkTo" rows="2" placeholder="+1 555 123 4567"></textarea>
+        <div style="margin-top:12px"><button class="btn gold" id="mkCall">📞 Launch calls</button></div>
+        <div id="mkCallOut" style="margin-top:10px;font-size:14px"></div>
+      </div>
     </div>
   </div>
 
@@ -588,6 +599,22 @@ function renderCampaign(c){
   }
   out.innerHTML=html||'<div class="muted">Nothing generated — try again.</div>';
   out.querySelectorAll("[data-cmk]").forEach(function(b){b.onclick=function(){var t=decodeURIComponent(b.dataset.cmk);navigator.clipboard&&navigator.clipboard.writeText(t);msg("✓ Copied",true);};});
+  // Pre-fill the AI phone-campaign script from the generated offer.
+  var sc=el("mkScript");
+  if(sc&&!sc.value&&c.offer){
+    sc.value="You're calling warmly on behalf of "+BIZNAME+". "+String((c.offer.headline||"")+". "+(c.offer.body||"")+" "+(c.offer.cta||"")).replace(/\s+/g," ").trim()+" Keep it brief and friendly, answer any questions, and if they're interested take their name and the best time to follow up.";
+  }
+}
+async function launchCalls(){
+  var script=el("mkScript").value.trim(), to=el("mkTo").value.trim(), outEl=el("mkCallOut");
+  if(!script){msg("Add a call script first.",false);return;}
+  if(!to){msg("Add at least one phone number.",false);return;}
+  var btn=el("mkCall"), old=btn.textContent; btn.disabled=true; btn.textContent="Calling…";
+  var res=await api("mk-send",{script:script,to:to});
+  btn.disabled=false; btn.textContent=old;
+  if(!res.ok){outEl.innerHTML='<span style="color:#ff7a6e">'+esc((res.j&&res.j.error)||"Send failed.")+'</span>';return;}
+  var fails=(res.j.results||[]).filter(function(r){return !r.ok;});
+  outEl.innerHTML='<span style="color:#2fd47f">✓ '+res.j.sent+' of '+res.j.total+' call(s) started.</span>'+fails.map(function(r){return '<div style="color:#ff7a6e;font-size:12px">'+esc(r.phone)+': '+esc(r.error||"failed")+'</div>';}).join("");
 }
 async function generateCampaign(){
   var goal=el("mkGoal").value||MK_GOALS[0], detail=el("mkDetail").value.trim();
@@ -786,7 +813,7 @@ el("saveMenu").onclick=function(){saveContent("✓ Menu saved & live on your sit
 el("addPromo").onclick=function(){el("promoRows").appendChild(promoRow({}));};
 el("savePromos").onclick=function(){saveContent("✓ Promotions saved & live on your site");};
 el("genKit").onclick=generateKit;
-initMkGoals(); el("mkGen").onclick=generateCampaign;
+initMkGoals(); el("mkGen").onclick=generateCampaign; el("mkCall").onclick=launchCalls;
 el("saveSocial").onclick=saveSocial;
 el("so_needsetup").onchange=function(){el("setupNote").style.display=this.checked?"block":"none";el("setupNote").textContent=this.checked?"We'll create your accounts and email you the logins after you Save.":"";};
 el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};

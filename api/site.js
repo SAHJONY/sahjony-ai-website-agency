@@ -11,6 +11,7 @@
 // It can never read another business's data or any admin/secret key.
 import { rateLimit, safeEqual, clientIp } from "../lib/guard.js";
 import { getVertical, inferVertical, REQUESTS_MODULE_ID } from "../public/verticals.js";
+import { blandCall, blandConfigured } from "../lib/bland.js";
 
 function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
 function normEmail(e) { return String(e || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 80); }
@@ -485,6 +486,27 @@ async function handlePortal(req, res) {
     if (bytes > OPS_MAX_BYTES) return res.status(413).json({ error: "Back-office data is too large. Remove some rows and try again." });
     await kvSet(OPS_KEY, rec);
     return res.status(200).json({ ok: true });
+  }
+
+  // Launch an AI phone campaign (Bland.ai) — owner-gated (this whole handler is
+  // behind the portal password). The owner supplies the numbers, so it stays a
+  // tool for their own opted-in customers; capped + rate-limited so a single
+  // console can't drain the agency's Bland credits.
+  if (action === "mk-send") {
+    const rl = await rateLimit(req, "mksend", { limit: 10, windowSec: 600, key: clientIp(req) + ":" + slug });
+    if (rl.limited) return res.status(429).json({ error: "Too many sends — wait a few minutes." });
+    const script = String(body.script || "").trim().slice(0, 3000);
+    if (!script) return res.status(400).json({ error: "Add a call script first." });
+    let toList = Array.isArray(body.to) ? body.to : String(body.to || "").split(/[\n,;]+/);
+    toList = toList.map((s) => String(s).trim()).filter(Boolean).slice(0, 20);
+    if (!toList.length) return res.status(400).json({ error: "Add at least one phone number." });
+    if (!(await blandConfigured())) return res.status(400).json({ error: "Bland.ai isn't connected. Add BLAND_API_KEY in Settings (or env)." });
+    const results = [];
+    for (const p of toList) {
+      const r = await blandCall({ phone: p, task: script, voice: body.voice });
+      results.push({ phone: r.phone || p, ok: r.ok, error: r.ok ? undefined : r.error });
+    }
+    return res.status(200).json({ ok: true, sent: results.filter((r) => r.ok).length, total: toList.length, results });
   }
 
   return res.status(400).json({ error: "Unknown action." });

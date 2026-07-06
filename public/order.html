@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Order confirmation</title>
+<meta name="theme-color" content="#04080f">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#04080f;color:#f0eef2;min-height:100vh;display:grid;place-items:center;padding:24px}
+  .box{max-width:520px;width:100%;background:#0d1a2d;border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:40px 34px;text-align:center}
+  .ic{width:72px;height:72px;border-radius:999px;display:grid;place-items:center;margin:0 auto 18px;font-size:38px}
+  h1{font-family:'Fraunces',serif;font-weight:700;font-size:30px;letter-spacing:-.02em}
+  .muted{color:#9fb3c9;line-height:1.6}
+  .items{text-align:left;margin:22px 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+  .row:last-child{border-bottom:0}
+  .tot{display:flex;justify-content:space-between;font-weight:800;font-size:18px;padding:14px 0 2px}
+  .btn{display:inline-block;text-decoration:none;background:#e8c476;color:#04080f;font-weight:700;border-radius:999px;padding:13px 26px;margin-top:8px}
+  .link{color:#7cc8ff;text-decoration:none;font-weight:600;display:inline-block;margin-top:16px}
+  .spin{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:#37e0c4;border-radius:999px;animation:s 1s linear infinite;margin:8px auto}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <div class="spin"></div>
+  <p class="muted">Confirming your order…</p>
+</div>
+<script>
+var q=new URLSearchParams(location.search);
+var SLUG=(q.get("slug")||"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,60);
+var SID=q.get("session_id")||"";
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function money(n,cur){ try{return new Intl.NumberFormat(undefined,{style:"currency",currency:(cur||"usd").toUpperCase()}).format(n)}catch(e){return "$"+Number(n).toFixed(2)} }
+
+function fail(msg){
+  document.getElementById("box").innerHTML='<div class="ic" style="background:rgba(255,107,107,.14)">⚠️</div>'
+    +'<h1>We couldn\'t confirm that</h1><p class="muted" style="margin-top:12px">'+esc(msg||"Please contact the store.")+'</p>'
+    +(SLUG?'<a class="link" href="/shop.html?slug='+encodeURIComponent(SLUG)+'">← Back to the shop</a>':'');
+}
+function pending(){
+  document.getElementById("box").innerHTML='<div class="ic" style="background:rgba(232,196,118,.14)">⏳</div>'
+    +'<h1>Payment processing</h1><p class="muted" style="margin-top:12px">Your payment is still being confirmed. If you completed checkout, your order will appear shortly.</p>'
+    +(SLUG?'<a class="link" href="/shop.html?slug='+encodeURIComponent(SLUG)+'">← Back to the shop</a>':'');
+}
+function done(order){
+  try{ localStorage.removeItem("fda_cart_"+SLUG); }catch(e){}
+  var items=(order&&order.items)||[];
+  var rows=items.map(function(i){ return '<div class="row"><span>'+esc(i.name||"Item")+' × '+(i.qty||1)+'</span><span>'+money((i.price||0)*(i.qty||1),order.currency)+'</span></div>'; }).join("");
+  document.getElementById("box").innerHTML='<div class="ic" style="background:rgba(55,224,196,.15)">✅</div>'
+    +'<h1>Thank you — order confirmed!</h1>'
+    +'<p class="muted" style="margin-top:12px">'+(order.email?('A receipt was sent to <b style="color:#f0eef2">'+esc(order.email)+'</b>.'):'Your payment was received.')+' The store has been notified and will get your order ready.</p>'
+    +(rows?'<div class="items">'+rows+'<div class="tot"><span>Total</span><span>'+money(order.total||0,order.currency)+'</span></div></div>':'')
+    +(SLUG?'<div><a class="btn" href="/shop.html?slug='+encodeURIComponent(SLUG)+'">Continue shopping</a></div>':'');
+}
+
+if(!SLUG||!SID){ fail("Missing order details."); }
+else {
+  fetch("/api/checkout",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"storefront-confirm",slug:SLUG,session_id:SID})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(!j||!j.ok){ fail((j&&j.error)||"Could not confirm order."); } else if(j.paid){ done(j.order||{}); } else { pending(); } })
+    .catch(function(e){ fail(e.message); });
+}
+</script>
+</body>
+</html>

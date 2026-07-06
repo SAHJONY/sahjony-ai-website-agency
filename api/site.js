@@ -85,6 +85,8 @@ function safeUrl(u) {
   if (/^data:(image|video|audio)\//i.test(s)) return s;
   return "";
 }
+// Mask a stored secret so it can be shown in the owner UI without leaking it.
+function maskKey(v) { const s = String(v || ""); if (s.length <= 8) return "••••"; return s.slice(0, 8) + "…" + s.slice(-4); }
 function mediaTag(m) {
   if (!m || typeof m !== "object") return "";
   const url = safeUrl(m.url);
@@ -268,6 +270,24 @@ async function handlePortal(req, res) {
   if (action && action.indexOf("cust-") === 0) {
     try { return await handleCustomerPortal(req, res, slug, body); }
     catch (e) { return res.status(500).json({ error: e.message || "Portal request failed" }); }
+  }
+
+  // PUBLIC storefront catalog — the business's own customers read this from
+  // shop.html to browse products. No password: returns ONLY the buyable catalog
+  // (active products, no orders, no Stripe key). Rate-limited to deter scraping.
+  if (action === "shop-public") {
+    const rl = await rateLimit(req, "shoppublic", { limit: 120, windowSec: 600, key: clientIp(req) + ":" + slug });
+    if (rl.limited) return res.status(429).json({ error: "Too many requests — slow down a moment." });
+    const shop = (await kvGet("fda:shop:" + slug)) || {};
+    const site = (await kvGet("fda:site:" + slug)) || {};
+    const products = (Array.isArray(shop.products) ? shop.products : [])
+      .filter((p) => p && p.active !== false && p.name)
+      .map((p) => ({
+        id: p.id, name: p.name, desc: p.desc || "", price: Number(p.price) || 0,
+        image: p.image || "", trackStock: !!p.trackStock,
+        stock: p.trackStock ? (Number(p.stock) || 0) : null,
+      }));
+    return res.status(200).json({ ok: true, enabled: !!shop.enabled, currency: shop.currency || "usd", business: site.name || slug, products });
   }
 
   // Brute-force guard: cap password attempts per IP (and per IP+slug) so a
@@ -509,6 +529,67 @@ async function handlePortal(req, res) {
     return res.status(200).json({ ok: true, sent: results.filter((r) => r.ok).length, total: toList.length, results });
   }
 
+  // ---- Storefront (client-owned e-commerce) --------------------------------
+  // "The Storefront" tier: the owner sells to THEIR OWN customers. Product
+  // catalog + settings live in fda:shop:<slug>; incoming orders in
+  // fda:shoporders:<slug> (written only by /api/checkout on paid confirm, so no
+  // lost-update race with the owner editing products); the client's own Stripe
+  // secret key lives in fda:shopsecret:<slug> — returned ONLY masked, never raw,
+  // and auto-blocked from /api/data by its /secret/i guard.
+  const SHOP_MAX_PRODUCTS = 200, SHOP_MAX_BYTES = 3_500_000;
+
+  if (action === "shop-get") {
+    const shop = (await kvGet("fda:shop:" + slug)) || {};
+    const orders = (await kvGet("fda:shoporders:" + slug)) || [];
+    const secret = await kvGet("fda:shopsecret:" + slug);
+    return res.status(200).json({
+      ok: true,
+      shop: { enabled: !!shop.enabled, currency: shop.currency || "usd", products: Array.isArray(shop.products) ? shop.products : [] },
+      orders: Array.isArray(orders) ? orders.slice(0, 200) : [],
+      stripeKeyMask: secret ? maskKey(secret) : "",
+    });
+  }
+
+  if (action === "shop-save") {
+    const shop = (await kvGet("fda:shop:" + slug)) || {};
+    if (typeof body.enabled === "boolean") shop.enabled = body.enabled;
+    if (typeof body.currency === "string") shop.currency = body.currency.toLowerCase().replace(/[^a-z]/g, "").slice(0, 3) || "usd";
+    if (Array.isArray(body.products)) {
+      shop.products = body.products.slice(0, SHOP_MAX_PRODUCTS).map((p, i) => {
+        p = (p && typeof p === "object") ? p : {};
+        const price = Number(p.price);
+        const stock = Number(p.stock);
+        const img = safeUrl(p.image);
+        return {
+          id: (String(p.id || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40)) || ("p" + i + "_" + Date.now().toString(36)),
+          name: String(p.name || "").slice(0, 140),
+          desc: String(p.desc || "").slice(0, 600),
+          price: (isFinite(price) && price >= 0) ? Math.round(price * 100) / 100 : 0,
+          image: img ? img.slice(0, img.startsWith("data:") ? 700000 : 2000) : "",
+          stock: (isFinite(stock) && stock >= 0) ? Math.floor(stock) : 0,
+          trackStock: !!p.trackStock,
+          active: p.active !== false,
+        };
+      }).filter((p) => p.name);
+    }
+    shop.updatedAt = new Date().toISOString();
+    const bytes = Buffer.byteLength(JSON.stringify(shop), "utf8");
+    if (bytes > SHOP_MAX_BYTES) return res.status(413).json({ error: "Store data is too large. Use hosted image links (or the image generator) instead of large uploads." });
+    await kvSet("fda:shop:" + slug, shop);
+
+    // Stripe secret key — stored separately, never echoed. Accept only a
+    // plausible key; "__CLEAR__" removes it; empty string leaves it untouched.
+    if (typeof body.stripeKey === "string") {
+      const k = body.stripeKey.trim();
+      if (k === "__CLEAR__") await kvSet("fda:shopsecret:" + slug, "");
+      else if (k === "") { /* untouched — UI never sends the masked value back */ }
+      else if (/^sk_(test|live)_[A-Za-z0-9]+$/.test(k)) await kvSet("fda:shopsecret:" + slug, k);
+      else return res.status(400).json({ error: "That doesn't look like a Stripe secret key (it should start with sk_test_ or sk_live_)." });
+    }
+    const secret = await kvGet("fda:shopsecret:" + slug);
+    return res.status(200).json({ ok: true, stripeKeyMask: secret ? maskKey(secret) : "" });
+  }
+
   return res.status(400).json({ error: "Unknown action." });
 }
 
@@ -578,6 +659,21 @@ export default async function handler(req, res) {
           else if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, block + "</body>");
           else html += block;
         }
+      }
+    } catch (_) {}
+
+    // Storefront: when the owner has enabled a store with at least one live
+    // product, inject a floating "Shop" button so their customers reach
+    // shop.html — no re-publish needed. Bottom-LEFT to avoid the AVA widget.
+    try {
+      const shop = await kvGet("fda:shop:" + slug);
+      const live = shop && shop.enabled && Array.isArray(shop.products) && shop.products.some((p) => p && p.active !== false && p.name);
+      if (live && !/shop\.html\?slug=/.test(html)) {
+        const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+        const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+        const origin = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+        const btn = `<a href="${origin}/shop.html?slug=${encodeURIComponent(slug)}" aria-label="Shop" style="position:fixed;left:18px;bottom:18px;z-index:2147482000;display:inline-flex;align-items:center;gap:8px;background:#0b1220;color:#eaf2ff;border:1px solid rgba(120,200,255,.35);border-radius:999px;padding:12px 18px;font:600 15px/1 system-ui,-apple-system,sans-serif;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.45)">🛍️ Shop</a>`;
+        html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, btn + "</body>") : html + btn;
       }
     } catch (_) {}
 

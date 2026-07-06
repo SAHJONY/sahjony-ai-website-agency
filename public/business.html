@@ -96,6 +96,7 @@
     <button class="tab" data-p="leads">Leads &amp; bookings</button>
     <button class="tab" data-p="ava">Ava receptionist</button>
     <button class="tab" data-p="ops" id="opsTab">Operations</button>
+    <button class="tab" data-p="store" id="storeTab">Store</button>
     <button class="tab" data-p="request">Request a change</button>
   </div>
 
@@ -259,6 +260,49 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- STORE (client-owned e-commerce — "The Storefront" tier) -->
+  <div class="panel" id="p_store">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">Your online store</div>
+          <div class="muted">Add products and prices — your customers buy them right on your website. Payments go straight to your own Stripe account.</div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin:0;cursor:pointer;white-space:nowrap"><input type="checkbox" id="stEnabled" style="width:auto"> <span style="color:var(--text);font-weight:700">Store open</span></label>
+      </div>
+      <div id="stShopLink" class="muted" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+        <div class="fd" style="font-size:16px;font-weight:700">Products</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span class="muted" id="stNote">Ready</span>
+          <button class="btn gold" id="stAdd">+ Add product</button>
+        </div>
+      </div>
+      <div id="stRows"></div>
+    </div>
+
+    <div class="card">
+      <div class="fd" style="font-size:16px;font-weight:700;margin-bottom:4px">Payments</div>
+      <div class="muted" style="margin-bottom:4px">Paste your own Stripe <b>secret key</b> so money lands in your account. Get it at dashboard.stripe.com → Developers → API keys. It's stored securely and never shown again.</div>
+      <label>Stripe secret key</label>
+      <input id="stStripe" placeholder="sk_live_… or sk_test_…" autocomplete="off">
+      <div id="stKeyState" class="muted" style="margin-top:6px"></div>
+      <div style="margin-top:14px;display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn gold" id="stSaveKey">Save key</button>
+        <button class="btn ghost" id="stClearKey">Remove key</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="fd" style="font-size:16px;font-weight:700;margin-bottom:4px">Orders</div>
+      <div class="muted" id="stOrdersEmpty">No orders yet. Paid orders from your customers appear here.</div>
+      <div id="stOrders" style="margin-top:8px"></div>
     </div>
   </div>
 
@@ -795,12 +839,147 @@ el("opsAdd").onclick=function(){
 el("opsBackdrop").onclick=opsGenBackdrop;
 window.opsEnsureRetry=opsEnsure; // let the registry module init ops if it loads after the tab is opened
 
+// ---- Store (client-owned e-commerce) -------------------------------------
+var STORE={products:[],enabled:false,currency:"usd",orders:[]}, storeInit=false, storeTimer=null;
+function stNote(t){var n=el("stNote");if(n)n.textContent=t;}
+function money2(n){return "$"+(Math.round(Number(n)*100)/100).toFixed(2);}
+
+function storeProductRow(p){
+  p=p||{};
+  var node=document.createElement("div");
+  node.className="card"; node.style.marginTop="12px"; node.style.padding="16px";
+  node._image=p.image||"";
+  node._id=p.id||("p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+  node.innerHTML=''
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap">'
+      +'<div style="width:120px;flex:0 0 auto">'
+        +'<div class="sp-thumb" style="width:120px;height:120px;border-radius:12px;background:#071018 center/cover no-repeat;display:grid;place-items:center;font-size:30px;color:#3d5a78;border:1px solid var(--line)"></div>'
+        +'<div style="display:flex;gap:6px;margin-top:8px">'
+          +'<button class="btn ghost sp-up" style="padding:7px 9px;font-size:12px;flex:1">Upload</button>'
+          +'<button class="btn ghost sp-gen" style="padding:7px 9px;font-size:12px" title="Generate a product image with AI">✨</button>'
+        +'</div>'
+        +'<input type="file" accept="image/*" class="sp-file" style="display:none">'
+      +'</div>'
+      +'<div style="flex:1;min-width:220px">'
+        +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+          +'<div style="flex:2;min-width:140px"><label style="margin-top:0">Product name</label><input class="sp-name" placeholder="e.g. Classic Tee"></div>'
+          +'<div style="flex:1;min-width:90px"><label style="margin-top:0">Price</label><input class="sp-price" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+        +'</div>'
+        +'<label>Description <span class="muted" style="font-weight:400">(optional)</span></label><textarea class="sp-desc" rows="2" placeholder="Short description shown to shoppers"></textarea>'
+        +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px">'
+          +'<label style="display:flex;gap:7px;align-items:center;margin:0;cursor:pointer"><input type="checkbox" class="sp-track" style="width:auto"> <span>Track stock</span></label>'
+          +'<div class="sp-stockwrap" style="display:none;align-items:center;gap:7px"><span class="muted">Qty</span><input class="sp-stock" type="number" min="0" step="1" style="width:90px" placeholder="0"></div>'
+          +'<label style="display:flex;gap:7px;align-items:center;margin:0;cursor:pointer"><input type="checkbox" class="sp-active" style="width:auto"> <span>Visible in shop</span></label>'
+          +'<button class="btn ghost sp-del" style="margin-left:auto;padding:8px 12px;color:#ff9f9f;border-color:rgba(255,120,120,.4)">Delete</button>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  node.querySelector(".sp-name").value=p.name||"";
+  node.querySelector(".sp-price").value=(p.price!=null&&p.price!==0?p.price:(p.price===0?0:""));
+  node.querySelector(".sp-desc").value=p.desc||"";
+  node.querySelector(".sp-track").checked=!!p.trackStock;
+  node.querySelector(".sp-stock").value=(p.stock!=null?p.stock:0);
+  node.querySelector(".sp-active").checked=p.active!==false;
+  function paintThumb(){var t=node.querySelector(".sp-thumb");if(node._image){t.style.backgroundImage="url('"+node._image.replace(/'/g,"%27")+"')";t.textContent="";}else{t.style.backgroundImage="";t.textContent="🛍️";}}
+  function syncStock(){node.querySelector(".sp-stockwrap").style.display=node.querySelector(".sp-track").checked?"flex":"none";}
+  paintThumb();syncStock();
+  node.querySelectorAll("input,textarea").forEach(function(inp){inp.addEventListener("change",stScheduleSave);});
+  node.querySelector(".sp-track").addEventListener("change",syncStock);
+  node.querySelector(".sp-del").onclick=function(){node.remove();stScheduleSave();};
+  node.querySelector(".sp-up").onclick=function(){node.querySelector(".sp-file").click();};
+  node.querySelector(".sp-file").onchange=function(){var f=this.files&&this.files[0];if(!f)return;if(f.size>450000){stNote("⚠ Image too big (max ~450KB) — use ✨ or a smaller file");return;}var rd=new FileReader();rd.onload=function(){node._image=rd.result;paintThumb();stScheduleSave();};rd.readAsDataURL(f);};
+  node.querySelector(".sp-gen").onclick=function(){
+    var nm=node.querySelector(".sp-name").value.trim()||"product";var btn=node.querySelector(".sp-gen");var old=btn.textContent;btn.disabled=true;btn.textContent="…";
+    fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:"Professional e-commerce product photo of "+nm+", clean studio lighting, plain neutral background, high detail, centered composition",size:"1024x1024"})})
+      .then(function(r){return r.json();})
+      .then(function(j){if(j&&j.url){node._image=j.url;paintThumb();stScheduleSave();btn.textContent="✓";}else{btn.textContent="⚠";}setTimeout(function(){btn.textContent=old;btn.disabled=false;},2000);})
+      .catch(function(){btn.textContent="⚠";setTimeout(function(){btn.textContent=old;btn.disabled=false;},2000);});
+  };
+  return node;
+}
+
+function storeCollect(){
+  var out=[];
+  el("stRows").querySelectorAll(":scope > .card").forEach(function(node){
+    var name=node.querySelector(".sp-name").value.trim();
+    out.push({
+      id:node._id||"", name:name,
+      price:parseFloat(node.querySelector(".sp-price").value)||0,
+      desc:node.querySelector(".sp-desc").value.trim(),
+      image:node._image||"",
+      trackStock:node.querySelector(".sp-track").checked,
+      stock:parseInt(node.querySelector(".sp-stock").value,10)||0,
+      active:node.querySelector(".sp-active").checked
+    });
+  });
+  return out.filter(function(p){return p.name;});
+}
+function stScheduleSave(){
+  stNote("Saving…");clearTimeout(storeTimer);
+  storeTimer=setTimeout(function(){
+    var products=storeCollect();
+    api("shop-save",{enabled:el("stEnabled").checked,products:products}).then(function(res){
+      stNote(res.ok?"✓ Saved":("⚠ "+((res.j&&res.j.error)||"save failed")));
+      updateShopLink();
+    });
+  },700);
+}
+function updateShopLink(){
+  var link=el("stShopLink");if(!link)return;
+  var url=location.origin.replace(/\/$/,"")+"/shop.html?slug="+encodeURIComponent(SLUG);
+  var hasLive=el("stEnabled").checked && storeCollect().some(function(p){return p.active!==false&&p.name;});
+  if(hasLive) link.innerHTML='Your shop is live at <a href="'+url+'" target="_blank" style="color:var(--gold);font-weight:700">'+esc(url)+'</a>';
+  else link.innerHTML='Add a product and turn <b>Store open</b> on to publish your shop.';
+}
+function renderOrders(){
+  var box=el("stOrders"),empty=el("stOrdersEmpty");var os=STORE.orders||[];
+  if(!os.length){empty.style.display="block";box.innerHTML="";return;}
+  empty.style.display="none";
+  box.innerHTML=os.map(function(o){
+    var items=(o.items||[]).map(function(i){return esc(i.name||"item")+" ×"+(i.qty||1);}).join(", ");
+    return '<div class="lead"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+money2(o.total||0)+'</b> <span class="muted">'+esc(o.email||"")+'</span></div><span class="muted">'+esc((o.at||"").slice(0,10))+'</span></div><div class="muted" style="margin-top:5px">'+esc(items||"")+'</div></div>';
+  }).join("");
+}
+function storeRender(){
+  var box=el("stRows");box.innerHTML="";
+  (STORE.products||[]).forEach(function(p){box.appendChild(storeProductRow(p));});
+  el("stEnabled").checked=!!STORE.enabled;
+  updateShopLink();renderOrders();
+}
+function storeEnsure(){
+  if(storeInit)return;storeInit=true;stNote("Loading…");
+  api("shop-get").then(function(res){
+    if(res.ok&&res.j){
+      STORE.products=(res.j.shop&&res.j.shop.products)||[];
+      STORE.enabled=!!(res.j.shop&&res.j.shop.enabled);
+      STORE.currency=(res.j.shop&&res.j.shop.currency)||"usd";
+      STORE.orders=res.j.orders||[];
+      el("stKeyState").textContent=res.j.stripeKeyMask?("Key on file: "+res.j.stripeKeyMask):"No Stripe key yet — add one to accept payments.";
+    }
+    storeRender();stNote("Ready");
+  });
+}
+el("stAdd").onclick=function(){el("stRows").appendChild(storeProductRow({active:true}));};
+el("stEnabled").onchange=function(){stScheduleSave();updateShopLink();};
+el("stSaveKey").onclick=function(){
+  var k=el("stStripe").value.trim();if(!k){msg("Paste your Stripe secret key first.",false);return;}
+  api("shop-save",{stripeKey:k}).then(function(res){
+    if(res.ok){el("stStripe").value="";el("stKeyState").textContent="Key on file: "+(res.j.stripeKeyMask||"saved");msg("✓ Stripe key saved",true);}
+    else msg((res.j&&res.j.error)||"Could not save key",false);
+  });
+};
+el("stClearKey").onclick=function(){
+  if(!confirm("Remove your Stripe key? Your shop won't be able to take payments until you add one again."))return;
+  api("shop-save",{stripeKey:"__CLEAR__"}).then(function(res){if(res.ok){el("stKeyState").textContent="No Stripe key yet — add one to accept payments.";el("stStripe").value="";msg("Key removed",true);}});
+};
+
 // Tabs
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
   document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
   document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("on");});
   t.classList.add("on"); el("p_"+t.dataset.p).classList.add("on");
   if(t.dataset.p==="ops") opsEnsure();
+  if(t.dataset.p==="store") storeEnsure();
 };});
 
 el("li_go").onclick=doLogin;

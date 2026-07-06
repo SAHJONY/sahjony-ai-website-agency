@@ -10,8 +10,34 @@
 //
 // Uses Stripe's REST API directly (no SDK). STRIPE_SECRET_KEY stays server-side.
 // Auth: when ADMIN_PASSWORD is set, requires a matching x-admin-token header.
+//
+// STOREFRONT (public, no admin token): mode:"storefront" / "storefront-confirm"
+// let a client's OWN customers buy products. These never touch the platform key —
+// they use the client's own Stripe key from fda:shopsecret:<slug> and recompute
+// every price server-side from the stored catalog. See handleStorefront below.
+
+import { rateLimit, clientIp } from "../lib/guard.js";
 
 const money = (n) => "$" + (Math.round(Number(n) * 100) / 100).toLocaleString("en-US");
+
+// Minimal Upstash REST helpers (mirrors api/site.js) — used by the storefront path.
+async function kvGet(key) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  const r = await fetch(url.replace(/\/$/, "") + "/get/" + encodeURIComponent(key), { headers: { Authorization: "Bearer " + token } });
+  const j = await r.json().catch(() => null);
+  if (j && j.result) { try { return JSON.parse(j.result); } catch { return j.result; } }
+  return null;
+}
+async function kvSet(key, value) {
+  const url = process.env.UPSTASH_REDIS_REST_URL, token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error("Storage not configured");
+  const r = await fetch(url.replace(/\/$/, "") + "/set/" + encodeURIComponent(key), {
+    method: "POST", headers: { Authorization: "Bearer " + token, "content-type": "text/plain" },
+    body: JSON.stringify(value == null ? {} : value),
+  });
+  if (!r.ok) throw new Error("write failed");
+}
 
 // Create a Square hosted payment link (one-time) for `amount` dollars. Needs
 // SQUARE_ACCESS_TOKEN + SQUARE_LOCATION_ID. Returns "" if unconfigured/failed.
@@ -63,6 +89,17 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+
+  // Public storefront path runs BEFORE the agency-admin gate (buyers aren't
+  // logged in). It only ever uses the per-client Stripe key + server-side prices.
+  {
+    let sb = req.body;
+    if (typeof sb === "string") { try { sb = JSON.parse(sb); } catch { sb = {}; } }
+    if (sb && (sb.mode === "storefront" || sb.mode === "storefront-confirm")) {
+      try { return await handleStorefront(req, res, sb); }
+      catch (e) { return res.status(500).json({ error: e.message || "Storefront request failed" }); }
+    }
+  }
 
   const admin = process.env.ADMIN_PASSWORD;
   if (admin && req.headers["x-admin-token"] !== admin) {
@@ -244,4 +281,144 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: e.message || "Request failed" });
   }
+}
+
+// Recompute cart line items from the STORED catalog. Client-sent prices are
+// never trusted — price, availability, and stock come only from `products`.
+// Coalesces duplicate ids, clamps quantity to stock (when tracked), and drops
+// missing / inactive / free / zero-qty items. Pure + exported for unit tests.
+export function buildStorefrontLines(products, items) {
+  const catalog = Array.isArray(products) ? products : [];
+  const qtyById = {};
+  for (const it of (Array.isArray(items) ? items : []).slice(0, 100)) {
+    const id = String((it && it.id) || "");
+    const qty = Math.max(0, Math.min(99, Math.floor(Number(it && it.qty) || 0)));
+    if (id && qty) qtyById[id] = (qtyById[id] || 0) + qty;
+  }
+  const lines = [], metaItems = [];
+  for (const id of Object.keys(qtyById)) {
+    const prod = catalog.find((p) => p && p.id === id && p.active !== false);
+    if (!prod) continue;
+    let qty = qtyById[id];
+    if (prod.trackStock) qty = Math.min(qty, Math.max(0, Number(prod.stock) || 0));
+    const cents = Math.round((Number(prod.price) || 0) * 100);
+    if (qty <= 0 || cents <= 0) continue;
+    lines.push({ name: prod.name, cents, qty, image: /^https?:\/\//i.test(prod.image || "") ? prod.image : "" });
+    metaItems.push({ id, name: prod.name, qty, price: cents / 100 });
+  }
+  return { lines, metaItems };
+}
+
+// ---- STOREFRONT: a client's own customers buy the client's products ---------
+// Two modes:
+//   "storefront"          → build a Stripe Checkout Session from a cart. Prices
+//                           are recomputed server-side from fda:shop:<slug> — the
+//                           client-sent amounts are never trusted. The cart is
+//                           stashed at fda:shoppending:<slug>:<sessionId> so the
+//                           order can be recorded reliably (Stripe metadata caps
+//                           at 500 chars, too small for a big cart).
+//   "storefront-confirm"  → after redirect, verify the session was PAID (using
+//                           the client's key), then record the order once
+//                           (idempotent by session id) and decrement stock.
+// Uses the CLIENT's key from fda:shopsecret:<slug>, never the platform key.
+async function handleStorefront(req, res, body) {
+  const slug = String(body.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60);
+  if (!slug) return res.status(400).json({ error: "Missing store." });
+
+  const rl = await rateLimit(req, "storefront", { limit: 40, windowSec: 600, key: clientIp(req) + ":" + slug });
+  if (rl.limited) return res.status(429).json({ error: "Too many attempts — wait a moment and try again." });
+
+  const sk = String((await kvGet("fda:shopsecret:" + slug)) || "");
+  if (!/^sk_(test|live)_/.test(sk)) {
+    return res.status(400).json({ error: "This store isn't set up to take payments yet." });
+  }
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+  const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+  const base = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+  const stripeAuth = { Authorization: "Bearer " + sk };
+
+  // ---- Confirm + record ----
+  if (body.mode === "storefront-confirm") {
+    const sid = String(body.session_id || "").replace(/[^A-Za-z0-9_]/g, "").slice(0, 200);
+    if (!sid) return res.status(400).json({ error: "Missing session." });
+    const r = await fetch("https://api.stripe.com/v1/checkout/sessions/" + encodeURIComponent(sid), { headers: stripeAuth });
+    const sess = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: (sess && sess.error && sess.error.message) || "Stripe error" });
+    if (String(sess.metadata && sess.metadata.slug) !== slug) return res.status(400).json({ error: "Session/store mismatch." });
+    if (sess.payment_status !== "paid") return res.status(200).json({ ok: true, paid: false });
+
+    const orders = (await kvGet("fda:shoporders:" + slug)) || [];
+    const list = Array.isArray(orders) ? orders : [];
+    let order = list.find((o) => o && o.session === sid);
+    if (!order) {
+      let items = [];
+      const pend = await kvGet("fda:shoppending:" + slug + ":" + sid);
+      if (pend && Array.isArray(pend.items)) items = pend.items;
+      else { try { items = JSON.parse((sess.metadata && sess.metadata.items) || "[]"); } catch {} }
+      order = {
+        id: "o" + Date.now().toString(36),
+        at: new Date().toISOString(),
+        email: (sess.customer_details && sess.customer_details.email) || sess.customer_email || "",
+        name: (sess.customer_details && sess.customer_details.name) || "",
+        phone: (sess.customer_details && sess.customer_details.phone) || "",
+        items: Array.isArray(items) ? items : [],
+        total: (Number(sess.amount_total) || 0) / 100,
+        currency: sess.currency || "usd",
+        status: "Paid",
+        session: sid,
+      };
+      list.unshift(order);
+      if (list.length > 500) list.length = 500;
+      await kvSet("fda:shoporders:" + slug, list);
+
+      // Decrement stock for tracked products (best-effort).
+      try {
+        const shop = (await kvGet("fda:shop:" + slug)) || {};
+        if (Array.isArray(shop.products) && order.items.length) {
+          let changed = false;
+          for (const it of order.items) {
+            const prod = shop.products.find((p) => p && p.id === it.id);
+            if (prod && prod.trackStock) { prod.stock = Math.max(0, (Number(prod.stock) || 0) - (Number(it.qty) || 0)); changed = true; }
+          }
+          if (changed) await kvSet("fda:shop:" + slug, shop);
+        }
+      } catch (_) {}
+    }
+    return res.status(200).json({ ok: true, paid: true, order: { id: order.id, items: order.items, total: order.total, currency: order.currency, email: order.email } });
+  }
+
+  // ---- Create Checkout Session from a cart ----
+  const shop = (await kvGet("fda:shop:" + slug)) || {};
+  if (!shop.enabled) return res.status(400).json({ error: "This store is not open." });
+  const products = Array.isArray(shop.products) ? shop.products : [];
+  const currency = String(shop.currency || "usd").toLowerCase().replace(/[^a-z]/g, "").slice(0, 3) || "usd";
+
+  const { lines, metaItems } = buildStorefrontLines(products, body.items);
+  if (!lines.length) return res.status(400).json({ error: "Your cart is empty or those items are unavailable." });
+
+  const p = new URLSearchParams();
+  p.append("mode", "payment");
+  p.append("success_url", base + "/order.html?slug=" + encodeURIComponent(slug) + "&session_id={CHECKOUT_SESSION_ID}");
+  p.append("cancel_url", base + "/shop.html?slug=" + encodeURIComponent(slug));
+  p.append("metadata[slug]", slug);
+  p.append("metadata[kind]", "storefront");
+  p.append("metadata[items]", JSON.stringify(metaItems).slice(0, 490));
+  p.append("phone_number_collection[enabled]", "true");
+  p.append("shipping_address_collection[allowed_countries][0]", "US");
+  lines.forEach((ln, idx) => {
+    p.append(`line_items[${idx}][price_data][currency]`, currency);
+    p.append(`line_items[${idx}][price_data][product_data][name]`, ln.name);
+    if (ln.image) p.append(`line_items[${idx}][price_data][product_data][images][0]`, ln.image);
+    p.append(`line_items[${idx}][price_data][unit_amount]`, String(ln.cents));
+    p.append(`line_items[${idx}][quantity]`, String(ln.qty));
+  });
+
+  const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST", headers: { ...stripeAuth, "content-type": "application/x-www-form-urlencoded" }, body: p.toString(),
+  });
+  const data = await r.json();
+  if (!r.ok) return res.status(r.status).json({ error: (data && data.error && data.error.message) || "Payment setup failed." });
+  // Stash the full cart so confirm can record it even if metadata was truncated.
+  try { if (data.id) await kvSet("fda:shoppending:" + slug + ":" + data.id, { items: metaItems, at: new Date().toISOString() }); } catch (_) {}
+  return res.status(200).json({ ok: true, url: data.url, id: data.id });
 }

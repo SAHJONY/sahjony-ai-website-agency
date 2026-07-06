@@ -12,7 +12,7 @@
 // Country detection: pass the visitor's ISO country code (on Vercel, read the
 // `x-vercel-ip-country` request header — see app/api/pricing/route.ts).
 
-export type PlanId = "corner_shop" | "neighborhood" | "cornerstone";
+export type PlanId = "corner_shop" | "neighborhood" | "cornerstone" | "storefront";
 
 export type Plan = {
   id: PlanId;
@@ -25,6 +25,7 @@ export const PLANS: Plan[] = [
   { id: "corner_shop", name: "The Corner Shop", kind: "one_time", usd: 899 },
   { id: "neighborhood", name: "The Neighborhood", kind: "one_time", usd: 1299 },
   { id: "cornerstone", name: "The Cornerstone", kind: "monthly", usd: 89 },
+  { id: "storefront", name: "The Storefront", kind: "monthly", usd: 179 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -55,16 +56,16 @@ export const COUNTRY_CURRENCY: Record<string, string> = {
 // Keyed by currency, then plan. Review these when you enter a market for real.
 // ---------------------------------------------------------------------------
 export const FIXED_PRICES: Record<string, Partial<Record<PlanId, number>>> = {
-  USD: { corner_shop: 899, neighborhood: 1299, cornerstone: 89 },
-  MXN: { corner_shop: 15999, neighborhood: 22999, cornerstone: 1599 },
-  CAD: { corner_shop: 1199, neighborhood: 1749, cornerstone: 119 },
-  EUR: { corner_shop: 849, neighborhood: 1199, cornerstone: 85 },
-  GBP: { corner_shop: 749, neighborhood: 1049, cornerstone: 75 },
-  BRL: { corner_shop: 4599, neighborhood: 6599, cornerstone: 449 },
-  COP: { corner_shop: 3599000, neighborhood: 5199000, cornerstone: 359000 },
-  AUD: { corner_shop: 1349, neighborhood: 1949, cornerstone: 135 },
-  INR: { corner_shop: 74999, neighborhood: 107999, cornerstone: 7499 },
-  JPY: { corner_shop: 129800, neighborhood: 189800, cornerstone: 12800 },
+  USD: { corner_shop: 899, neighborhood: 1299, cornerstone: 89, storefront: 179 },
+  MXN: { corner_shop: 15999, neighborhood: 22999, cornerstone: 1599, storefront: 3199 },
+  CAD: { corner_shop: 1199, neighborhood: 1749, cornerstone: 119, storefront: 239 },
+  EUR: { corner_shop: 849, neighborhood: 1199, cornerstone: 85, storefront: 169 },
+  GBP: { corner_shop: 749, neighborhood: 1049, cornerstone: 75, storefront: 149 },
+  BRL: { corner_shop: 4599, neighborhood: 6599, cornerstone: 449, storefront: 899 },
+  COP: { corner_shop: 3599000, neighborhood: 5199000, cornerstone: 359000, storefront: 719000 },
+  AUD: { corner_shop: 1349, neighborhood: 1949, cornerstone: 135, storefront: 269 },
+  INR: { corner_shop: 74999, neighborhood: 107999, cornerstone: 7499, storefront: 14999 },
+  JPY: { corner_shop: 129800, neighborhood: 189800, cornerstone: 12800, storefront: 25800 },
 };
 
 // ---------------------------------------------------------------------------

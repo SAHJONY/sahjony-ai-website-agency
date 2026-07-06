@@ -182,6 +182,17 @@
 
       <div style="margin-top:16px"><button class="btn gold" id="saveSocial">Save social settings</button></div>
     </div>
+
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:4px">📣 Marketing Studio</div>
+      <div class="muted" style="margin-bottom:12px">Generate a ready-to-use campaign tailored to your business — a promo offer, an email, a text blast, a Google Business post, and a 2-week content calendar. Pick a goal and go.</div>
+      <label>What's your goal?</label>
+      <select id="mkGoal"></select>
+      <label style="margin-top:12px">Anything specific? <span class="muted" style="font-weight:400">(optional)</span></label>
+      <input id="mkDetail" placeholder="e.g. 20% off this weekend, new fall menu, open house Saturday, now booking">
+      <div style="margin-top:14px"><button class="btn gold" id="mkGen">✨ Generate campaign</button></div>
+      <div id="mkOut" style="margin-top:14px"></div>
+    </div>
   </div>
 
   <!-- LEADS -->
@@ -556,6 +567,40 @@ async function generateKit(){
   }catch(e){msg("Network error",false);}
   el("genKit").disabled=false; el("genKit").textContent=old;
 }
+
+// ---- Marketing Studio: goal-driven, ready-to-use campaigns ----
+var MK_GOALS=["Get more bookings / sales","Fill slow days","Launch a promotion","Win back past customers","Grow my followers","Announce something new"];
+var MK=null;
+function initMkGoals(){ var s=el("mkGoal"); if(!s||s.options.length) return; s.innerHTML=MK_GOALS.map(function(g){return '<option>'+esc(g)+'</option>';}).join(""); }
+function mkBlock(title,text){
+  return '<div class="lead" style="margin-top:10px"><div class="muted" style="font-weight:700">'+esc(title)+'</div><div style="margin-top:4px;white-space:pre-wrap">'+esc(text)+'</div><button class="btn ghost" data-cmk="'+encodeURIComponent(text)+'" style="padding:5px 10px;font-size:12px;margin-top:8px">Copy</button></div>';
+}
+function renderCampaign(c){
+  var out=el("mkOut"); if(!out) return; if(!c){out.innerHTML="";return;}
+  var html="";
+  if(c.offer) html+=mkBlock("Promo offer",(c.offer.headline||"")+"\n"+(c.offer.body||"")+(c.offer.cta?("\n→ "+c.offer.cta):""));
+  if(c.email) html+=mkBlock("Email","Subject: "+((c.email&&c.email.subject)||"")+"\n\n"+((c.email&&c.email.body)||""));
+  if(c.sms) html+=mkBlock("Text message (SMS)",c.sms);
+  if(c.googlePost) html+=mkBlock("Google Business post",c.googlePost);
+  if(c.hashtags) html+=mkBlock("Hashtags",c.hashtags);
+  if(Array.isArray(c.calendar)&&c.calendar.length){
+    html+='<div class="lead" style="margin-top:10px"><div class="muted" style="font-weight:700">2-week content calendar</div>'+c.calendar.map(function(d){return '<div style="margin-top:6px;font-size:14px"><b>'+esc((d&&d.day)||"")+':</b> '+esc((d&&d.idea)||"")+'</div>';}).join("")+'</div>';
+  }
+  out.innerHTML=html||'<div class="muted">Nothing generated — try again.</div>';
+  out.querySelectorAll("[data-cmk]").forEach(function(b){b.onclick=function(){var t=decodeURIComponent(b.dataset.cmk);navigator.clipboard&&navigator.clipboard.writeText(t);msg("✓ Copied",true);};});
+}
+async function generateCampaign(){
+  var goal=el("mkGoal").value||MK_GOALS[0], detail=el("mkDetail").value.trim();
+  var btn=el("mkGen"), old=btn.textContent; btn.disabled=true; btn.textContent="Generating…";
+  var prompt='You are an expert local-business marketer. Business: "'+BIZNAME+'", a '+(INDUSTRY||"local business")+(CITY?(" in "+CITY):"")+'. Campaign goal: '+goal+'. '+(detail?("Owner specifics: "+detail+". "):"")+'Write a complete, ready-to-use campaign in a warm, on-brand voice, tailored to a '+(INDUSTRY||"local business")+'. Return ONLY valid minified JSON, no markdown: {"offer":{"headline":"<=8 words","body":"1-2 sentences","cta":"short"},"email":{"subject":"<=60 chars","body":"3-5 short friendly sentences"},"sms":"<=160 chars with a clear CTA","googlePost":"Google Business post <=1200 chars","hashtags":"6-10 hashtags space separated","calendar":[{"day":"Day 1","idea":"short post idea"}]} with exactly 10 calendar entries.';
+  try{
+    var r=await fetch("/api/generate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:prompt,maxTokens:1400})});
+    var j=await r.json();
+    if(!r.ok){msg((j&&j.error)||"Could not generate right now.",false);}
+    else{ var m=(j.text||"").match(/\{[\s\S]*\}/); MK=null; if(m){ try{ MK=JSON.parse(m[0]); }catch(e){ MK=null; } } if(MK){ renderCampaign(MK); msg("✓ Campaign ready — copy what you need",true); } else msg("The engine returned an unexpected format — try again.",false); }
+  }catch(e){ msg("Network error — try again.",false); }
+  btn.disabled=false; btn.textContent=old;
+}
 async function saveSocial(){
   var handles={}; SOCIAL_PLATFORMS.forEach(function(p){var v=el("so_"+p[0]).value.trim(); if(v) handles[p[0]]=v;});
   var payload={handles:handles,needsSetup:el("so_needsetup").checked,autopilot:el("so_autopilot").checked};
@@ -741,6 +786,7 @@ el("saveMenu").onclick=function(){saveContent("✓ Menu saved & live on your sit
 el("addPromo").onclick=function(){el("promoRows").appendChild(promoRow({}));};
 el("savePromos").onclick=function(){saveContent("✓ Promotions saved & live on your site");};
 el("genKit").onclick=generateKit;
+initMkGoals(); el("mkGen").onclick=generateCampaign;
 el("saveSocial").onclick=saveSocial;
 el("so_needsetup").onchange=function(){el("setupNote").style.display=this.checked?"block":"none";el("setupNote").textContent=this.checked?"We'll create your accounts and email you the logins after you Save.":"";};
 el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};

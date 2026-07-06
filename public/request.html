@@ -51,6 +51,8 @@
     <div class="perk"><b>Free</b> to request</div>
   </div>
 
+  <div id="planNote" style="display:none;background:rgba(55,224,196,.1);border:1px solid rgba(55,224,196,.4);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14.5px"></div>
+
   <div class="card" id="formCard">
     <div class="row">
       <div><label>Business name *</label><input id="name" placeholder="Eastwood Barber Co."></div>
@@ -73,11 +75,20 @@
 <script>
 var el=function(id){return document.getElementById(id);};
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";}
+
+// Pre-select a plan from ?plan= (e.g. the pricing-page CTAs). Shows a banner and
+// travels with the lead so the owner sees which tier the customer wants.
+var PLAN_LABELS={starter:"Starter",professional:"Professional",premium:"Premium",storefront:"The Storefront — online store ($179/mo)",corner_shop:"The Corner Shop",neighborhood:"The Neighborhood",cornerstone:"The Cornerstone"};
+var PLAN="";
+try{
+  var pk=(new URLSearchParams(location.search).get("plan")||"").toLowerCase().replace(/[^a-z_]/g,"");
+  if(pk&&PLAN_LABELS[pk]){PLAN=PLAN_LABELS[pk];var pn=el("planNote");pn.style.display="block";pn.innerHTML="Selected plan: <b>"+PLAN+"</b>. Add any details below and we'll set it up for you.";}
+}catch(e){}
 el("go").onclick=async function(){
   var name=el("name").value.trim(), type=el("type").value.trim(), contact=el("contact").value.trim();
   if(!name||!type||!contact){msg("Please fill in your business name, type, and how to reach you.",false);return;}
   var ref=""; try{ ref=new URLSearchParams(location.search).get("ref")||localStorage.getItem("fda_ref")||""; }catch(e){}
-  var entry={id:Date.now(),name:name,type:"Website build request — "+type,contact:contact,city:el("city").value.trim(),url:el("url").value.trim(),notes:el("notes").value.trim(),ref:ref||undefined,at:new Date().toISOString()};
+  var entry={id:Date.now(),name:name,type:"Website build request"+(PLAN?" ["+PLAN+"]":"")+" — "+type,contact:contact,city:el("city").value.trim(),url:el("url").value.trim(),notes:el("notes").value.trim(),plan:PLAN||undefined,ref:ref||undefined,at:new Date().toISOString()};
   el("go").disabled=true; el("go").textContent="Sending…";
   try{
     var r=await fetch("/api/contact",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(entry)});

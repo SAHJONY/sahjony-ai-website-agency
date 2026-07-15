@@ -6,8 +6,28 @@
 // Auth: requires x-admin-token === ADMIN_PASSWORD when that is set.
 // Storage: index at fda:sites:index, each site at fda:site:<slug> in Upstash.
 // The published HTML is served publicly by /api/site (mapped to /s/<slug>).
+import { safeEqual } from "../lib/guard.js";
 
 const INDEX_KEY = "fda:sites:index";
+const DELIVERY_READY_SCORE = 90;
+
+export function normalizeDelivery(value) {
+  const d = value && typeof value === "object" ? value : {};
+  const score = Math.max(0, Math.min(100, Number(d.score) || 0));
+  const approved = d.approved === true;
+  const checks = (Array.isArray(d.checks) ? d.checks : [])
+    .map((item) => String(item || "").replace(/[^a-z0-9_-]/gi, "").slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 30);
+  return {
+    version: String(d.version || "1.0").slice(0, 20),
+    score,
+    approved,
+    approvedAt: approved ? String(d.approvedAt || new Date().toISOString()).slice(0, 40) : "",
+    checks,
+    ready: approved && score >= DELIVERY_READY_SCORE,
+  };
+}
 
 function slugify(s) {
   return String(s || "site").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "site";
@@ -40,7 +60,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const admin = process.env.ADMIN_PASSWORD;
-  if (admin && req.headers["x-admin-token"] !== admin) {
+  if (admin && !safeEqual(String(req.headers["x-admin-token"] || ""), admin)) {
     return res.status(401).json({ error: "Unauthorized. Log in to the dashboard." });
   }
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
@@ -94,6 +114,10 @@ export default async function handler(req, res) {
       let html = body.html;
       if (!html || typeof html !== "string") return res.status(400).json({ error: "Missing site html." });
       if (html.length > 4_000_000) return res.status(413).json({ error: "Site is too large to publish (try fewer/smaller uploaded photos)." });
+      const delivery = normalizeDelivery(body.delivery);
+      if (!delivery.ready) {
+        return res.status(422).json({ error: `FrontDeskOS Delivery Standard not met. Complete QA and reach ${DELIVERY_READY_SCORE}/100 before publishing.` });
+      }
 
       const slug = body.slug ? slugify(body.slug) : (slugify(name) + "-" + rand4());
       // Bind the slug into the built HTML: the contact form tags each lead with
@@ -117,11 +141,11 @@ export default async function handler(req, res) {
         .slice(0, 40)
         .map((l) => ({ name: String((l && l.name) || "").slice(0, 120), address: String((l && l.address) || "").slice(0, 200) }))
         .filter((l) => l.name || l.address);
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations }));
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations, delivery }));
 
       const existing = index.find((s) => s.slug === slug);
-      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }
-      else index.unshift({ name, slug, at: now, status, bizType });
+      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; existing.quality = delivery.score; }
+      else index.unshift({ name, slug, at: now, status, bizType, quality: delivery.score });
       await writeRaw(INDEX_KEY, JSON.stringify(index));
 
       return res.status(200).json({ ok: true, slug, url: "/s/" + slug });

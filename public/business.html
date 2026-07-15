@@ -53,14 +53,14 @@
   .opsdel:hover{color:#ff7a6e;background:rgba(255,122,110,.12)}
   .opsempty{padding:34px;text-align:center;color:var(--muted)}
   .stat{display:flex;flex-direction:column;gap:2px}
-  .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
   .lead{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
   .lead .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   #msg{margin-top:12px;font-size:13.5px;display:none}
   #login{max-width:400px;margin:9vh auto 0;padding:0 18px}
   .center{text-align:center}
-  @media(max-width:640px){.row,.grid3{grid-template-columns:1fr}}
+  @media(max-width:760px){.grid4{grid-template-columns:1fr 1fr}}@media(max-width:640px){.row,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -103,10 +103,11 @@
   <!-- OVERVIEW -->
   <div class="panel on" id="p_overview">
     <div class="card">
-      <div class="grid3">
+      <div class="grid4">
         <div class="stat"><span class="muted">Website visits</span><b id="stViews">—</b></div>
         <div class="stat"><span class="muted">Leads captured</span><b id="stLeads">—</b></div>
-        <div class="stat"><span class="muted">Ava phone line</span><b id="stPhone" style="font-size:18px">—</b></div>
+        <div class="stat"><span class="muted">FrontDesk Voice™</span><b id="stPhone" style="font-size:18px">—</b></div>
+        <div class="stat"><span class="muted">Delivery quality</span><b id="stQuality" style="font-size:22px;color:var(--gold)">—</b></div>
       </div>
     </div>
     <div class="card">
@@ -115,6 +116,16 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
         <a class="btn gold" id="viewSite" target="_blank" href="#">View my website →</a>
         <button class="btn ghost" id="copyUrl">Copy link</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:6px">Your digital front office</div>
+      <div class="muted" style="margin-bottom:14px">The customer-facing systems included with your launch.</div>
+      <div class="grid4">
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Website</b><div class="muted" style="margin-top:4px">Responsive and search-ready</div></div>
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Lead capture</b><div class="muted" style="margin-top:4px">Forms and inbox connected</div></div>
+        <div class="lead" style="margin:0"><b id="capAva" style="color:#2fd47f">✓ Ava</b><div class="muted" style="margin-top:4px">24/7 customer response</div></div>
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Client control</b><div class="muted" style="margin-top:4px">Content and operations dashboard</div></div>
       </div>
     </div>
   </div>
@@ -195,7 +206,7 @@
       <div id="mkOut" style="margin-top:14px"></div>
 
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-        <div class="fd" style="font-size:15px;font-weight:700">📞 AI phone campaign <span class="muted" style="font-weight:400;font-size:12px">via Bland.ai</span></div>
+        <div class="fd" style="font-size:15px;font-weight:700">📞 FrontDesk Voice™ campaign <span class="muted" style="font-weight:400;font-size:12px">secure voice automation</span></div>
         <div class="muted" style="font-size:13px">An AI voice agent calls your list and delivers the campaign, answering questions live. Only call customers who've agreed to be contacted.</div>
         <label style="margin-top:10px">Call script <span class="muted" style="font-weight:400">(auto-filled from your campaign — edit freely)</span></label>
         <textarea id="mkScript" rows="4" placeholder="What the AI should say on the call…"></textarea>
@@ -393,6 +404,9 @@ async function loadAll(){
   el("stViews").textContent=(d.stats&&d.stats.views)||0;
   el("stLeads").textContent=(d.stats&&d.stats.leads)||0;
   el("stPhone").textContent=(d.ava&&d.ava.phone)?d.ava.phone:"Chat only";
+  var quality=d.site&&d.site.delivery;
+  el("stQuality").textContent=quality&&quality.ready?(quality.score+"/100"):"Legacy";
+  el("capAva").textContent=(d.site&&d.site.ava===false)?"○ Ava paused":"✓ Ava online";
   var st=(d.site&&d.site.status)||"active";
   var live=st==="active";
   el("stStatusDot").style.background=live?"#2fd47f":"#ff9f43";

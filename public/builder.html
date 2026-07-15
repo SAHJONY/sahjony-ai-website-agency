@@ -152,7 +152,7 @@
               <label style="cursor:pointer;background:rgba(232,196,118,.16);color:#2dd4bf;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">⬆ Upload<input id="fVideoFile" type="file" accept="video/*" style="display:none"></label>
               <button type="button" id="genVideo" style="background:rgba(255,255,255,.08);color:#f0eef2;border:1px solid rgba(255,255,255,.16);cursor:pointer;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px">🎬 Generate cinematic video</button>
             </div>
-            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIvid" type="checkbox" style="width:auto;accent-color:#e8c476"> ✨ Auto-generate a cinematic Higgsfield video when none is added</label>
+            <label style="display:flex;align-items:center;gap:9px;margin-top:10px;font-size:13.5px;color:#d6d3df;cursor:pointer"><input id="fAIvid" type="checkbox" style="width:auto;accent-color:#e8c476"> ✨ Auto-generate a FrontDeskOS™ cinematic video when none is added</label>
             <div id="videoNote" style="font-size:12px;color:#8c8998;margin-top:6px"></div>
           </div>
 
@@ -188,16 +188,16 @@
           </div>
         </div>
 
-        <label style="display:block;font-size:12px;color:#8c8998;margin:14px 0 5px">✨ AI design engine</label>
-        <select id="aiModel" aria-label="AI design engine" style="width:100%;background:rgba(255,255,255,.06);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:14px;font-weight:600;padding:12px 13px;border-radius:10px;cursor:pointer">
-          <option value="claude-fable-5">Claude Fable 5 — highest quality (default)</option>
-          <option value="claude-opus-4-8">Claude Opus 4.8 — faster</option>
-          <option value="">Auto (any available engine)</option>
+        <label style="display:block;font-size:12px;color:#8c8998;margin:14px 0 5px">✨ FrontDeskOS™ design mode</label>
+        <select id="aiModel" aria-label="FrontDeskOS design mode" style="width:100%;background:rgba(255,255,255,.06);color:#f0eef2;border:1px solid rgba(255,255,255,.16);font-size:14px;font-weight:600;padding:12px 13px;border-radius:10px;cursor:pointer">
+          <option value="claude-fable-5">Signature Quality — highest quality (default)</option>
+          <option value="claude-opus-4-8">Express Quality — faster</option>
+          <option value="">Automatic quality routing</option>
         </select>
 
         <button id="buildBtn" style="margin-top:14px;background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:17px;font-weight:700;padding:16px;border-radius:999px">⚡ Build my website</button>
         <div id="err" style="color:#2dd4bf;font-size:14px;text-align:center;display:none"></div>
-        <div style="font-size:13px;color:#8c8998;text-align:center">Runs on your own Claude key via the secure backend.</div>
+        <div style="font-size:13px;color:#8c8998;text-align:center">Processed securely by FrontDeskOS™. Provider credentials stay server-side.</div>
       </div>
     </div>
 
@@ -229,9 +229,13 @@
 </style>
 
 <script src="/data/state-requirements.js"></script>
+<script type="module" src="/product-quality.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let mode = "auto";
+let deliveryInput = null;
+let deliveryAudit = null;
+let factsConfirmed = false;
 
 const CHIPS = ["Home","About","Services","Gallery","Reviews","FAQ","Hours","Map","Contact","Social links","Click-to-call","Footer"];
 $("#chips").innerHTML = CHIPS.map(c=>`<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#d6d3df;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px">${c}</div>`).join("");
@@ -328,7 +332,7 @@ async function generateCinematicVideo(onProgress){
 $("#genVideo").onclick = async ()=>{
   const btn=$("#genVideo"), prev=btn.textContent;
   btn.disabled=true; btn.textContent="🎬 Rendering… (~1 min)";
-  $("#videoNote").textContent="Generating a cinematic Higgsfield video — this can take up to a minute…";
+  $("#videoNote").textContent="FrontDeskOS™ is generating a cinematic video — this can take up to a minute…";
   try{ const u=await generateCinematicVideo(); $("#videoNote").textContent="✓ Cinematic video generated & added: "+u.slice(0,60)+"…"; }
   catch(e){ $("#videoNote").textContent="⚠ "+(e.message||"video generation failed"); }
   finally{ btn.disabled=false; btn.textContent=prev; }
@@ -412,15 +416,18 @@ function fallback(type, name, city){
     about1:`${has?name+" is":"We're"} a ${type} ${local}, built on honest work and doing the job right the first time.`,
     about2:`From your first call to the finished job, ${has?name:"we"} bring experience, pride, and care to everything we do.`,
     services:[{name:"Free Estimates",desc:`Tell us what you need — no-pressure quotes for ${where||"your area"}.`,price:"Free"},{name:"Standard Service",desc:`Dependable ${type} work, done on time.`,price:""},{name:"Premium Service",desc:"Our top-tier option, finished to the highest standard.",price:""},{name:"Repairs & Fixes",desc:"Fast, reliable help when something goes wrong.",price:""},{name:"Maintenance Plans",desc:"Keep things running with scheduled visits.",price:""},{name:"Emergency Service",desc:`Same-day help ${local}.`,price:""}],
-    reviews:[{quote:`Best ${type} ${local}. Friendly, fair, and they clearly know their craft.`,author:"Maria G."},{quote:`I won't go anywhere else. Honest people and great work, every time.`,author:"James T."},{quote:"Quick, professional, and reasonably priced. Highly recommend.",author:"Dana R."}],
+    reviews:[],
     faqs:[{q:"Do I need an appointment?",a:"Walk-ins are welcome, but booking ahead guarantees your spot."},{q:"What payment options do you accept?",a:"Cash and all major cards."},{q:`Do you serve ${where||"my area"}?`,a:`Yes — we proudly serve ${where?where+" and the surrounding area":"the whole local community"}.`}],
-    hours:[{day:"Mon – Fri",time:"9:00 – 18:00"},{day:"Saturday",time:"10:00 – 16:00"},{day:"Sunday",time:"Closed"}],
+    hours:[],
     labels:{}
   };
 }
 
 async function generate(){
   $("#err").style.display="none";
+  factsConfirmed=false;
+  deliveryInput=null;
+  deliveryAudit=null;
   const paste=val("fPaste");
   let name=val("fName"), type=val("fType");
   if(mode==="url" && !name) name=deriveName(val("fUrl"));
@@ -445,8 +452,11 @@ ART DIRECTION: the site is rendered in an ULTRA-PREMIUM, CINEMATIC, TESLA-STYLE 
 Heading fonts: Space Grotesk, Sora, Poppins, Montserrat, Playfair Display, Fraunces, DM Serif Display, Bricolage Grotesque, Outfit, Syne, Unbounded, Manrope.
 Body fonts: Inter, DM Sans, Manrope, Work Sans, Nunito Sans, Mulish, Figtree, Rubik.
 Copy must be specific and vivid — sensory, local, confident. No filler.
-MENU/PRODUCTS: if this is a restaurant, cafe, bakery, bar, food truck, or a retail/product business, also return a "menu" array of 6-14 REAL items with prices, grouped by category (e.g. Starters, Mains, Drinks, or product collections). Extract real item names & prices from the SOURCE INFORMATION when present; otherwise create realistic ones typical for this business. For pure service businesses (law, salon, repair, etc.) return "menu":[].
-Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"menu":[{"name":"","desc":"<=8 words","price":"e.g. $12","category":"short group name"}] 6-14 items WITH prices for food/retail businesses else empty array,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","menuKicker":"Menu","menuTitle":"Our Menu","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
+TRUTH STANDARD: NEVER invent testimonials, star ratings, business history, certifications, awards, prices, addresses, phone numbers, email addresses, or operating hours. Use them only when they appear in SOURCE INFORMATION or researched business data. When they are not verified, return an empty string or empty array. It is better to omit a claim than fabricate one.
+MENU/PRODUCTS: for restaurant, cafe, bakery, bar, food truck, retail, or product businesses, extract real items and prices ONLY from SOURCE INFORMATION. If no verified menu/catalog is supplied, return "menu":[]; never create realistic-sounding products or prices. For service businesses return "menu":[].
+REVIEWS: extract verified review text and attribution only when supplied in SOURCE INFORMATION or researched data. Otherwise return "reviews":[]; never write sample testimonials.
+HOURS: extract only confirmed hours. Otherwise return "hours":[]; never guess.
+Schema: {"tagline":"<=9 words, punchy","heroSub":"40-160 characters","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"verified short price or empty"}] exactly 6 fitting this business,"menu":[{"name":"","desc":"<=8 words","price":"verified price","category":"short group name"}] verified items only else empty array,"reviews":[{"quote":"verified <=30 words","author":"verified attribution"}] verified reviews only else empty array,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] confirmed rows only else empty array,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","menuKicker":"Menu","menuTitle":"Our Menu","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
   // Try the AI brain; retry once before giving up. Only fall back to the built-in
@@ -471,6 +481,7 @@ Translate EVERY label and all content into ${lang}.`;
   }
   if(!gen){
     gen = fallback(type, name, city);
+    gen.__usedFallback = true;
     const eb=$("#err");
     if(eb){ eb.textContent="⚠ The design engine was momentarily unavailable, so we built a starter site from your details. Click Generate again to retry the full design. (Reason: "+genError+")"; eb.style.display="block"; }
   }
@@ -568,6 +579,49 @@ function cineInit(srcLang){
   }catch(e){}
 }
 
+function assessDelivery(){
+  if(!deliveryInput || !window.ProductQuality){
+    return {version:"1.0",score:0,ready:false,checks:[],blockers:[{id:"engine",label:"Delivery engine",detail:"The quality standard is still loading."}],advisories:[]};
+  }
+  deliveryAudit=window.ProductQuality.assessProduct(Object.assign({},deliveryInput,{factsConfirmed:factsConfirmed}));
+  return deliveryAudit;
+}
+
+function deliveryPanelHtml(a){
+  const color=a.ready?"#2fd47f":(a.score>=70?"#e8c476":"#ff8d82");
+  const rows=(a.checks||[]).map(function(c){
+    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">'+
+      '<span style="color:'+(c.pass?'#2fd47f':'#ff8d82')+';font-weight:800">'+(c.pass?'✓':'!')+'</span>'+
+      '<div><b style="font-size:13px;color:#fff">'+c.label+'</b><div style="font-size:12px;color:#9fb3c9;margin-top:2px">'+c.detail+'</div></div></div>';
+  }).join("");
+  const advice=(a.advisories||[]).map(function(x){return '<li style="margin:5px 0">'+x+'</li>';}).join("");
+  return '<div style="max-width:1180px;margin:0 auto;padding:18px 24px 20px">'+
+    '<div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap"><div><div style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#9fb3c9;font-weight:800">FrontDeskOS™ Delivery Standard</div><div style="font-family:Fraunces,serif;font-size:26px;color:'+color+';margin-top:5px">'+a.score+'/100 · '+(a.ready?'Ready to deliver':'Action required')+'</div></div><button id="qaClose" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer">Close</button></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 22px;margin-top:10px">'+rows+'</div>'+
+    (advice?'<div style="margin-top:14px;color:#9fb3c9;font-size:12.5px"><b style="color:#e8c476">Recommended polish</b><ul style="padding-left:18px;margin-top:6px">'+advice+'</ul></div>':'')+
+    '<label style="display:flex;align-items:flex-start;gap:10px;margin-top:17px;padding:14px;border-radius:11px;background:rgba(232,196,118,.08);border:1px solid rgba(232,196,118,.22);cursor:pointer"><input id="factsCheck" type="checkbox" '+(factsConfirmed?'checked':'')+' style="margin-top:3px;accent-color:#e8c476"><span><b style="font-size:13px;color:#fff">I verified the customer’s business facts.</b><span style="display:block;color:#9fb3c9;font-size:12px;margin-top:3px">Contact details, prices, hours, claims, reviews, and legal wording are accurate and approved for publication.</span></span></label>'+
+    '</div>';
+}
+
+function refreshDeliveryGate(show){
+  const a=assessDelivery();
+  const badge=document.getElementById("qaBtn");
+  if(badge){badge.textContent=(a.ready?'✓':'!')+' Quality '+a.score+'/100';badge.style.color=a.ready?'#8df3c5':'#ffe0a3';badge.style.borderColor=a.ready?'rgba(47,212,127,.45)':'rgba(232,196,118,.42)';}
+  const pub=document.getElementById("pubBtn");
+  if(pub) pub.textContent=a.ready?'🚀 Save & Publish':'Complete QA to publish';
+  const panel=document.getElementById("qaPanel");
+  if(panel){panel.innerHTML=deliveryPanelHtml(a);if(show)panel.style.display="block";const close=document.getElementById("qaClose");if(close)close.onclick=function(){panel.style.display="none";};const box=document.getElementById("factsCheck");if(box)box.onchange=function(){factsConfirmed=box.checked;refreshDeliveryGate(true);};}
+  return a;
+}
+
+function requireDeliveryReady(){
+  const a=refreshDeliveryGate(false);
+  if(a.ready) return true;
+  refreshDeliveryGate(true);
+  const panel=document.getElementById("qaPanel");if(panel)panel.scrollIntoView({behavior:"smooth",block:"start"});
+  return false;
+}
+
 function renderSite(name, type, city, lang, gen, mediaIn){
   const M = mediaIn || { photos:[], video:"", audio:"", social:{}, posts:[] };
   // Real contact details only — never invent a fake phone/email/address. Blank
@@ -575,6 +629,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // placeholder like "@email.com" or a 555 number.
   const phone=val("fPhone"), email=val("fEmail");
   const addr=val("fAddr"), full=[addr,city].filter(Boolean).join(", ");
+  deliveryInput={name:name,type:type,city:city,phone:phone,email:email,content:gen,media:M,usedFallback:gen.__usedFallback===true};
   const D = gen.design||{};
   const primary = D.primary || gen.primary || theme(type);
   const accent = D.accent || primary;
@@ -597,11 +652,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const map=full?`https://maps.google.com/maps?q=${encodeURIComponent(full)}&z=14&output=embed`:"";
   const year=new Date().getFullYear();
   const svc=(gen.services||[]).slice(0,6);
-  // Use the client's real photos first; fall back to themed placeholders.
+  // Reuse approved client/generated media before any preview-only placeholder.
+  // The delivery gate blocks publishing when no approved media exists.
   const photos = (M.photos||[]).filter(Boolean);
   const heroImg = photos[0] || `https://loremflickr.com/1280/720/${kw}?lock=2`;
-  const aboutImg = photos[1] || `https://loremflickr.com/800/600/${kw},shop?lock=8`;
-  const gal=[]; for(let i=0;i<6;i++){ gal.push(photos[i] || `https://loremflickr.com/600/600/${kw},business?lock=${20+i}`); }
+  const aboutImg = photos[1] || photos[0] || `https://loremflickr.com/800/600/${kw},shop?lock=8`;
+  const gal=[]; for(let i=0;i<6;i++){ gal.push(photos.length ? photos[i%photos.length] : `https://loremflickr.com/600/600/${kw},business?lock=${20+i}`); }
   const socialNav = socialLinksHtml(M.social, "rgba(0,0,0,.06)", 34);
   const socialFooter = socialLinksHtml(M.social, "rgba(255,255,255,.1)", 40);
 
@@ -649,13 +705,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const navExtra = isAuto
     ? `<a href="#g-financing" class="cnav-link">${L.financingNav||"Financing"}</a><a href="${portalUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`
     : `<a href="${accountUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`;
-  const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" class="cnav-link">${l}</a>`).join("") + navExtra;
+  const navHtml = nav0.map((l,i)=>({label:l,href:hrefs[i]}))
+    .filter(x=>x.href!=="#g-reviews" || (gen.reviews||[]).length)
+    .map(x=>`<a href="${x.href}" class="cnav-link">${x.label}</a>`).join("") + navExtra;
   const langOptions = (()=>{ const have=CINE_LANGS.some(([v])=>v===lang); const list=have?CINE_LANGS:[[lang,lang],...CINE_LANGS]; return list.map(([v,n])=>`<option value="${v}"${v===lang?" selected":""}>${n}</option>`).join(""); })();
   const svcHtml = svc.map((s,i)=>`<div class="ccard reveal" style="padding:34px 30px"><div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:${acc};letter-spacing:.1em;margin-bottom:18px">${String(i+1).padStart(2,"0")}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${acc};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:var(--muted);margin-top:10px;line-height:1.6">${s.desc||""}</div></div>`).join("");
   const galHtml = gal.map(u=>`<div class="gphoto reveal"><img class="cimg" src="${u}" loading="lazy" alt=""></div>`).join("");
   const revHtml = (gen.reviews||[]).slice(0,3).map(r=>`<div class="ccard reveal" style="padding:30px"><div style="color:${acc};font-size:15px;letter-spacing:3px;margin-bottom:16px">★★★★★</div><p style="font-size:17px;line-height:1.6;margin-bottom:18px;color:var(--fg)">“${r.quote||""}”</p><div style="font-weight:700;font-size:14px;color:var(--muted)">${r.author||""}</div></div>`).join("");
   const faqHtml = (gen.faqs||[]).slice(0,4).map(f=>`<div class="ccard reveal" style="padding:24px 28px"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">${f.q||""}</div><div style="font-size:16px;color:var(--muted);line-height:1.65">${f.a||""}</div></div>`).join("");
-  const hrsHtml = ((gen.hours&&gen.hours.length?gen.hours:fallback(type,name,city).hours)).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:340px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("");
+  const hrsHtml = (gen.hours||[]).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:340px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("") || `<div style="color:var(--muted);line-height:1.6">Contact us for current hours.</div>`;
   // Cinematic full-bleed feature panels (Tesla-style) from the top services — only
   // when we have real photos, so they don't repeat the hero placeholder.
   const featureHtml = (photos.length>=2 ? svc.slice(0,2) : []).map((s,i)=>`
@@ -811,7 +869,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   ${videoSection}
   ${audioSection}
   ${locationsSection}
-  <section id="g-reviews" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("Reviews")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.reviewsTitle||"What People Say"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">${revHtml}</div></div></section>
+  ${(gen.reviews||[]).length?`<section id="g-reviews" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("Verified reviews")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.reviewsTitle||"What People Say"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">${revHtml}</div></div></section>`:""}
   <section id="g-faq" class="gsec" style="max-width:880px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("FAQ")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,4.5vw,48px);font-weight:700;letter-spacing:-.02em">${L.faqTitle||"Questions"}</h2></div><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
   ${postsSection}
   <div data-biz-media></div>
@@ -831,11 +889,13 @@ function renderSite(name, type, city, lang, gen, mediaIn){
       <div style="font-size:13px;color:#b3b0bd"> <b style="color:#fff">${name}</b> · ${lang}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button id="editBtn" style="background:rgba(255,255,255,.1);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px">← Edit</button>
-        <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🚀 Save & Publish</button>
+        <button id="qaBtn" style="background:rgba(232,196,118,.08);color:#ffe0a3;border:1px solid rgba(232,196,118,.42);cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">! Quality —</button>
+        <button id="pubBtn" style="background:#2fd47f;color:#06241a;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">Complete QA to publish</button>
         <button id="dlBtn" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">⬇ Download .html</button>
         <button id="boBtn" style="background:rgba(90,120,255,.18);color:#bcd0ff;border:1px solid rgba(120,150,255,.4);cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🗂️ Owner Back-Office →</button>
       </div>
     </div></div>
+    <div id="qaPanel" style="display:none;background:#07101c;color:#f0eef2;border-bottom:1px solid rgba(232,196,118,.22)"></div>
     <div id="siteRoot" style="background:#0a0b0e;color:#f5f6f8">${siteHtml}</div>`;
 
   document.getElementById("builder").style.display="none";
@@ -847,13 +907,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   try{ cineInit(lang); }catch(_){ }
   try{ hydrateSocialEmbeds(); }catch(_){ }
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
-  document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead, lang);
-  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]));
+  document.getElementById("qaBtn").onclick=()=>refreshDeliveryGate(true);
+  document.getElementById("dlBtn").onclick=()=>{if(requireDeliveryReady())downloadSite(name, siteHtml, fontsHref, seoHead, lang);};
+  document.getElementById("pubBtn").onclick=()=>{if(requireDeliveryReady())publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]), deliveryAudit);};
   document.getElementById("boBtn").onclick=()=>{
     const vert=(window.__resolveVertical?window.__resolveVertical(type):"general");
     const u="/backoffice.html?vertical="+encodeURIComponent(vert)+"&biz="+encodeURIComponent(name);
     window.open(u,"_blank");
   };
+  refreshDeliveryGate(false);
 }
 
 function getCookie(n){ const m=document.cookie.match(new RegExp('(?:^|; )'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=([^;]+)')); return m?decodeURIComponent(m[1]):""; }
@@ -886,13 +948,14 @@ function buildDoc(name, inner, fontsHref, seoHead, lang){
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>${seoHead||""}<link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}html,body{overflow-x:hidden;max-width:100%}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0b0e;color:#f5f6f8}section{scroll-margin-top:80px}img,iframe,video{max-width:100%;height:auto}img{height:auto}</style></head><body>${inner}${track}${controller}${embedScripts}</body></html>`;
 }
 
-async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity, locations){
+async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity, locations, audit){
   const token = getCookie("fda_auth");
   if(!token){ alert("Log into your Owner Dashboard first — only you can publish sites."); location.href="/dashboard.html"; return; }
   const btn=document.getElementById("pubBtn"); const old=btn.textContent; btn.textContent="Publishing…"; btn.disabled=true;
   try{
     const doc = buildDoc(name, inner, fontsHref, seoHead, lang);
-    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||"", locations:Array.isArray(locations)?locations:[]})});
+    const delivery={version:audit.version,score:audit.score,approved:audit.ready===true,approvedAt:new Date().toISOString(),checks:(audit.checks||[]).filter(c=>c.pass).map(c=>c.id)};
+    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||"", locations:Array.isArray(locations)?locations:[], delivery:delivery})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Publish failed."); return; }
     const full = location.origin + j.url;

@@ -314,6 +314,12 @@ async function handlePortal(req, res) {
     ava: site.ava !== false,
     industry: site.bizType || "", city: site.bizCity || "",
     locations: Array.isArray(site.locations) ? site.locations : [],
+    delivery: site.delivery && typeof site.delivery === "object" ? {
+      version: String(site.delivery.version || "1.0"),
+      score: Number(site.delivery.score) || 0,
+      ready: site.delivery.ready === true,
+      approvedAt: String(site.delivery.approvedAt || ""),
+    } : null,
   };
 
   if (action === "login") {

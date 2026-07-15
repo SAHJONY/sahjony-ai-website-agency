@@ -72,6 +72,7 @@
   #msg{margin-top:12px;font-size:13.5px;display:none}
   #login{max-width:400px;margin:9vh auto 0;padding:0 18px}
   .center{text-align:center}
+  body.embedded #consoleHome{display:none}
   @media(max-width:760px){.grid4{grid-template-columns:1fr 1fr}}@media(max-width:640px){.row,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:1fr}}
 </style>
 </head>
@@ -96,7 +97,7 @@
 <div id="app" style="display:none">
 <header>
   <div class="brand"><div class="logo">FD</div><div><div class="fd" style="font-weight:700;font-size:17px" id="hdrName">My Business</div><div class="muted" style="font-size:11px">FrontDeskOS™ Owner Console</div></div></div>
-  <div style="display:flex;gap:8px"><a href="/" class="btn ghost" style="text-decoration:none">🏠 Home</a><button class="btn ghost" id="logout">Sign out</button></div>
+  <div style="display:flex;gap:8px"><a href="/" class="btn ghost" id="consoleHome" style="text-decoration:none">🏠 Home</a><button class="btn ghost" id="logout">Sign out</button></div>
 </header>
 
 <div class="wrap">
@@ -369,6 +370,7 @@ var el=function(id){return document.getElementById(id);};
 var SLUG="", PW="", SITEURL="", BIZNAME="", INDUSTRY="", CITY="";
 var OWNERX=null, OWNERDATA=null;
 var qs=new URLSearchParams(location.search);
+if(qs.get("embed")==="1")document.body.classList.add("embedded");
 
 // Each dashboard adapts to the client's industry: the "priced list" tab, its
 // wording, and default section titles all change to fit how that business

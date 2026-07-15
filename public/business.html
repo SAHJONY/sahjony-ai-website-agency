@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
+  :root{--ink:#04080f;--ink2:#0d1a2d;--gold:#e8c476;--teal:#2dd4bf;--industry:#2dd4bf;--text:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55)}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Inter',sans-serif;background:radial-gradient(120% 80% at 50% -10%,#0a1626,var(--ink) 60%);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
   .fd{font-family:'Fraunces',serif}
@@ -33,6 +33,18 @@
   .tab{padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-weight:600;font-size:13.5px}
   .tab.on{background:rgba(232,196,118,.14);color:var(--gold);border-color:rgba(232,196,118,.35)}
   .panel{display:none} .panel.on{display:block}
+  .owner-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--industry) 18%,var(--card)),var(--card) 58%)}
+  .owner-hero::after{content:"";position:absolute;width:280px;height:280px;border-radius:50%;right:-100px;top:-150px;background:var(--industry);filter:blur(90px);opacity:.18;pointer-events:none}
+  .owner-eyebrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--industry);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .owner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px}
+  .owner-module{appearance:none;text-align:left;color:var(--text);background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+  .owner-module:hover,.owner-module:focus-visible{transform:translateY(-2px);border-color:var(--industry);background:rgba(255,255,255,.06);outline:none}
+  .owner-module .metric{font-size:23px;font-weight:800;color:var(--industry);margin-top:10px}
+  .owner-ready{height:7px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+  .owner-ready span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--industry),var(--gold));transition:width .5s ease}
+  .owner-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:12px}
+  .owner-check{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+  .owner-check.pass{color:#bff7db;border-color:rgba(47,212,127,.28);background:rgba(47,212,127,.06)}
   /* Operations back-office */
   #opsBg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1s ease;pointer-events:none}
   #opsBg.on{opacity:.32}
@@ -53,14 +65,15 @@
   .opsdel:hover{color:#ff7a6e;background:rgba(255,122,110,.12)}
   .opsempty{padding:34px;text-align:center;color:var(--muted)}
   .stat{display:flex;flex-direction:column;gap:2px}
-  .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .stat b{font-size:30px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
   .lead{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
   .lead .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   #msg{margin-top:12px;font-size:13.5px;display:none}
   #login{max-width:400px;margin:9vh auto 0;padding:0 18px}
   .center{text-align:center}
-  @media(max-width:640px){.row,.grid3{grid-template-columns:1fr}}
+  body.embedded #consoleHome{display:none}
+  @media(max-width:760px){.grid4{grid-template-columns:1fr 1fr}}@media(max-width:640px){.row,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -69,7 +82,7 @@
 <div id="login">
   <div class="center" style="margin-bottom:8px"><div class="logo" style="margin:0 auto 12px">FD</div>
     <div class="fd" style="font-size:24px;font-weight:700">My Business Dashboard</div>
-    <div class="muted" style="margin-top:6px">Sign in to see your leads, manage Ava, and request changes.</div>
+    <div class="muted" style="margin-top:6px">Sign in to your private, industry-specific owner command center.</div>
   </div>
   <div class="card">
     <label>Site ID</label><input id="li_slug" placeholder="your-site-id">
@@ -83,13 +96,13 @@
 <!-- APP -->
 <div id="app" style="display:none">
 <header>
-  <div class="brand"><div class="logo">FD</div><div><div class="fd" style="font-weight:700;font-size:17px" id="hdrName">My Business</div><div class="muted" style="font-size:11px">FrontDesk Agents</div></div></div>
-  <div style="display:flex;gap:8px"><a href="/" class="btn ghost" style="text-decoration:none">🏠 Home</a><button class="btn ghost" id="logout">Sign out</button></div>
+  <div class="brand"><div class="logo">FD</div><div><div class="fd" style="font-weight:700;font-size:17px" id="hdrName">My Business</div><div class="muted" style="font-size:11px">FrontDeskOS™ Owner Console</div></div></div>
+  <div style="display:flex;gap:8px"><a href="/" class="btn ghost" id="consoleHome" style="text-decoration:none">🏠 Home</a><button class="btn ghost" id="logout">Sign out</button></div>
 </header>
 
 <div class="wrap">
   <div class="tabs">
-    <button class="tab on" data-p="overview">Overview</button>
+    <button class="tab on" data-p="overview">Command Center</button>
     <button class="tab" data-p="menu">Menu &amp; prices</button>
     <button class="tab" data-p="promos">Promotions &amp; events</button>
     <button class="tab" data-p="social">Social media</button>
@@ -102,12 +115,33 @@
 
   <!-- OVERVIEW -->
   <div class="panel on" id="p_overview">
+    <div class="card owner-hero">
+      <div style="position:relative;z-index:1">
+        <div class="owner-eyebrow"><span id="ownerIndustry">Business Operations</span><span class="pill" id="ownerLocation">Private workspace</span></div>
+        <div class="fd" id="ownerTitle" style="font-size:clamp(26px,4vw,38px);font-weight:700;margin-top:10px">Business Command Center</div>
+        <div class="muted" id="ownerSubtitle" style="max-width:650px;font-size:14px;margin-top:7px">Your customer activity, operations, and growth systems in one place.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <button class="btn gold" id="ownerPrimary">Open operations</button>
+          <button class="btn ghost" id="ownerLeads">Review new leads</button>
+        </div>
+      </div>
+    </div>
     <div class="card">
-      <div class="grid3">
+      <div class="grid4">
         <div class="stat"><span class="muted">Website visits</span><b id="stViews">—</b></div>
         <div class="stat"><span class="muted">Leads captured</span><b id="stLeads">—</b></div>
-        <div class="stat"><span class="muted">Ava phone line</span><b id="stPhone" style="font-size:18px">—</b></div>
+        <div class="stat"><span class="muted">FrontDesk Voice™</span><b id="stPhone" style="font-size:18px">—</b></div>
+        <div class="stat"><span class="muted">Delivery quality</span><b id="stQuality" style="font-size:22px;color:var(--gold)">—</b></div>
       </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div><div class="fd" style="font-size:18px;font-weight:700">Your operating workspace</div><div class="muted" id="ownerWorkspaceHint">Loading the workflows selected for your industry…</div></div>
+        <div style="min-width:150px;text-align:right"><span class="muted">Operational readiness</span><b id="ownerScore" style="display:block;font-size:22px;color:var(--industry)">—</b></div>
+      </div>
+      <div class="owner-ready"><span id="ownerReadyBar"></span></div>
+      <div class="owner-checks" id="ownerChecks"></div>
+      <div class="owner-grid" id="ownerModules"><div class="muted">Loading workspace…</div></div>
     </div>
     <div class="card">
       <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:6px">Your website</div>
@@ -115,6 +149,16 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
         <a class="btn gold" id="viewSite" target="_blank" href="#">View my website →</a>
         <button class="btn ghost" id="copyUrl">Copy link</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="fd" style="font-size:18px;font-weight:700;margin-bottom:6px">Your digital front office</div>
+      <div class="muted" style="margin-bottom:14px">The customer-facing systems included with your launch.</div>
+      <div class="grid4">
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Website</b><div class="muted" style="margin-top:4px">Responsive and search-ready</div></div>
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Lead capture</b><div class="muted" style="margin-top:4px">Forms and inbox connected</div></div>
+        <div class="lead" style="margin:0"><b id="capAva" style="color:#2fd47f">✓ Ava</b><div class="muted" style="margin-top:4px">24/7 customer response</div></div>
+        <div class="lead" style="margin:0"><b style="color:#2fd47f">✓ Client control</b><div class="muted" style="margin-top:4px">Content and operations dashboard</div></div>
       </div>
     </div>
   </div>
@@ -195,7 +239,7 @@
       <div id="mkOut" style="margin-top:14px"></div>
 
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-        <div class="fd" style="font-size:15px;font-weight:700">📞 AI phone campaign <span class="muted" style="font-weight:400;font-size:12px">via Bland.ai</span></div>
+        <div class="fd" style="font-size:15px;font-weight:700">📞 FrontDesk Voice™ campaign <span class="muted" style="font-weight:400;font-size:12px">secure voice automation</span></div>
         <div class="muted" style="font-size:13px">An AI voice agent calls your list and delivers the campaign, answering questions live. Only call customers who've agreed to be contacted.</div>
         <label style="margin-top:10px">Call script <span class="muted" style="font-weight:400">(auto-filled from your campaign — edit freely)</span></label>
         <textarea id="mkScript" rows="4" placeholder="What the AI should say on the call…"></textarea>
@@ -324,7 +368,9 @@
 <script>
 var el=function(id){return document.getElementById(id);};
 var SLUG="", PW="", SITEURL="", BIZNAME="", INDUSTRY="", CITY="";
+var OWNERX=null, OWNERDATA=null;
 var qs=new URLSearchParams(location.search);
+if(qs.get("embed")==="1")document.body.classList.add("embedded");
 
 // Each dashboard adapts to the client's industry: the "priced list" tab, its
 // wording, and default section titles all change to fit how that business
@@ -364,6 +410,53 @@ function applyIndustry(){
   var add=el("addItem"); if(add) add.textContent="+ Add "+P.item;
 }
 
+function openOwnerPanel(name){
+  var tab=document.querySelector('.tab[data-p="'+name+'"]');
+  if(tab&&tab.style.display!=="none")tab.click();
+}
+function openOwnerModule(id){
+  openOwnerPanel("ops");opsEnsure();
+  if(opsInit&&OPSVERT)opsSelect(id||OWNERX.primaryModule);
+}
+function ownerMetric(summary){
+  var n=Number(summary.metricValue)||0;
+  return summary.monetary?("$"+Math.round(n).toLocaleString()):n.toLocaleString();
+}
+function renderOwnerWorkspace(){
+  if(!OWNERX||!window.__ownerModuleSummaries)return;
+  var summaries=window.__ownerModuleSummaries(OWNERX,OPS);
+  el("ownerWorkspaceHint").textContent=OWNERX.blurb+" · "+summaries.length+" connected workflow"+(summaries.length===1?"":"s");
+  el("ownerModules").innerHTML=summaries.map(function(s){
+    return '<button class="owner-module" data-owner-module="'+esc(s.id)+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><b>'+esc(s.icon+" "+s.title)+'</b><span class="muted">→</span></div><div class="metric">'+esc(ownerMetric(s))+'</div><div class="muted">'+esc(s.metricLabel)+' · '+s.records+' record'+(s.records===1?"":"s")+'</div></button>';
+  }).join("");
+  el("ownerModules").querySelectorAll("[data-owner-module]").forEach(function(button){button.onclick=function(){openOwnerModule(button.dataset.ownerModule);};});
+}
+function renderOwnerReadiness(){
+  if(!OWNERDATA||!window.__ownerReadiness)return;
+  var readiness=window.__ownerReadiness({site:OWNERDATA.site||{},ava:OWNERDATA.ava||{},ops:OPS});
+  el("ownerScore").textContent=readiness.score+"/100";
+  el("ownerReadyBar").style.width=readiness.score+"%";
+  el("ownerChecks").innerHTML=readiness.checks.map(function(check){return '<div class="owner-check '+(check.pass?"pass":"")+'">'+(check.pass?"✓ ":"○ ")+esc(check.label)+'</div>';}).join("");
+}
+function applyOwnerExperience(){
+  if(!window.__getOwnerExperience)return false;
+  OWNERX=window.__getOwnerExperience(INDUSTRY);
+  document.documentElement.style.setProperty("--industry",OWNERX.accent||"#2dd4bf");
+  document.title=BIZNAME+" — "+OWNERX.title;
+  el("ownerIndustry").textContent=OWNERX.label;
+  el("ownerLocation").textContent=CITY||"Private workspace";
+  el("ownerTitle").textContent=OWNERX.title;
+  el("ownerSubtitle").textContent=OWNERX.blurb+" for "+BIZNAME+" — customer activity, daily operations, and growth in one private workspace.";
+  el("ownerPrimary").textContent=OWNERX.primaryAction+" →";
+  var opsTab=el("opsTab");if(opsTab)opsTab.textContent=OWNERX.operationsLabel;
+  var leadTab=document.querySelector('.tab[data-p="leads"]');if(leadTab)leadTab.textContent=OWNERX.leadsLabel;
+  var storeTab=el("storeTab");if(storeTab)storeTab.style.display=OWNERX.commerce?"":"none";
+  renderOwnerWorkspace();renderOwnerReadiness();
+  if(opsDataLoaded)opsEnsure();
+  return true;
+}
+window.applyOwnerExperienceRetry=applyOwnerExperience;
+
 function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.style.color=ok?"#2fd47f":"#ff7a6e";setTimeout(function(){m.style.display="none";},4000);}
 function esc(s){return String(s==null?"":s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
 
@@ -388,11 +481,14 @@ async function doLogin(){
 async function loadAll(){
   var res=await api("get");
   if(!res.ok){msg((res.j&&res.j.error)||"Could not load your data.",false);return;}
-  var d=res.j;
+  var d=res.j;OWNERDATA=d;
   // Overview
   el("stViews").textContent=(d.stats&&d.stats.views)||0;
   el("stLeads").textContent=(d.stats&&d.stats.leads)||0;
   el("stPhone").textContent=(d.ava&&d.ava.phone)?d.ava.phone:"Chat only";
+  var quality=d.site&&d.site.delivery;
+  el("stQuality").textContent=quality&&quality.ready?(quality.score+"/100"):"Legacy";
+  el("capAva").textContent=(d.site&&d.site.ava===false)?"○ Ava paused":"✓ Ava online";
   var st=(d.site&&d.site.status)||"active";
   var live=st==="active";
   el("stStatusDot").style.background=live?"#2fd47f":"#ff9f43";
@@ -405,6 +501,7 @@ async function loadAll(){
   // INDUSTRY is now known — let the Operations tab derive its vertical, and if the
   // user already opened it (and it deferred), initialise it now.
   opsDataLoaded=true;
+  applyOwnerExperience();
   try{ if(document.getElementById("p_ops").classList.contains("on")) opsEnsure(); }catch(e){}
   var url=(d.site&&d.site.url)||("/s/"+SLUG);
   SITEURL=/^https?:\/\//.test(url)?url:(location.origin.replace(/\/$/,"")+url);
@@ -802,7 +899,7 @@ function opsSelect(id){OPSCUR=null;OPSVERT.modules.forEach(function(m){if(m.id==
 function opsSchedule(){
   var note=el("opsNote");note.textContent="Saving…";
   clearTimeout(opsTimer);var mid=OPSCUR.id,rows=opsRows().slice();
-  opsTimer=setTimeout(function(){api("ops-save",{module:mid,rows:rows}).then(function(res){note.textContent=res.ok?"✓ Saved":("⚠ "+((res.j&&res.j.error)||"save failed"));});},600);
+  opsTimer=setTimeout(function(){api("ops-save",{module:mid,rows:rows}).then(function(res){note.textContent=res.ok?"✓ Saved":("⚠ "+((res.j&&res.j.error)||"save failed"));renderOwnerWorkspace();renderOwnerReadiness();});},600);
 }
 function opsGenBackdrop(){
   if(!OPSCUR)return;var btn=el("opsBackdrop"),mid=OPSCUR.id,old=btn.textContent;btn.disabled=true;btn.textContent="✨ Painting…";
@@ -826,7 +923,7 @@ function opsEnsure(){
   opsInit=true;OPSCUR=OPSVERT.modules[0];el("opsNote").textContent="Loading…";
   api("ops-get").then(function(res){
     if(res.ok&&res.j&&res.j.ops){OPS.modules=res.j.ops.modules||{};OPS.visuals=res.j.ops.visuals||{};}
-    opsSelect(OPSCUR.id);el("opsNote").textContent="Ready";
+    opsSelect(OPSCUR.id);el("opsNote").textContent="Ready";renderOwnerWorkspace();renderOwnerReadiness();
   });
 }
 el("opsAdd").onclick=function(){
@@ -996,6 +1093,8 @@ initMkGoals(); el("mkGen").onclick=generateCampaign; el("mkCall").onclick=launch
 el("saveSocial").onclick=saveSocial;
 el("so_needsetup").onchange=function(){el("setupNote").style.display=this.checked?"block":"none";el("setupNote").textContent=this.checked?"We'll create your accounts and email you the logins after you Save.":"";};
 el("copyUrl").onclick=function(){var u=this.dataset.url;if(u&&navigator.clipboard){navigator.clipboard.writeText(location.origin.replace(/\/$/,"")+ (u.charAt(0)==="/"?u:("/"+u.replace(/^https?:\/\/[^/]+/,""))) );msg("✓ Link copied",true);}};
+el("ownerPrimary").onclick=function(){if(OWNERX)openOwnerModule(OWNERX.primaryModule);};
+el("ownerLeads").onclick=function(){openOwnerPanel("leads");};
 
 // Prefill slug from ?slug= (generated-site footer link) and resume a session.
 if(qs.get("slug")) el("li_slug").value=qs.get("slug");
@@ -1010,8 +1109,13 @@ try{var saved=JSON.parse(sessionStorage.getItem("fda_biz")||"null");
      their industry consistently across the platform. -->
 <script type="module">
   import { VERTICALS, inferVertical } from "/verticals.js";
+  import { getOwnerExperience, ownerModuleSummaries, ownerReadiness } from "/owner-dashboard.js";
   window.__VERTICALS = VERTICALS;
   window.__inferVertical = inferVertical;
+  window.__getOwnerExperience = getOwnerExperience;
+  window.__ownerModuleSummaries = ownerModuleSummaries;
+  window.__ownerReadiness = ownerReadiness;
+  try{ if(window.applyOwnerExperienceRetry) window.applyOwnerExperienceRetry(); }catch(e){}
   // If the client already opened Operations before this loaded, initialise now.
   try{ if(document.getElementById("p_ops").classList.contains("on") && window.opsEnsureRetry) window.opsEnsureRetry(); }catch(e){}
 </script>

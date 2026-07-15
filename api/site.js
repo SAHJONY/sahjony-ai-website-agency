@@ -76,6 +76,20 @@ const AVA_EDITABLE = ["greeting", "services", "hours", "address", "pricing", "ca
 const MAX_CONTENT_BYTES = 3_500_000;   // whole content blob (keeps Redis happy)
 const MAX_MENU = 120, MAX_PROMOS = 40;
 
+export function injectOwnerConsole(html, { slug = "", name = "My Business", origin = "" } = {}) {
+  const source = String(html || "");
+  if (!source || /site-owner-console\.js/i.test(source)) return source;
+  const safeSlug = cleanSlug(slug);
+  if (!safeSlug) return source;
+  let safeOrigin = "";
+  try {
+    const parsed = new URL(String(origin || ""));
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") safeOrigin = parsed.origin;
+  } catch (_) {}
+  const tag = `<script defer src="${safeOrigin}/site-owner-console.js" data-slug="${safeSlug}" data-business="${esc(name)}"></script>`;
+  return /<\/body>/i.test(source) ? source.replace(/<\/body>/i, tag + "</body>") : source + tag;
+}
+
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 // Only allow safe media sources: https/http URLs or data: images/av. Blocks
 // javascript:, etc. Returns "" if unsafe.
@@ -314,6 +328,12 @@ async function handlePortal(req, res) {
     ava: site.ava !== false,
     industry: site.bizType || "", city: site.bizCity || "",
     locations: Array.isArray(site.locations) ? site.locations : [],
+    delivery: site.delivery && typeof site.delivery === "object" ? {
+      version: String(site.delivery.version || "1.0"),
+      score: Number(site.delivery.score) || 0,
+      ready: site.delivery.ready === true,
+      approvedAt: String(site.delivery.approvedAt || ""),
+    } : null,
   };
 
   if (action === "login") {
@@ -639,6 +659,16 @@ export default async function handler(req, res) {
       const biz = String(rec.name || "this business").replace(/"/g, "&quot;");
       const tag = `<script defer src="${origin}/ava.js" data-business="${biz}" data-slug="${slug}" data-api="${origin}/api/generate"></script>`;
       html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, tag + "</body>") : html + tag;
+    }
+
+    // Mount the secure owner console inside every hosted business website. New
+    // builds already contain this loader; legacy sites receive it automatically
+    // here, without a re-publish or any change to their public content.
+    {
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+      const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
+      const origin = process.env.APP_URL || (host ? `${proto}://${host}` : "");
+      html = injectOwnerConsole(html, { slug, name: rec.name || "My Business", origin });
     }
 
     // Client-editable LIVE content: menu/prices + promotions/events (with photos,

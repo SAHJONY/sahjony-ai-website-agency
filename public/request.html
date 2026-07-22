@@ -80,15 +80,20 @@ function msg(t,ok){var m=el("msg");m.style.display="block";m.textContent=t;m.sty
 // travels with the lead so the owner sees which tier the customer wants.
 var PLAN_LABELS={starter:"Starter",professional:"Professional",premium:"Premium",storefront:"The Storefront — online store ($179/mo)",corner_shop:"The Corner Shop",neighborhood:"The Neighborhood",cornerstone:"The Cornerstone"};
 var PLAN="";
+var ATTR={};
 try{
-  var pk=(new URLSearchParams(location.search).get("plan")||"").toLowerCase().replace(/[^a-z_]/g,"");
+  var qs=new URLSearchParams(location.search);
+  var pk=(qs.get("plan")||"").toLowerCase().replace(/[^a-z_]/g,"");
   if(pk&&PLAN_LABELS[pk]){PLAN=PLAN_LABELS[pk];var pn=el("planNote");pn.style.display="block";pn.innerHTML="Selected plan: <b>"+PLAN+"</b>. Add any details below and we'll set it up for you.";}
+  ["source","utm_source","utm_medium","utm_campaign","utm_content","utm_term"].forEach(function(k){var v=qs.get(k);if(v)ATTR[k]=v.slice(0,160);});
+  var saved=localStorage.getItem("fda_attribution");if(saved){var old=JSON.parse(saved);Object.keys(old||{}).forEach(function(k){if(!ATTR[k])ATTR[k]=old[k];});}
+  if(Object.keys(ATTR).length)localStorage.setItem("fda_attribution",JSON.stringify(ATTR));
 }catch(e){}
 el("go").onclick=async function(){
   var name=el("name").value.trim(), type=el("type").value.trim(), contact=el("contact").value.trim();
   if(!name||!type||!contact){msg("Please fill in your business name, type, and how to reach you.",false);return;}
   var ref=""; try{ ref=new URLSearchParams(location.search).get("ref")||localStorage.getItem("fda_ref")||""; }catch(e){}
-  var entry={id:Date.now(),name:name,type:"Website build request"+(PLAN?" ["+PLAN+"]":"")+" — "+type,contact:contact,city:el("city").value.trim(),url:el("url").value.trim(),notes:el("notes").value.trim(),plan:PLAN||undefined,ref:ref||undefined,at:new Date().toISOString()};
+  var entry={id:Date.now(),name:name,type:"Website build request"+(PLAN?" ["+PLAN+"]":"")+" — "+type,contact:contact,city:el("city").value.trim(),url:el("url").value.trim(),notes:el("notes").value.trim(),plan:PLAN||undefined,ref:ref||undefined,attribution:ATTR,at:new Date().toISOString()};
   el("go").disabled=true; el("go").textContent="Sending…";
   try{
     var r=await fetch("/api/contact",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(entry)});

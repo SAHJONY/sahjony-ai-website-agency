@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="canonical" href="https://www.frontdeskagents.com/">
-<title>frontdeskagents.com — Websites for local business</title>
+<title>FrontDesk Agents — Website, AI receptionist &amp; business OS</title>
+<meta name="description" content="A website, 24/7 AI receptionist, customer portal, payments, and an industry-specific operations dashboard—built as one growth system for local business.">
 <meta name="theme-color" content="#04080f">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
@@ -14,8 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="frontdesk">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="frontdeskagents.com">
-<meta property="og:title" content="frontdeskagents.com — AI websites for local business">
-<meta property="og:description" content="Stunning, bilingual websites for local businesses — built by AI, live in a week, priced for a small business.">
+<meta property="og:title" content="FrontDesk Agents — Your website should run the business">
+<meta property="og:description" content="Website, 24/7 AI front desk, customer portal, payments, and industry operations—one growth system for local business.">
 <meta property="og:image" content="https://www.frontdeskagents.com/brand-cover-wide.png">
 <meta name="twitter:image" content="https://www.frontdeskagents.com/brand-cover-wide.png">
 <meta name="twitter:card" content="summary">
@@ -38,12 +39,22 @@
   .hero>*{position:relative;z-index:1}
   .wrap{max-width:1140px;margin:0 auto;padding:0 28px}
   .stat{font-family:'Fraunces',serif;font-size:34px;font-weight:700}
+  .product-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:stretch}
+  .cap-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+  .cap{padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+  .cap b{display:block;margin-bottom:5px}.cap span{color:var(--muted);font-size:13.5px;line-height:1.5}
+  .roi-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+  .roi-inputs{display:grid;gap:15px}.roi-inputs label{display:grid;gap:7px;color:var(--muted);font-size:13px;font-weight:700}
+  .roi-inputs input{width:100%;accent-color:var(--gold)}
+  .roi-result{padding:28px;border-radius:18px;background:linear-gradient(145deg,rgba(232,196,118,.13),rgba(45,212,191,.08));border:1px solid rgba(232,196,118,.28)}
+  .roi-number{font-family:'Fraunces',serif;font-size:54px;line-height:1;color:var(--gold-light);margin:10px 0}
   select[data-lang-select]{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--line);font-size:13px;font-weight:700;padding:9px 12px;border-radius:999px;cursor:pointer}
   @media(max-width:780px){
     header nav{flex-wrap:wrap;gap:12px 16px!important;padding:14px 18px!important}
     .hide-sm{display:none!important}
     h1{font-size:44px!important}
-    .grid3,.grid4,.steps{grid-template-columns:1fr!important}
+    .grid3,.grid4,.steps,.product-grid,.roi-grid{grid-template-columns:1fr!important}
+    .cap-list{grid-template-columns:1fr}
   }
   /* Premium scroll-reveal for below-fold content (applied via JS only when
      motion is allowed + IntersectionObserver exists, so no-JS users see all). */
@@ -69,8 +80,8 @@
 <!-- HERO -->
 <section class="hero wrap" style="padding:100px 28px 56px;text-align:center">
   <div class="eyebrow rise" data-en="✦ Powered by SAHJONY AI™ · built, hosted &amp; cared for" data-es="✦ Impulsado por SAHJONY AI™ · creado, alojado y cuidado">✦ Powered by SAHJONY AI™ · built, hosted &amp; cared for</div>
-  <h1 class="fd-display rise" style="font-size:76px;line-height:1.02;max-width:940px;margin:24px auto 22px;animation-delay:.06s" data-en="Beautiful websites for the shops that <span class=&quot;text-gradient&quot;>built this city.</span>" data-es="Sitios web bonitos para los negocios que <span class=&quot;text-gradient&quot;>construyeron esta ciudad.</span>">Beautiful websites for the shops that <span class="text-gradient">built this city.</span></h1>
-  <p class="rise" style="font-size:20px;line-height:1.6;color:var(--muted);max-width:620px;margin:0 auto 36px;animation-delay:.12s" data-en="Stunning, bilingual websites for local businesses — designed by AI in seconds, live in a week, priced for a small business." data-es="Sitios web impresionantes y bilingües para negocios locales — diseñados por IA en segundos, en línea en una semana, a precio de negocio pequeño.">Stunning, bilingual websites for local businesses — designed by AI in seconds, live in a week, priced for a small business.</p>
+  <h1 class="fd-display rise" style="font-size:76px;line-height:1.02;max-width:980px;margin:24px auto 22px;animation-delay:.06s" data-en="Your website should <span class=&quot;text-gradient&quot;>run the business.</span>" data-es="Tu sitio web debería <span class=&quot;text-gradient&quot;>manejar el negocio.</span>">Your website should <span class="text-gradient">run the business.</span></h1>
+  <p class="rise" style="font-size:20px;line-height:1.6;color:var(--muted);max-width:720px;margin:0 auto 36px;animation-delay:.12s" data-en="We build your site, 24/7 AI front desk, customer portal, payments, and an operations dashboard tailored to your industry — one system that turns attention into booked, paying customers." data-es="Creamos tu sitio, recepción con IA 24/7, portal de clientes, pagos y un panel de operaciones adaptado a tu industria — un sistema que convierte atención en clientes que reservan y pagan.">We build your site, 24/7 AI front desk, customer portal, payments, and an operations dashboard tailored to your industry — one system that turns attention into booked, paying customers.</p>
   <div class="rise" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation-delay:.18s">
     <a href="/request.html" class="btn btn-gold" style="font-size:16px;padding:16px 32px" data-en="Get my website →" data-es="Quiero mi sitio →">Get my website →</a>
     <a href="/dashboard.html" class="btn btn-ghost" style="font-size:16px;padding:16px 32px" data-en="Open the dashboard" data-es="Abrir el panel">Open the dashboard</a>
@@ -78,8 +89,8 @@
 
   <!-- Stats grid -->
   <div class="grid4 rise" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:880px;margin:54px auto 0;animation-delay:.24s">
-    <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">⚡</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="Built in seconds" data-es="Listo en segundos">Built in seconds</div></div>
-    <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">100+</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="languages worldwide" data-es="idiomas en el mundo">languages worldwide</div></div>
+    <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">24/7</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="AI front desk" data-es="recepción con IA">AI front desk</div></div>
+    <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">2-in-1</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="site + business OS" data-es="sitio + sistema operativo">site + business OS</div></div>
     <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">1 wk</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="from idea to live" data-es="de la idea a en línea">from idea to live</div></div>
     <div class="glass" style="padding:22px 16px"><div class="stat text-gradient">$899</div><div style="color:var(--muted);font-size:13.5px;margin-top:4px" data-en="to launch" data-es="para lanzar">to launch</div></div>
   </div>
@@ -89,6 +100,51 @@
     <button id="installBtn" class="btn btn-ghost" style="display:none;font-size:14px;padding:10px 18px" data-en="⬇ Install app" data-es="⬇ Instalar app">⬇ Install app</button>
   </div>
   <div id="shareMsg" style="font-size:13px;color:var(--teal);margin-top:10px;display:none" data-en="Link copied — share it anywhere." data-es="Enlace copiado — compártelo donde sea.">Link copied — share it anywhere.</div>
+</section>
+
+<!-- Product system -->
+<section class="wrap" style="padding:84px 28px 34px">
+  <div class="product-grid">
+    <div class="glass-gold" style="padding:38px">
+      <div class="eyebrow" data-en="MORE THAN A WEBSITE" data-es="MÁS QUE UN SITIO WEB">MORE THAN A WEBSITE</div>
+      <h2 class="fd-display" style="font-size:42px;line-height:1.12;margin:16px 0" data-en="One front door. One operating system. Built for your trade." data-es="Una puerta de entrada. Un sistema operativo. Creado para tu oficio.">One front door. One operating system. Built for your trade.</h2>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7" data-en="A restaurant gets reservations and menu operations. A contractor gets estimates and job pipelines. A clinic gets intake and scheduling. Your dashboard matches how your business actually works." data-es="Un restaurante recibe reservas y opera su menú. Un contratista recibe cotizaciones y gestiona trabajos. Una clínica recibe pacientes y agenda citas. Tu panel refleja cómo funciona tu negocio.">A restaurant gets reservations and menu operations. A contractor gets estimates and job pipelines. A clinic gets intake and scheduling. Your dashboard matches how your business actually works.</p>
+      <div class="cap-list">
+        <div class="cap"><b>🧠 AI front desk</b><span>Answers questions and captures leads around the clock.</span></div>
+        <div class="cap"><b>📈 Industry operations</b><span>Pipelines, bookings, inventory, cases, or dispatch—matched to you.</span></div>
+        <div class="cap"><b>💳 Revenue built in</b><span>Sell products, send payment links, and manage recurring care.</span></div>
+        <div class="cap"><b>🔐 Customer portal</b><span>Give clients a private place to request, book, buy, and follow progress.</span></div>
+      </div>
+    </div>
+    <div class="glass" style="padding:34px;display:flex;flex-direction:column;justify-content:space-between">
+      <div><div style="color:var(--teal);font-weight:800;font-size:13px;letter-spacing:.12em">THE DIFFERENCE</div><h3 class="fd-display" style="font-size:30px;margin:14px 0">A site is an expense.<br>A growth system earns.</h3><p style="color:var(--muted);line-height:1.7">Stop stitching together a designer, chatbot, scheduler, CRM, and payment tool. Start with one branded system your team and customers can actually use.</p></div>
+      <a href="/request.html?source=homepage-system" class="btn btn-gold" style="margin-top:28px;text-align:center">See my business transformed →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ROI calculator -->
+<section class="wrap" style="padding:64px 28px">
+  <div class="glass" style="padding:38px">
+    <div class="roi-grid">
+      <div>
+        <div class="eyebrow">YOUR UPSIDE</div>
+        <h2 class="fd-display" style="font-size:40px;margin:14px 0 10px">What is one more customer worth?</h2>
+        <p style="color:var(--muted);line-height:1.7;margin-bottom:24px">Use your real numbers. This simple estimate shows the monthly revenue opportunity if a stronger digital front desk converts just a few more inquiries.</p>
+        <div class="roi-inputs">
+          <label>Average customer value: <b id="roiValueLabel" style="color:var(--text)">$250</b><input id="roiValue" type="range" min="25" max="2500" step="25" value="250"></label>
+          <label>Additional customers per month: <b id="roiLeadsLabel" style="color:var(--text)">5</b><input id="roiLeads" type="range" min="1" max="30" step="1" value="5"></label>
+        </div>
+      </div>
+      <div class="roi-result" aria-live="polite">
+        <div style="color:var(--muted);font-size:13px;font-weight:800;letter-spacing:.08em">POTENTIAL ADDED REVENUE</div>
+        <div class="roi-number" id="roiMonthly">$1,250</div>
+        <div style="color:var(--muted)">per month · <b id="roiAnnual" style="color:var(--text)">$15,000 per year</b></div>
+        <a href="/request.html?source=homepage-roi" class="btn btn-gold" style="display:flex;justify-content:center;margin-top:24px">Build my growth system →</a>
+        <div style="font-size:11px;color:#718297;margin-top:12px;line-height:1.5">Illustrative estimate, not a guarantee. Your results depend on traffic, offer, follow-up, and market.</div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Ticker -->
@@ -159,6 +215,15 @@
     deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById("installBtn").style.display = "none";
   };
   window.addEventListener("appinstalled", () => { document.getElementById("installBtn").style.display = "none"; });
+
+  /* Revenue-opportunity calculator: intentionally simple, transparent math. */
+  (function(){
+    var value=document.getElementById("roiValue"),leads=document.getElementById("roiLeads");
+    if(!value||!leads)return;
+    var money=function(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n);};
+    var render=function(){var v=Number(value.value),l=Number(leads.value),m=v*l;document.getElementById("roiValueLabel").textContent=money(v);document.getElementById("roiLeadsLabel").textContent=l;document.getElementById("roiMonthly").textContent=money(m);document.getElementById("roiAnnual").textContent=money(m*12)+" per year";};
+    value.addEventListener("input",render);leads.addEventListener("input",render);render();
+  })();
 </script>
 <script src="/i18n.js"></script>
 <script>/* Sales-rep referral capture: remember ?ref=CODE for lead attribution. */

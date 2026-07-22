@@ -226,6 +226,16 @@
   })();
 </script>
 <script src="/i18n.js"></script>
+<script>/* Preserve first-touch campaign attribution across homepage → pricing → request navigation. */
+try{
+  var _aq=new URLSearchParams(location.search),_attr={};
+  ["source","utm_source","utm_medium","utm_campaign","utm_content","utm_term"].forEach(function(k){var v=_aq.get(k);if(v)_attr[k]=v.slice(0,160);});
+  if(Object.keys(_attr).length){
+    var _old={};try{_old=JSON.parse(localStorage.getItem("fda_attribution")||"{}");}catch(_e){}
+    localStorage.setItem("fda_attribution",JSON.stringify(Object.assign(_old,_attr)));
+  }
+}catch(e){}
+</script>
 <script>/* Sales-rep referral capture: remember ?ref=CODE for lead attribution. */
 try{var _r=new URLSearchParams(location.search).get("ref");if(_r)localStorage.setItem("fda_ref",_r.replace(/[^A-Za-z0-9]/g,"").slice(0,12));}catch(e){}</script>
 <script defer src="/ava.js" data-business="frontdeskagents.com"></script>

@@ -12,6 +12,7 @@ test("successful email notification includes full lead context", async () => {
   assert.equal(result.state, "sent");
   assert.equal(result.channels.email.status, "sent");
   const body = JSON.parse(request.opts.body);
+  assert.equal(request.opts.headers["user-agent"], "frontdeskagents-lead-notifier/1.0");
   assert.match(body.text, /Test Lead/);
   assert.match(body.text, /Professional/);
   assert.match(body.text, /homepage/);

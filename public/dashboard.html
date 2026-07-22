@@ -339,6 +339,7 @@ async function renderInbox(){
         <div style="font-size:13px;color:#b6b2c2;margin-top:3px">${esc(m.contact)}${m.city?(" · "+esc(m.city)):""}</div>
         ${m.url?`<div style="font-size:12.5px;color:#8c8998;margin-top:2px">site: ${esc(m.url)}</div>`:""}
         ${m.notes?`<div style="font-size:13px;color:#cbc8d4;margin-top:6px">“${esc(m.notes)}”</div>`:""}
+        ${m.attribution?`<div style="font-size:11.5px;color:#2dd4bf;margin-top:6px">Source: ${esc(m.attribution.utm_source||m.attribution.source||"direct")}${m.attribution.utm_campaign?` · ${esc(m.attribution.utm_campaign)}`:""}</div>`:""}
         <div style="font-size:11.5px;color:#5c5c66;margin-top:6px">${(m.at||"").slice(0,16).replace("T"," ")}</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
           ${isBuild(m)?`<button data-i="${i}" class="ibBuild" style="background:#e8c476;color:#04080f;border:none;cursor:pointer;font-size:12px;font-weight:800;padding:7px 12px;border-radius:8px">🔨 Start build</button>`:""}

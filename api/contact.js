@@ -13,6 +13,16 @@ const MAX_LEN = 2000;           // per-field cap
 
 function clean(v) { return String(v == null ? "" : v).slice(0, MAX_LEN); }
 function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
+function cleanAttribution(value) {
+  const allowed = ["source", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
+  const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const out = {};
+  for (const key of allowed) {
+    const val = clean(input[key]).trim().slice(0, 160);
+    if (val) out[key] = val;
+  }
+  return out;
+}
 
 async function upstash(path, opts) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -74,12 +84,15 @@ export default async function handler(req, res) {
   }
 
   const ref = String(body.ref || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12);
+  const attribution = cleanAttribution(body.attribution);
   const entry = {
     id: Date.now(),
     name: clean(body.name), type, contact: clean(body.contact),
     city: clean(body.city), url: clean(body.url), notes,
     bizSlug: bizSlug || undefined,
     ref: ref || undefined,
+    plan: clean(body.plan).trim().slice(0, 120) || undefined,
+    attribution: Object.keys(attribution).length ? attribution : undefined,
     at: new Date().toISOString(),
   };
 

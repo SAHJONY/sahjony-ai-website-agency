@@ -229,9 +229,11 @@
 </style>
 
 <script src="/data/state-requirements.js"></script>
+<script type="module" src="/premium-factory.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let mode = "auto";
+let factoryState = null;
 
 const CHIPS = ["Home","About","Services","Gallery","Reviews","FAQ","Hours","Map","Contact","Social links","Click-to-call","Footer"];
 $("#chips").innerHTML = CHIPS.map(c=>`<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#d6d3df;font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px">${c}</div>`).join("");
@@ -412,7 +414,7 @@ function fallback(type, name, city){
     about1:`${has?name+" is":"We're"} a ${type} ${local}, built on honest work and doing the job right the first time.`,
     about2:`From your first call to the finished job, ${has?name:"we"} bring experience, pride, and care to everything we do.`,
     services:[{name:"Free Estimates",desc:`Tell us what you need — no-pressure quotes for ${where||"your area"}.`,price:"Free"},{name:"Standard Service",desc:`Dependable ${type} work, done on time.`,price:""},{name:"Premium Service",desc:"Our top-tier option, finished to the highest standard.",price:""},{name:"Repairs & Fixes",desc:"Fast, reliable help when something goes wrong.",price:""},{name:"Maintenance Plans",desc:"Keep things running with scheduled visits.",price:""},{name:"Emergency Service",desc:`Same-day help ${local}.`,price:""}],
-    reviews:[{quote:`Best ${type} ${local}. Friendly, fair, and they clearly know their craft.`,author:"Maria G."},{quote:`I won't go anywhere else. Honest people and great work, every time.`,author:"James T."},{quote:"Quick, professional, and reasonably priced. Highly recommend.",author:"Dana R."}],
+    reviews:[],
     faqs:[{q:"Do I need an appointment?",a:"Walk-ins are welcome, but booking ahead guarantees your spot."},{q:"What payment options do you accept?",a:"Cash and all major cards."},{q:`Do you serve ${where||"my area"}?`,a:`Yes — we proudly serve ${where?where+" and the surrounding area":"the whole local community"}.`}],
     hours:[{day:"Mon – Fri",time:"9:00 – 18:00"},{day:"Saturday",time:"10:00 – 16:00"},{day:"Sunday",time:"Closed"}],
     labels:{}
@@ -444,9 +446,9 @@ Write ALL text in this language: ${lang}.
 ART DIRECTION: the site is rendered in an ULTRA-PREMIUM, CINEMATIC, TESLA-STYLE dark theme — full-bleed imagery, dramatic negative space, huge confident typography, minimal and high-end. Pick ONE vivid, saturated ACCENT color (design.primary/accent) that GLOWS against a near-black (#0a0b0e) background — avoid muddy/dark accents that disappear on black. Copy should feel like a flagship product launch: bold, aspirational, cinematic, concise. Choose a tasteful Google-Font pairing matching the brand's personality (luxury, sport, artisanal, tech, etc.). Pick fonts ONLY from these exact names.
 Heading fonts: Space Grotesk, Sora, Poppins, Montserrat, Playfair Display, Fraunces, DM Serif Display, Bricolage Grotesque, Outfit, Syne, Unbounded, Manrope.
 Body fonts: Inter, DM Sans, Manrope, Work Sans, Nunito Sans, Mulish, Figtree, Rubik.
-Copy must be specific and vivid — sensory, local, confident. No filler.
+Copy must be specific and vivid — sensory, local, confident. No filler. NEVER invent testimonials, ratings, awards, credentials, years in business, or statistics. Return reviews only when they appear in SOURCE INFORMATION; otherwise return an empty reviews array.
 MENU/PRODUCTS: if this is a restaurant, cafe, bakery, bar, food truck, or a retail/product business, also return a "menu" array of 6-14 REAL items with prices, grouped by category (e.g. Starters, Mains, Drinks, or product collections). Extract real item names & prices from the SOURCE INFORMATION when present; otherwise create realistic ones typical for this business. For pure service businesses (law, salon, repair, etc.) return "menu":[].
-Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"menu":[{"name":"","desc":"<=8 words","price":"e.g. $12","category":"short group name"}] 6-14 items WITH prices for food/retail businesses else empty array,"reviews":[{"quote":"<=18 words","author":"first name + last initial"}] 3,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","menuKicker":"Menu","menuTitle":"Our Menu","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
+Schema: {"tagline":"<=9 words, punchy","heroSub":"<=24 words","about1":"1 vivid sentence","about2":"1 vivid sentence","services":[{"name":"","desc":"<=10 words","price":"short or empty"}] exactly 6 fitting this business,"menu":[{"name":"","desc":"<=8 words","price":"e.g. $12","category":"short group name"}] 6-14 items WITH prices for food/retail businesses else empty array,"reviews":[{"quote":"<=18 words copied from source","author":"name copied from source"}] 0-3 verified items only,"faqs":[{"q":"","a":"<=18 words"}] 3,"hours":[{"day":"","time":""}] 3-4 rows,"primary":"#hex","design":{"headingFont":"one heading font from the list","bodyFont":"one body font from the list","primary":"#hex","accent":"#hex complementary","dark":"#hex near-black brand tone","mood":"2-3 words e.g. warm luxury"},"labels":{"nav":["Home","About","Services","Gallery","Reviews","Contact"],"cta":"Call Us","heroCta":"Get in Touch","heroCta2":"See Services","aboutKicker":"About Us","aboutTitle":"<=7 words","servicesKicker":"What We Offer","servicesTitle":"Our Services","menuKicker":"Menu","menuTitle":"Our Menu","galleryKicker":"Gallery","galleryTitle":"Take a Look","reviewsTitle":"What People Say","faqTitle":"FAQ","contactTitle":"Visit Us","find":"Find Us","hours":"Hours","call":"Call","email":"Email","footerBlurb":"<=16 words"}}
 Translate EVERY label and all content into ${lang}.`;
 
   // Try the AI brain; retry once before giving up. Only fall back to the built-in
@@ -475,6 +477,20 @@ Translate EVERY label and all content into ${lang}.`;
     if(eb){ eb.textContent="⚠ The design engine was momentarily unavailable, so we built a starter site from your details. Click Generate again to retry the full design. (Reason: "+genError+")"; eb.style.display="block"; }
   }
 
+  // Build the premium project envelope locally from the verified business input.
+  // One AI content pass remains backward-compatible; the factory applies three
+  // genuinely different token/layout/strategy systems without tripling AI cost.
+  if(window.PremiumFactory){
+    const hasProof=!!(paste && /review|testimonial|rating|customer said|client said/i.test(paste));
+    const project=window.PremiumFactory.createPremiumProject({
+      name, industry:type, city, country:city.split(",").pop().trim(), language:lang,
+      notes, primaryGoal:"", hasBrandAssets:media.photos.length>0,
+      hasVerifiedProof:hasProof, hasOptimizedMedia:media.photos.some((u)=>/^https?:/i.test(u))
+    }, gen);
+    factoryState={project,generated:gen,name,type,city,lang,media:null,selected:project.recommended};
+    gen=window.PremiumFactory.applyConcept(gen,project,project.recommended);
+  }
+
   const mediaPayload = collectMedia();
   // Cinematic hero: when the client added no photos, paint a Tesla-grade hero with
   // Higgsfield so EVERY site still opens on a dramatic full-bleed image.
@@ -496,6 +512,7 @@ Translate EVERY label and all content into ${lang}.`;
     try{ media.photos=mediaPayload.photos.slice(); mediaPayload.video=await generateCinematicVideo(); }
     catch(e){ console.warn("Video:", e.message||e); }
   }
+  if(factoryState) factoryState.media=mediaPayload;
   renderSite(name, type, city, lang, gen, mediaPayload);
 }
 
@@ -583,16 +600,16 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const accGlow = hexToRgba(acc, .55);
   // Text color that stays readable on a solid accent-filled button/CTA.
   const accText = contrastText(acc);
-  // STANDARD TYPE: every site uses the platform's Fraunces + Inter pairing so the
-  // whole portfolio shares one premium look — only the color changes per business.
-  const headingFont = "Fraunces";
-  const bodyFont = "Inter";
-  const fontsHref = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap";
+  const concept=gen.__concept||null;
+  const headingFont=safeFont(D.headingFont,HEAD_FONTS,"Fraunces");
+  const bodyFont=safeFont(D.bodyFont,BODY_FONTS,"Inter");
+  const fontsHref=gfUrl(headingFont,bodyFont);
   loadFonts(fontsHref);
   const L = gen.labels||{};
   const kw = encodeURIComponent((type.split(/\s+/).slice(-1)[0])||"business");
   const nav0 = (L.nav||["Home","About","Services","Gallery","Reviews","Contact"]).slice(0,6);
   const hrefs=["#g-home","#g-about","#g-services","#g-gallery","#g-reviews","#g-contact"];
+  const navPairs=nav0.map((label,i)=>({label,href:hrefs[i]})).filter((item)=>item.href!=="#g-reviews"||(gen.reviews||[]).length);
   const tel="tel:"+(phone||"").replace(/[^0-9+]/g,""), mail="mailto:"+(email||"");
   const map=full?`https://maps.google.com/maps?q=${encodeURIComponent(full)}&z=14&output=embed`:"";
   const year=new Date().getFullYear();
@@ -649,11 +666,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const navExtra = isAuto
     ? `<a href="#g-financing" class="cnav-link">${L.financingNav||"Financing"}</a><a href="${portalUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`
     : `<a href="${accountUrl}" class="cnav-link" target="_blank" rel="noopener">${L.accountNav||"My Account"}</a>`;
-  const navHtml = nav0.map((l,i)=>`<a href="${hrefs[i]}" class="cnav-link">${l}</a>`).join("") + navExtra;
+  const navHtml = navPairs.map((item)=>`<a href="${item.href}" class="cnav-link">${item.label}</a>`).join("") + navExtra;
   const langOptions = (()=>{ const have=CINE_LANGS.some(([v])=>v===lang); const list=have?CINE_LANGS:[[lang,lang],...CINE_LANGS]; return list.map(([v,n])=>`<option value="${v}"${v===lang?" selected":""}>${n}</option>`).join(""); })();
   const svcHtml = svc.map((s,i)=>`<div class="ccard reveal" style="padding:34px 30px"><div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:${acc};letter-spacing:.1em;margin-bottom:18px">${String(i+1).padStart(2,"0")}</div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700">${s.name||""}</div><div style="font-weight:700;color:${acc};font-size:16px;white-space:nowrap">${s.price||""}</div></div><div style="font-size:15px;color:var(--muted);margin-top:10px;line-height:1.6">${s.desc||""}</div></div>`).join("");
-  const galHtml = gal.map(u=>`<div class="gphoto reveal"><img class="cimg" src="${u}" loading="lazy" alt=""></div>`).join("");
-  const revHtml = (gen.reviews||[]).slice(0,3).map(r=>`<div class="ccard reveal" style="padding:30px"><div style="color:${acc};font-size:15px;letter-spacing:3px;margin-bottom:16px">★★★★★</div><p style="font-size:17px;line-height:1.6;margin-bottom:18px;color:var(--fg)">“${r.quote||""}”</p><div style="font-weight:700;font-size:14px;color:var(--muted)">${r.author||""}</div></div>`).join("");
+  const galHtml = gal.map((u,i)=>`<div class="gphoto reveal"><img class="cimg" src="${u}" loading="lazy" alt="${name} ${type} gallery image ${i+1}"></div>`).join("");
+  const revHtml = (gen.reviews||[]).slice(0,3).map(r=>`<div class="ccard reveal" style="padding:30px"><p style="font-size:17px;line-height:1.6;margin-bottom:18px;color:var(--fg)">“${r.quote||""}”</p><div style="font-weight:700;font-size:14px;color:var(--muted)">${r.author||""}</div></div>`).join("");
+  const reviewsSection = revHtml ? `<section id="g-reviews" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("Reviews")}<h2 class="reveal" style="font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.reviewsTitle||"What People Say"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">${revHtml}</div></div></section>` : "";
   const faqHtml = (gen.faqs||[]).slice(0,4).map(f=>`<div class="ccard reveal" style="padding:24px 28px"><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">${f.q||""}</div><div style="font-size:16px;color:var(--muted);line-height:1.65">${f.a||""}</div></div>`).join("");
   const hrsHtml = ((gen.hours&&gen.hours.length?gen.hours:fallback(type,name,city).hours)).slice(0,4).map(h=>`<div style="display:flex;justify-content:space-between;gap:24px;font-size:16px;max-width:340px;padding:9px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">${h.day}</span><span style="font-weight:600">${h.time}</span></div>`).join("");
   // Cinematic full-bleed feature panels (Tesla-style) from the top services — only
@@ -709,13 +727,14 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   <section id="g-locations" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow(L.find||"Locations")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${locs.length} ${(L.find&&/location/i.test(L.find))?L.find:"Locations"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px">${locs.map(l=>`<div class="ccard reveal" style="padding:26px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px">${l.name||name}</div><div style="font-size:15px;color:var(--muted);line-height:1.5;margin-bottom:10px">${l.address}</div>${l.phone?`<a href="tel:${(l.phone||"").replace(/[^0-9+]/g,"")}" style="display:block;font-size:15px;color:${acc};text-decoration:none;font-weight:600;margin-bottom:10px">${l.phone}</a>`:""}${(l.hours&&l.hours.length)?`<div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px">${l.hours.slice(0,7).join("<br>")}</div>`:""}${l.mapsUrl?`<a href="${l.mapsUrl}" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:${acc};text-decoration:none">Directions →</a>`:""}</div>`).join("")}</div></div></section>` : "";
 
   const cineCss = `
-  .genroot{--bg:#04080f;--bg2:#0d1a2d;--fg:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55);font-family:'${bodyFont}',system-ui,sans-serif;background:radial-gradient(120% 80% at 50% -8%,#0a1626,var(--bg) 60%);color:var(--fg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .genroot{--bg:#04080f;--bg2:#0d1a2d;--fg:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55);--radius:${concept&&concept.tokens?concept.tokens.radius:18}px;--motion:${concept&&concept.tokens?concept.tokens.motion.standard:700}ms;font-family:'${bodyFont}',system-ui,sans-serif;background:radial-gradient(120% 80% at 50% -8%,#0a1626,var(--bg) 60%);color:var(--fg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
   .genroot[data-theme="light"]{--bg:#f6f7f9;--bg2:#ffffff;--fg:#0c0d10;--muted:#5b6270;--line:rgba(0,0,0,.10);--card:#ffffff}
   .genroot h1,.genroot h2,.genroot h3{font-family:'${headingFont}',system-ui,sans-serif}
   .genroot [style*="Space Grotesk"]{font-family:'${headingFont}',system-ui,sans-serif!important}
   .genroot a{color:inherit}
+  .genroot :focus-visible{outline:3px solid ${acc};outline-offset:4px}
   .genroot ::selection{background:${acc};color:${accText}}
-  .reveal{opacity:0;transform:translateY(30px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)}
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity var(--motion) cubic-bezier(.16,1,.3,1),transform var(--motion) cubic-bezier(.16,1,.3,1)}
   .reveal.in{opacity:1;transform:none}
   .cine-eyebrow{font-size:12px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:${acc};margin-bottom:16px}
   .cnav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid transparent;transition:background .4s,backdrop-filter .4s,border-color .4s}
@@ -743,7 +762,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   /* Secondary CTA: premium accent outline; text follows the theme foreground so it stays readable in light and dark. */
   .cbtnB{background:${hexToRgba(acc,.1)};color:var(--fg);border:1px solid ${hexToRgba(acc,.55)};backdrop-filter:blur(6px)}
   .cbtnB:hover{background:${hexToRgba(acc,.2)};border-color:${acc}}
-  .ccard{background:var(--card);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s,box-shadow .45s}
+  .ccard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s,box-shadow .45s}
   .ccard:hover{transform:translateY(-6px);border-color:${accGlow};box-shadow:0 30px 60px -24px rgba(0,0,0,.55)}
   .cimg{filter:saturate(1.08) contrast(1.04)}
   .gphoto{overflow:hidden;border-radius:14px;aspect-ratio:1/1}
@@ -751,6 +770,10 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   .gphoto:hover img{transform:scale(1.07)}
   .panel-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.1) contrast(1.05) brightness(.9)}
   .cine-hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;overflow:hidden}
+  .concept-authority .cine-hero-content{text-align:left!important;margin-left:max(0px,calc((100vw - 1180px)/2))!important;margin-right:auto!important;max-width:820px!important}
+  .concept-authority .cine-hero-content p{margin-left:0!important}.concept-authority .cine-hero-actions{justify-content:flex-start!important}
+  .concept-conversion .cine-hero-content{background:rgba(4,8,15,.76);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(18px);border-radius:var(--radius);max-width:760px!important;margin:0 auto 8vh!important;padding:42px!important}
+  .concept-cinematic .cine-hero-content{text-align:center}
   .cine-panel{position:relative;min-height:88vh;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
   .cine-panel-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,14,.45),rgba(10,11,14,.2) 45%,rgba(10,11,14,.82))}
   .cine-panel-inner{position:relative;max-width:920px;padding:0 28px}
@@ -770,12 +793,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
     .cnav-cta{display:none}
     [data-cine-lang]{padding:6px 8px;font-size:11px}
     .cbtn{padding:13px 24px;font-size:13px}
+    .concept-conversion .cine-hero-content{margin:0 14px 5vh!important;padding:26px 20px!important}
+    .mobile-convert{display:flex!important}
   }
-  @media(max-width:430px){.genroot [style*="repeat(3"]{grid-template-columns:1fr!important}.cine-hero{min-height:88vh}}`;
+  @media(max-width:430px){.genroot [style*="repeat(3"]{grid-template-columns:1fr!important}.cine-hero{min-height:88vh}}
+  @media(prefers-reduced-motion:reduce){.genroot *{scroll-behavior:auto!important;animation:none!important;transition:none!important}.reveal{opacity:1!important;transform:none!important}}`;
 
   const siteHtml = `
   <style>${cineCss}</style>
-  <div class="genroot" data-theme="dark" data-acc="${acc}" data-acc-text="${accText}">
+  <div class="genroot concept-${concept?concept.id:"cinematic"}" data-theme="dark" data-acc="${acc}" data-acc-text="${accText}">
   <nav class="cnav" data-cine-nav>
     <div class="cnav-in">
       <a href="#g-home" class="cnav-logo">${name}</a>
@@ -792,11 +818,11 @@ function renderSite(name, type, city, lang, gen, mediaIn){
     <img class="panel-img" src="${heroImg}" alt="">
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,14,.4) 0%,rgba(10,11,14,.1) 38%,rgba(10,11,14,.92) 100%)"></div>
     <div style="position:absolute;inset:0;background:radial-gradient(120% 75% at 50% 8%,transparent,rgba(10,11,14,.5)),radial-gradient(60% 55% at 50% 105%,${hexToRgba(acc,.22)},transparent)"></div>
-    <div style="position:relative;max-width:1100px;margin:0 auto;width:100%;padding:0 28px 13vh;text-align:center">
+    <div class="cine-hero-content" style="position:relative;max-width:1100px;margin:0 auto;width:100%;padding:0 28px 13vh;text-align:center">
       <div class="reveal" style="font-size:12px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-bottom:20px">${city||type}</div>
       <h1 class="reveal" data-edit="tagline" style="font-size:clamp(42px,7vw,94px);line-height:1;font-weight:700;letter-spacing:-.03em;color:#fff;margin-bottom:22px">${gen.tagline||name}</h1>
       <p class="reveal" data-edit="heroSub" style="font-size:clamp(16px,2vw,21px);line-height:1.55;color:rgba(255,255,255,.84);max-width:620px;margin:0 auto 40px">${gen.heroSub||""}</p>
-      <div class="reveal" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a class="cbtn cbtnA" href="#g-contact">${L.heroCta||"Get in Touch"}</a><a class="cbtn cbtnB" href="#g-services">${L.heroCta2||"Explore"}</a></div>
+      <div class="reveal cine-hero-actions" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a class="cbtn cbtnA" href="#g-contact">${L.heroCta||"Get in Touch"}</a><a class="cbtn cbtnB" href="#g-services">${L.heroCta2||"Explore"}</a></div>
     </div>
     <div style="position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);font-size:26px;animation:cbounce 2.2s infinite">⌄</div>
   </section>
@@ -811,7 +837,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   ${videoSection}
   ${audioSection}
   ${locationsSection}
-  <section id="g-reviews" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("Reviews")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${L.reviewsTitle||"What People Say"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">${revHtml}</div></div></section>
+  ${reviewsSection}
   <section id="g-faq" class="gsec" style="max-width:880px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow("FAQ")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,4.5vw,48px);font-weight:700;letter-spacing:-.02em">${L.faqTitle||"Questions"}</h2></div><div style="display:flex;flex-direction:column;gap:14px">${faqHtml}</div></section>
   ${postsSection}
   <div data-biz-media></div>
@@ -823,9 +849,11 @@ function renderSite(name, type, city, lang, gen, mediaIn){
     <div>${eyebrow(L.contactTitle||"Visit Us")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em;margin-bottom:30px">${L.contactTitle||"Visit Us"}</h2><div class="reveal" style="display:flex;flex-direction:column;gap:24px;max-width:420px">${full?`<div><div style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px">${L.find||"Find Us"}</div><div style="font-size:18px;line-height:1.5">${full}</div></div>`:""}<div><div style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:8px">${L.hours||"Hours"}</div><div>${hrsHtml}</div></div><div style="display:flex;gap:34px;flex-wrap:wrap">${phone?`<div><div style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px">${L.call||"Call"}</div><a href="${tel}" style="font-size:18px;color:${acc};text-decoration:none;font-weight:600">${phone}</a></div>`:""}${email?`<div><div style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px">${L.email||"Email"}</div><a href="${mail}" style="font-size:18px;color:${acc};text-decoration:none;font-weight:600">${email}</a></div>`:""}</div></div></div>
     <div class="reveal" style="display:flex;flex-direction:column;gap:22px">${contactForm}${map?`<div style="border-radius:18px;overflow:hidden;min-height:300px;border:1px solid var(--line)"><iframe class="cmap" src="${map}" width="100%" height="100%" style="border:0;min-height:300px;display:block" loading="lazy"></iframe></div>`:""}</div>
   </div></section>
-  <footer style="border-top:1px solid var(--line);background:var(--bg2);padding:60px 28px;text-align:center"><div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px">${name}</div><div style="font-size:14px;color:var(--muted)">${L.footerBlurb||(city?("Proudly serving "+city):("Quality "+type+" you can count on"))}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:20px">${socialFooter}</div>`:""}<div data-biz-social></div><div style="font-size:13px;color:var(--muted);opacity:.7;margin-top:18px">© ${year} ${name}. All rights reserved.</div><div style="margin-top:8px"><a href="${ORIGIN}/business.html?slug=__SITE_SLUG__" style="font-size:12px;color:var(--muted);opacity:.55;text-decoration:none">${L.ownerLogin||"Owner login"}</a></div></footer>
+  <footer style="border-top:1px solid var(--line);background:var(--bg2);padding:60px 28px;text-align:center"><div style="font-size:20px;font-weight:700;margin-bottom:10px">${name}</div><div style="font-size:14px;color:var(--muted)">${L.footerBlurb||(city?("Proudly serving "+city):("Quality "+type+" you can count on"))}</div>${socialFooter?`<div style="display:flex;gap:10px;justify-content:center;margin-top:20px">${socialFooter}</div>`:""}<div data-biz-social></div><div style="font-size:13px;color:var(--muted);opacity:.7;margin-top:18px">© ${year} ${name}. All rights reserved.</div><div style="margin-top:8px"><a href="${ORIGIN}/business.html?slug=__SITE_SLUG__" style="font-size:12px;color:var(--muted);opacity:.55;text-decoration:none">${L.ownerLogin||"Owner login"}</a></div></footer>
+  ${concept&&concept.id==="conversion"?`<a class="mobile-convert cbtn cbtnA" href="#g-contact" style="display:none;position:fixed;z-index:90;left:14px;right:14px;bottom:14px">${concept.mobileAction}</a>`:""}
   </div>`;
 
+  const comparison = factoryState ? `<div id="conceptBar" style="background:#0d1a2d;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 24px"><div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:8px;flex-wrap:wrap">${factoryState.project.concepts.map(c=>`<button class="conceptPick" data-concept="${c.id}" style="border:1px solid ${c.id===(concept&&concept.id)?"#e8c476":"rgba(255,255,255,.15)"};background:${c.id===(concept&&concept.id)?"rgba(232,196,118,.14)":"rgba(255,255,255,.05)"};color:#f0eef2;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;font-size:12px">${c.label}${c.id===factoryState.project.recommended?" · Recommended":""} · ${c.quality.total}</button>`).join("")}</div><div style="display:flex;gap:6px"><button class="devicePick" data-width="100%">Desktop</button><button class="devicePick" data-width="820px">Tablet</button><button class="devicePick" data-width="390px">Mobile</button></div><div style="font-size:12px;color:${concept&&concept.quality.productionReady?"#2fd47f":"#ff9b73"}">${concept?`Quality ${concept.quality.total}/100 · ${concept.quality.productionReady?"Presentation ready":"Needs improvement"}`:""}</div></div></div>` : "";
   document.getElementById("site").innerHTML = `
     <div style="background:#04080f;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div style="font-size:13px;color:#b3b0bd"> <b style="color:#fff">${name}</b> · ${lang}</div>
@@ -836,7 +864,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
         <button id="boBtn" style="background:rgba(90,120,255,.18);color:#bcd0ff;border:1px solid rgba(120,150,255,.4);cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px">🗂️ Owner Back-Office →</button>
       </div>
     </div></div>
-    <div id="siteRoot" style="background:#0a0b0e;color:#f5f6f8">${siteHtml}</div>`;
+    ${comparison}<div id="siteRoot" style="background:#0a0b0e;color:#f5f6f8;margin:0 auto;transition:max-width .25s ease">${siteHtml}</div>`;
 
   document.getElementById("builder").style.display="none";
   document.getElementById("site").style.display="block";
@@ -848,7 +876,10 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   try{ hydrateSocialEmbeds(); }catch(_){ }
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
   document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead, lang);
-  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]));
+  document.getElementById("pubBtn").disabled=!!(concept&&!concept.quality.productionReady);
+  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]), gen.__factoryProject||null);
+  document.querySelectorAll(".conceptPick").forEach(b=>b.onclick=()=>{ if(!factoryState||!window.PremiumFactory)return;factoryState.selected=b.dataset.concept;renderSite(factoryState.name,factoryState.type,factoryState.city,factoryState.lang,window.PremiumFactory.applyConcept(factoryState.generated,factoryState.project,factoryState.selected),factoryState.media); });
+  document.querySelectorAll(".devicePick").forEach(b=>{b.style.cssText="border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#f0eef2;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px";b.onclick=()=>{const root=document.getElementById("siteRoot");root.style.maxWidth=b.dataset.width;root.style.boxShadow=b.dataset.width==="100%"?"none":"0 0 0 1px rgba(255,255,255,.12),0 30px 80px rgba(0,0,0,.5)";};});
   document.getElementById("boBtn").onclick=()=>{
     const vert=(window.__resolveVertical?window.__resolveVertical(type):"general");
     const u="/backoffice.html?vertical="+encodeURIComponent(vert)+"&biz="+encodeURIComponent(name);
@@ -886,13 +917,13 @@ function buildDoc(name, inner, fontsHref, seoHead, lang){
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>${seoHead||""}<link rel="preconnect" href="https://fonts.googleapis.com"><link href="${fonts}" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}html,body{overflow-x:hidden;max-width:100%}body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:#0a0b0e;color:#f5f6f8}section{scroll-margin-top:80px}img,iframe,video{max-width:100%;height:auto}img{height:auto}</style></head><body>${inner}${track}${controller}${embedScripts}</body></html>`;
 }
 
-async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity, locations){
+async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCity, locations, factoryProject){
   const token = getCookie("fda_auth");
   if(!token){ alert("Log into your Owner Dashboard first — only you can publish sites."); location.href="/dashboard.html"; return; }
   const btn=document.getElementById("pubBtn"); const old=btn.textContent; btn.textContent="Publishing…"; btn.disabled=true;
   try{
     const doc = buildDoc(name, inner, fontsHref, seoHead, lang);
-    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||"", locations:Array.isArray(locations)?locations:[]})});
+    const r = await fetch("/api/sites",{method:"POST",headers:{"content-type":"application/json","x-admin-token":token},body:JSON.stringify({name, html:doc, bizType:bizType||"", bizCity:bizCity||"", locations:Array.isArray(locations)?locations:[], factoryProject:factoryProject||undefined})});
     const j = await r.json();
     if(!r.ok){ alert(j.error||"Publish failed."); return; }
     const full = location.origin + j.url;

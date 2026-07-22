@@ -38,10 +38,11 @@ test("temporary provider failures retry and recover", async () => {
 });
 
 test("permanent provider failure is recorded without throwing", async () => {
-  const result = await deliverLeadNotifications(lead, { env: emailEnv, fetchFn: async () => ({ ok: false, status: 400 }), sleepFn: async () => {}, logger: quiet });
+  const result = await deliverLeadNotifications(lead, { env: emailEnv, fetchFn: async () => ({ ok: false, status: 400, json: async () => ({ name: "validation_error" }) }), sleepFn: async () => {}, logger: quiet });
   assert.equal(result.state, "failed");
   assert.equal(result.channels.email.status, "failed");
   assert.equal(result.channels.email.attempts, 1);
+  assert.equal(result.channels.email.error, "provider_http_400_validation_error");
 });
 
 test("network failure retries and returns failed status", async () => {

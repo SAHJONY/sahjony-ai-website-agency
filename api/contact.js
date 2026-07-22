@@ -4,8 +4,9 @@
 // lead to the fixed "fda:contact:inbox" list — it cannot read anything back and
 // cannot touch any other key. The owner reads the inbox via the authenticated
 // /api/data endpoint from the dashboard.
-import { tgHandleUpdate, tgNotifyOwner } from "../lib/telegram.js";
+import { tgHandleUpdate } from "../lib/telegram.js";
 import { rateLimit } from "../lib/guard.js";
+import { deliverLeadNotifications } from "../lib/lead-notifications.js";
 
 const INBOX_KEY = "fda:contact:inbox";
 const MAX_ENTRIES = 500;        // keep the list bounded
@@ -93,6 +94,7 @@ export default async function handler(req, res) {
     ref: ref || undefined,
     plan: clean(body.plan).trim().slice(0, 120) || undefined,
     attribution: Object.keys(attribution).length ? attribution : undefined,
+    notification: { state: "pending", channels: {}, updatedAt: new Date().toISOString() },
     at: new Date().toISOString(),
   };
 
@@ -128,13 +130,35 @@ export default async function handler(req, res) {
       } catch (_) {}
     }
 
-    // Ping the owner on Telegram so new leads are seen instantly (best-effort).
-    tgNotifyOwner(
-      `📥 <b>New website request</b>\n<b>${entry.name}</b> — ${entry.type}\n📞 ${entry.contact}` +
-      (entry.city ? `\n📍 ${entry.city}` : "") + (entry.notes ? `\n📝 ${entry.notes}` : "")
-    ).catch(() => {});
+    // Notification delivery is deliberately downstream of storage: a provider
+    // outage can never reject or lose a valid lead. Persist the result so the
+    // operator sees failures instead of relying on invisible console errors.
+    try {
+      entry.notification = await deliverLeadNotifications(entry);
+    } catch (error) {
+      entry.notification = { state: "failed", channels: {}, error: "notification_pipeline_error", updatedAt: new Date().toISOString() };
+      console.error(JSON.stringify({ event: "lead_notification_summary", leadId: entry.id, status: "failed", error: "notification_pipeline_error" }));
+    }
 
-    return res.status(200).json({ ok: true });
+    // Re-read before updating so leads that arrived during provider retries are
+    // retained. Only the matching record's notification metadata is replaced.
+    try {
+      const latestResponse = await upstash("/get/" + encodeURIComponent(INBOX_KEY), {});
+      const latestJson = latestResponse ? await latestResponse.json() : null;
+      let latest = [];
+      if (latestJson && latestJson.result) { try { const v = JSON.parse(latestJson.result); if (Array.isArray(v)) latest = v; } catch {} }
+      const stored = latest.find((item) => item && item.id === entry.id);
+      if (stored) {
+        stored.notification = entry.notification;
+        await upstash("/set/" + encodeURIComponent(INBOX_KEY), {
+          method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(latest),
+        });
+      }
+    } catch (error) {
+      console.error(JSON.stringify({ event: "lead_notification_persist", leadId: entry.id, status: "failed" }));
+    }
+
+    return res.status(200).json({ ok: true, notification: entry.notification.state });
   } catch (e) {
     return res.status(502).json({ error: "Could not save your message. Please try again." });
   }

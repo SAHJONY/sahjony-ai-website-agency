@@ -117,7 +117,12 @@ export default async function handler(req, res) {
         .slice(0, 40)
         .map((l) => ({ name: String((l && l.name) || "").slice(0, 120), address: String((l && l.address) || "").slice(0, 200) }))
         .filter((l) => l.name || l.address);
-      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations }));
+      // Premium factory metadata (tokens, concepts, strategy, scores) is stored
+      // beside the project so later revisions stay visually consistent. It is
+      // never rendered as HTML and is size-capped independently.
+      let factoryProject = body.factoryProject && typeof body.factoryProject === "object" ? body.factoryProject : (prev && prev.factoryProject) || null;
+      if (factoryProject && JSON.stringify(factoryProject).length > 120_000) factoryProject = null;
+      await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations, factoryProject }));
 
       const existing = index.find((s) => s.slug === slug);
       if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }

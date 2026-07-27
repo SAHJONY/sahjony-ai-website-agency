@@ -89,7 +89,11 @@ export default async function handler(req, res) {
   // are present); IMAGE_PROVIDER can still force any one. Per the brain policy,
   // OpenAI Images is the last-resort fallback engine.
   const hasHiggs = !!higgsfieldCred(getKey);
-  const HIGGS_URL = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/flux-pro/kontext/max/text-to-image";
+  // Higgsfield's text-to-image model is Soul, at /v1/text2image/soul. (This used
+  // to point at /flux-pro/kontext/max/text-to-image, a model path that is not on
+  // the Higgsfield platform account at all.) Base URL and the "Key ID:SECRET"
+  // auth scheme are per the official SDK.
+  const HIGGS_URL = process.env.HIGGSFIELD_API_URL || "https://platform.higgsfield.ai/v1/text2image/soul";
   const force = (getKey("IMAGE_PROVIDER") || (hasHiggs ? "higgsfield" : "")).toLowerCase();
   let url, key, model, provider;
   if (force === "higgsfield" && hasHiggs) {
@@ -127,11 +131,17 @@ export default async function handler(req, res) {
     payload = { prompt, image_size, num_images: 1, output_format: "jpeg" };
   } else if (provider === "higgsfield") {
     // Auth is "Key KEY_ID:KEY_SECRET". The SDK's subscribe() FLATTENS its `input`
-    // onto the request body, so params (prompt, aspect_ratio, ...) go at the TOP
-    // LEVEL — NOT nested under "input" (that yields "'prompt' is a required property").
-    const aspect = (w && h) ? (w > h ? "16:9" : h > w ? "9:16" : "1:1") : "16:9";
+    // onto the request body, so params (prompt, width_and_height, ...) go at the
+    // TOP LEVEL — NOT nested under "input" (that yields "'prompt' is a required
+    // property").
+    //
+    // Soul takes `width_and_height` as an explicit WxH string, not an aspect
+    // ratio. Only the square and portrait sizes are documented in the SDK, so
+    // anything wider falls back to square (heroes are object-fit: cover anyway)
+    // and HIGGSFIELD_SOUL_SIZE can override once a landscape size is confirmed.
+    const size2 = process.env.HIGGSFIELD_SOUL_SIZE || (h > w ? "1536x2048" : "1536x1536");
     headers = { "content-type": "application/json", Authorization: "Key " + key };
-    payload = { prompt, aspect_ratio: aspect, safety_tolerance: 2 };
+    payload = { prompt, width_and_height: size2, quality: process.env.HIGGSFIELD_SOUL_QUALITY || "hd", batch_size: 1 };
   } else {
     headers = { "content-type": "application/json", Authorization: "Bearer " + key };
     payload = { model, prompt, n: 1, size };
@@ -240,13 +250,26 @@ async function openMontagePoll(res, id) {
   }
 }
 
-// ---- Higgsfield video (text-to-video, or image-to-video with inputImage) -----
+// ---- Higgsfield video: DoP, at /v1/image2video/dop -------------------------
+// DoP is IMAGE-to-video: it animates a still, and an input image is required.
+// (This used to POST /text-to-video with a flat {prompt, aspect_ratio, duration}
+// body — a text-to-video endpoint the Higgsfield platform account does not
+// expose, with parameters DoP does not accept.) The caller must supply a hero
+// image; builder.html generates one with Soul first when the client uploaded none.
 async function higgsfieldVideo(res, key, prompt, body) {
-  const url = process.env.HIGGSFIELD_VIDEO_URL || "https://platform.higgsfield.ai/text-to-video";
-  const aspect = String(body.aspect || "16:9");
-  const duration = Math.max(3, Math.min(10, Number(body.durationSec) || 5));
-  const payload = { prompt, aspect_ratio: aspect, duration, safety_tolerance: 2 };
-  if (body.inputImage) payload.image_url = body.inputImage; // image-to-video
+  const url = process.env.HIGGSFIELD_VIDEO_URL || "https://platform.higgsfield.ai/v1/image2video/dop";
+  const image = String(body.inputImage || "").trim();
+  if (!/^https?:\/\//i.test(image)) {
+    return res.status(400).json({
+      error: "Higgsfield DoP animates a still image, so it needs a hosted hero image URL. Generate or upload the hero first, then request the video.",
+      provider: "higgsfield",
+    });
+  }
+  const payload = {
+    model: process.env.HIGGSFIELD_DOP_MODEL || "dop-turbo",
+    prompt,
+    input_images: [{ type: "image_url", image_url: image }],
+  };
   try {
     const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", Authorization: "Key " + key }, body: JSON.stringify(payload) });
     const raw = await r.text();

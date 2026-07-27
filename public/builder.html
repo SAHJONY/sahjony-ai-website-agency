@@ -310,7 +310,11 @@ async function generateCinematicVideo(onProgress){
   const type=(val("fType")||"local business");
   const city=val("fCity");
   const prompt=`Cinematic flagship brand film for a ${type} named "${name}"${city?(" in "+city):""}. Slow, smooth dolly/orbit camera, dramatic volumetric lighting, glossy reflective surfaces, shallow depth of field, Tesla/Apple commercial aesthetic, seamless loop, color-graded, 8k. No text, no watermark.`;
-  const r=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"video",prompt,inputImage:media.photos[0]||"",photos:media.photos.slice(0,12),business:name,type,city,aspect:"16:9",durationSec:20})});
+  // DoP animates a HOSTED still, so an uploaded base64 data: URL is no use to it.
+  // Prefer the first http(s) photo — which is also the Soul-generated hero when
+  // the client uploaded nothing.
+  const stillUrl=(media.photos||[]).find(u=>/^https?:\/\//i.test(u))||"";
+  const r=await fetch("/api/image",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"video",prompt,inputImage:stillUrl,photos:media.photos.slice(0,12),business:name,type,city,aspect:"16:9",durationSec:20})});
   const j=await r.json();
   if(r.ok && j.url){ $("#fVideo").value=j.url; return j.url; }           // Higgsfield: direct
   if(r.status===202 && j.jobId){                                          // OpenMontage: poll

@@ -8,6 +8,7 @@
 // a data edit in two registries, never a change to classification logic.
 
 import { VERTICAL_ORDER, inferVertical } from "./verticals.js";
+import { auditSite } from "./quality-engine.js";
 
 export const CONCEPTS = Object.freeze([
   { id: "authority", label: "Premium Authority", purpose: "Establish trust, expertise, and category leadership.", layout: "editorial", headingFont: "Fraunces", bodyFont: "Inter", radius: 4, motion: 700 },
@@ -71,21 +72,11 @@ export function createTokens(baseAccent, concept) {
   };
 }
 
+/** Score a concept by auditing the site it produces. Scoring lives in
+ *  quality-engine.js; this is the seam the factory calls through, so the rubric
+ *  can be tightened without the factory knowing how grading works. */
 export function scoreConcept(concept, context) {
-  const g = context.generated || {};
-  const input = context.input || {};
-  const hasRealProof = !!input.hasVerifiedProof;
-  const categories = {
-    visual: concept.tokens && concept.tokens.headingFont && concept.tokens.spacing.length >= 7 ? 20 : 12,
-    brand: input.name && input.industry ? (input.hasBrandAssets ? 15 : 13) : 9,
-    conversion: concept.strategy.primary && (g.services || []).length >= 3 && (g.faqs || []).length >= 2 ? 20 : 14,
-    mobile: concept.tokens.breakpoints && concept.mobileAction ? 15 : 10,
-    accessibility: concept.accessibility.length >= 4 ? 10 : 6,
-    performance: input.hasOptimizedMedia ? 10 : 9,
-    seo: input.name && input.industry && (input.city || input.country) ? 10 : 8,
-  };
-  if (!hasRealProof) categories.brand = Math.min(categories.brand, 13);
-  return { total: Object.values(categories).reduce((a, b) => a + b, 0), categories, threshold: 90, productionReady: Object.values(categories).reduce((a, b) => a + b, 0) >= 90, improvements: [!input.hasBrandAssets ? "Confirm logo and brand assets" : "", !hasRealProof ? "Add verified testimonials, credentials, or case proof" : "", !input.hasOptimizedMedia ? "Optimize final responsive media before production" : ""].filter(Boolean) };
+  return auditSite(context.generated, context.input, (concept && concept.strategy) || {}, concept);
 }
 
 export function createPremiumProject(input, generated) {
@@ -103,7 +94,9 @@ export function createPremiumProject(input, generated) {
       accessibility: ["semantic landmarks", "visible focus", "reduced motion", "AA contrast", "keyboard navigation"],
       rationale: `${definition.label} aligns ${input.name || "the business"} with ${intelligence.primary.toLowerCase()} while addressing ${intelligence.objections.slice(0, 2).join(" and ").toLowerCase()}.`,
     };
-    concept.quality = scoreConcept(concept, { input, generated });
+    // The audit needs the RESOLVED industry (inference may have supplied it), so
+    // rules like "a restaurant without a priced menu is incomplete" can fire.
+    concept.quality = scoreConcept(concept, { input: { ...input, vertical: industryId }, generated });
     return concept;
   });
   const recommended = concepts.slice().sort((a, b) => (b.quality.total + (b.id === "conversion" ? 2 : 0)) - (a.quality.total + (a.id === "conversion" ? 2 : 0)))[0].id;
@@ -133,7 +126,12 @@ export function canPublish(project) {
   const blockers = [];
   const concept = selectedConcept(project);
   if (!concept) blockers.push("Pick a design concept before publishing.");
-  if (concept && !concept.quality.productionReady) blockers.push(`Quality is ${concept.quality.total}/100 — the delivery standard is ${concept.quality.threshold}/100.`);
+  if (concept && !concept.quality.productionReady) {
+    if (concept.quality.total < concept.quality.threshold) blockers.push(`Quality is ${concept.quality.total}/100 — the delivery standard is ${concept.quality.threshold}/100.`);
+    // Name the defects themselves, not just the arithmetic: a site can clear the
+    // score and still be unshippable (invented reviews, no way to make contact).
+    for (const finding of (concept.quality.blockingFindings || [])) blockers.push(finding.message);
+  }
   if (project && project.review && project.review.state === "changes-requested") blockers.push(`Changes were requested${project.review.note ? ": " + project.review.note : "."}`);
   return { allowed: blockers.length === 0, blockers, improvements: (concept && concept.quality.improvements) || [] };
 }

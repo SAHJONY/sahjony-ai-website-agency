@@ -3,8 +3,42 @@ import assert from "node:assert/strict";
 import { VERTICAL_ORDER } from "../public/verticals.js";
 import { CONCEPTS, INDUSTRY_INTELLIGENCE, createPremiumProject, applyConcept, resolveMarketingIndustry, applyReview, appendRevision, canPublish, canTransition, mergeFactoryProject, selectedConcept, summarizeProject } from "../public/premium-factory.js";
 
-const generated = { primary: "#2dd4bf", design: { accent: "#2dd4bf" }, services: [{}, {}, {}, {}, {}, {}], faqs: [{}, {}, {}] };
-const input = { name: "Northstar Roofing", industry: "roofing contractor", city: "Chicago", country: "USA", hasBrandAssets: true, hasVerifiedProof: true, hasOptimizedMedia: true };
+// A genuinely deliverable site. The fixture used to be an empty shell
+// (six `{}` services, no contact details) and still scored 97/100, because the
+// old rubric graded the order form rather than the site. The quality engine
+// audits real output, so the fixture has to BE real output.
+const generated = {
+  tagline: "Chicago roofs, built to outlast the winter",
+  heroSub: "Licensed roofing crews replacing and repairing residential roofs across Chicagoland, with written workmanship warranties on every job.",
+  about1: "We have re-roofed more than 900 Chicago homes since 2011, one street at a time.",
+  about2: "Our crews are employees, not subcontractors, so the people who quote your roof are the people who build it.",
+  services: [
+    { name: "Free roof inspection", desc: "A 40-point inspection with photographs of every problem area.", price: "Free" },
+    { name: "Full roof replacement", desc: "Tear-off and rebuild with architectural asphalt shingles.", price: "From $9,800" },
+    { name: "Storm damage repair", desc: "Emergency tarping within 24 hours, then a permanent repair.", price: "" },
+    { name: "Gutter replacement", desc: "Seamless aluminium gutters formed on site to fit your roofline.", price: "" },
+    { name: "Flat roof coating", desc: "Silicone coating that extends a flat roof by ten years.", price: "" },
+    { name: "Maintenance plan", desc: "Twice-yearly inspection and minor repairs on a fixed fee.", price: "$240/yr" },
+  ],
+  menu: [],
+  reviews: [{ quote: "They found hail damage two other roofers missed and handled the whole insurance claim.", author: "Marcus Delgado" }],
+  faqs: [
+    { q: "How fast do you respond to a leak?", a: "We tarp emergency leaks within 24 hours, usually the same day." },
+    { q: "How clear is your pricing?", a: "You get a fixed written price before work starts; we do not bill extras without approval." },
+    { q: "What workmanship guarantee do I get?", a: "Ten years on our workmanship, plus the manufacturer warranty on materials." },
+  ],
+  hours: [{ day: "Mon – Fri", time: "7:00 – 18:00" }, { day: "Saturday", time: "8:00 – 14:00" }, { day: "Sunday", time: "Closed" }],
+  primary: "#2dd4bf",
+  design: { headingFont: "Fraunces", bodyFont: "Inter", primary: "#2dd4bf", accent: "#2dd4bf", dark: "#0a0b0e", mood: "confident craft" },
+  labels: { nav: ["Home", "About", "Services", "Gallery", "Reviews", "Contact"], heroCta: "Request an estimate", heroCta2: "See our work" },
+};
+const input = {
+  name: "Northstar Roofing", industry: "roofing contractor", city: "Chicago", country: "USA",
+  phone: "+1 312 555 0142", email: "hello@northstarroofing.com", address: "1420 W Fulton St",
+  hasBrandAssets: true, hasVerifiedProof: true, hasOptimizedMedia: true, hasDescribedMedia: true,
+  heroImage: "https://cdn.northstarroofing.com/hero.jpg",
+  photos: ["https://cdn.northstarroofing.com/1.jpg", "https://cdn.northstarroofing.com/2.jpg", "https://cdn.northstarroofing.com/3.jpg", "https://cdn.northstarroofing.com/4.jpg"],
+};
 
 test("factory always creates three distinct premium concepts", () => {
   const project = createPremiumProject(input, generated);
@@ -30,9 +64,17 @@ test("quality scoring uses the 100-point contract and threshold", () => {
   }
 });
 
-test("missing proof is reported rather than fabricated", () => {
+test("testimonials without a verified source block delivery, not just warn", () => {
   const project = createPremiumProject({ ...input, hasVerifiedProof: false }, generated);
-  assert.ok(project.concepts.every((c) => c.quality.improvements.some((x) => /verified/i.test(x))));
+  for (const concept of project.concepts) {
+    const blocking = concept.quality.blockingFindings.map((f) => f.message).join(" ");
+    assert.match(blocking, /no verified source/i);
+    assert.equal(concept.quality.productionReady, false, "unverifiable social proof must not ship");
+  }
+  assert.equal(canPublish(project).allowed, false);
+  // Removing the testimonials — rather than inventing a source — clears it.
+  const honest = createPremiumProject({ ...input, hasVerifiedProof: false }, { ...generated, reviews: [] });
+  assert.equal(canPublish(honest).allowed, true);
 });
 
 test("applying a concept preserves generated business content", () => {

@@ -487,6 +487,10 @@ Translate EVERY label and all content into ${lang}.`;
       // The industry the owner picked (or that was inferred) drives the marketing
       // strategy AND the back-office — one choice, both halves of the platform.
       vertical:(window.__resolveVertical?window.__resolveVertical(type):""),
+      // The audit grades the real artefact, so it needs the real contact paths
+      // and imagery — not just a claim that they exist.
+      phone:val("fPhone"), email:val("fEmail"), address:val("fAddr"),
+      photos:media.photos.slice(), heroImage:media.photos[0]||"",
       notes, primaryGoal:"", hasBrandAssets:media.photos.length>0,
       hasVerifiedProof:hasProof, hasOptimizedMedia:media.photos.some((u)=>/^https?:/i.test(u))
     }, gen);
@@ -860,11 +864,23 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   // holding delivery back is named here, and publishing anyway stays possible
   // behind an explicit confirmation (recorded as an override in the trail).
   const gate = (factoryState && window.PremiumFactory) ? window.PremiumFactory.canPublish(gen.__factoryProject||factoryState.project) : { allowed:true, blockers:[], improvements:[] };
-  const readinessBar = gate.allowed && !gate.improvements.length ? "" : `<div style="max-width:1180px;margin:10px auto 0;padding:10px 14px;border-radius:10px;background:${gate.allowed?"rgba(232,196,118,.10)":"rgba(255,155,115,.10)"};border:1px solid ${gate.allowed?"rgba(232,196,118,.28)":"rgba(255,155,115,.30)"};font-size:12.5px;color:#e6e3ee;line-height:1.6">
-    ${gate.blockers.length?`<div style="font-weight:700;color:#ff9b73;margin-bottom:4px">Blocking publication</div><ul style="margin:0 0 ${gate.improvements.length?"8px":"0"} 18px;padding:0">${gate.blockers.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}
-    ${gate.improvements.length?`<div style="font-weight:700;color:#e8c476;margin-bottom:4px">To reach the delivery standard</div><ul style="margin:0 0 0 18px;padding:0">${gate.improvements.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:""}
+  // The audit report. Each row is one measured defect, worst first, paired with
+  // the fix — a score with no remedy tells the owner nothing they can act on.
+  const SEV = { critical:["#ff7a6e","Blocking"], major:["#e8c476","Fix before delivery"], minor:["#8fb8ff","Polish"] };
+  const audit = (concept && concept.quality) || null;
+  const rows = audit ? audit.findings : [];
+  const readinessBar = !rows.length ? "" : `<div style="max-width:1180px;margin:10px auto 0;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);font-size:12.5px;color:#e6e3ee;line-height:1.55">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <b style="color:#fff">Delivery audit — ${rows.length} finding${rows.length===1?"":"s"}</b>
+      <span style="color:#8c8998">${esc(String(audit.grade).toUpperCase())} · ${audit.total}/${audit.threshold}</span>
+    </div>
+    ${rows.map(f=>{const s=SEV[f.severity]||SEV.minor;return `<div style="display:flex;gap:9px;padding:6px 0;border-top:1px solid rgba(255,255,255,.06)">
+      <span style="flex:none;font-size:10.5px;font-weight:800;color:${s[0]};background:${s[0]}22;padding:2px 7px;border-radius:5px;height:fit-content;white-space:nowrap">${s[1]}</span>
+      <span><b>${esc(f.message)}</b><br><span style="color:#a8a4b4">${esc(f.fix)}</span></span>
+      <span style="flex:none;margin-left:auto;color:#8c8998">−${f.points}</span>
+    </div>`;}).join("")}
   </div>`;
-  const comparison = factoryState ? `<div id="conceptBar" style="background:#0d1a2d;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 24px"><div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:8px;flex-wrap:wrap">${factoryState.project.concepts.map(c=>`<button class="conceptPick" data-concept="${c.id}" style="border:1px solid ${c.id===(concept&&concept.id)?"#e8c476":"rgba(255,255,255,.15)"};background:${c.id===(concept&&concept.id)?"rgba(232,196,118,.14)":"rgba(255,255,255,.05)"};color:#f0eef2;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;font-size:12px">${c.label}${c.id===factoryState.project.recommended?" · Recommended":""} · ${c.quality.total}</button>`).join("")}</div><div style="display:flex;gap:6px"><button class="devicePick" data-width="100%">Desktop</button><button class="devicePick" data-width="820px">Tablet</button><button class="devicePick" data-width="390px">Mobile</button></div><div style="font-size:12px;color:${concept&&concept.quality.productionReady?"#2fd47f":"#ff9b73"}">${concept?`Quality ${concept.quality.total}/100 · ${concept.quality.productionReady?"Presentation ready":"Needs improvement"}`:""}</div></div>${readinessBar}</div>` : "";
+  const comparison = factoryState ? `<div id="conceptBar" style="background:#0d1a2d;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 24px"><div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:8px;flex-wrap:wrap">${factoryState.project.concepts.map(c=>`<button class="conceptPick" data-concept="${c.id}" style="border:1px solid ${c.id===(concept&&concept.id)?"#e8c476":"rgba(255,255,255,.15)"};background:${c.id===(concept&&concept.id)?"rgba(232,196,118,.14)":"rgba(255,255,255,.05)"};color:#f0eef2;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;font-size:12px">${c.label}${c.id===factoryState.project.recommended?" · Recommended":""} · ${c.quality.total}</button>`).join("")}</div><div style="display:flex;gap:6px"><button class="devicePick" data-width="100%">Desktop</button><button class="devicePick" data-width="820px">Tablet</button><button class="devicePick" data-width="390px">Mobile</button></div><div style="font-size:12px;color:${concept&&concept.quality.productionReady?"#2fd47f":"#ff9b73"}">${concept?`${concept.quality.total}/100 · ${String(concept.quality.grade).toUpperCase()}`:""}</div></div>${readinessBar}</div>` : "";
   document.getElementById("site").innerHTML = `
     <div style="background:#04080f;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div style="font-size:13px;color:#b3b0bd"> <b style="color:#fff">${name}</b> · ${lang}</div>

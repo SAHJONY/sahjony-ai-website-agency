@@ -1104,6 +1104,11 @@ export function inferVertical(typeText) {
   // Real-estate INVESTING / private lending — BEFORE brokerage, since "real estate
   // wholesaler" contains "real estate" but is a deal-pipeline business, not a broker.
   if (has("wholesal", "hard money", "private lend", "private money", "fix and flip", "fix-and-flip", "house flip", "flipper", "real estate investor", "real estate investing", "real estate investment", "property investor", "cash buyer", "we buy houses", "landlord", "rental property", "turnkey", "reit")) return "rei";
+  // "broker" alone is NOT a property signal (same trap as bare "law" vs "lawn"):
+  // freight, customs, insurance and mortgage brokers are entirely different
+  // businesses. Claim them BEFORE the brokerage rule can swallow them.
+  if (has("freight broker", "customs broker", "logistics broker", "load broker", "cargo broker")) return "logistics";
+  if (has("insurance broker", "mortgage broker")) return "legal";
   if (has("real estate", "realtor", "realty", "broker", "property", "properties", "homes")) return "real-estate";
   // medical: "counseling"/"mental health" routed here (before legal's "counsel").
   if (has("med spa", "medical", "clinic", "doctor", "dental", "dentist", "physician", "chiro", "therap", "wellness", "vet", "optom", "physio", "counseling", "counselor", "mental health", "psycholog", "psychiatr")) return "medical";
@@ -1119,9 +1124,16 @@ export function inferVertical(typeText) {
   // pull a store into the reservations/tickets dashboard.
   if (has("grocery", "supermarket", "food store", "food shop", "food market", "pet food", "liquor store", "convenience store")) return "retail";
   if (has("salon", "barber", "spa", "beauty", "nail", "hair", "lash", "makeup", "wax", "tattoo", "brow", "esthet")) return "salon";
+  // "kitchen" is a restaurant word, but kitchen/bath remodelling is a trade —
+  // claim those phrasings before the restaurant rule takes them.
+  if (has("kitchen remodel", "kitchen renovation", "kitchen and bath", "kitchen & bath", "kitchen fitter", "bath remodel", "bathroom remodel", "cabinet", "countertop")) return "home-services";
   if (has("restaurant", "cafe", "coffee", "bakery", "bread", "cake", "pizza", "taco", "grill", "bar", "diner", "deli", "cater", "kitchen", "eatery", "bbq", "sushi", "juice", "food")) return "restaurant";
   if (has("gym", "fitness", "yoga", "pilates", "crossfit", "martial", "dance", "bootcamp", "personal train")) return "fitness";
-  if (has("lawn", "tree service", "fence", "pool service", "pressure wash", "repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage")) return "home-services";
+  // Trades. Includes the umbrella terms ("home services", "trades") a business may
+  // type verbatim, plus the common trades. Deliberately NO bare "door" (matches
+  // "outdoor") and no bare "tile" (matches "textile") — spell those out instead.
+  if (has("lawn", "tree service", "fence", "pool service", "pressure wash", "repair", "mechanic", "plumb", "electric", "hvac", "contractor", "construction", "handyman", "roof", "landscap", "clean", "pest", "moving", "paint", "garage",
+          "home service", "trades", "tradesman", "remodel", "renovation", "restoration", "flooring", "drywall", "siding", "gutter", "concrete", "masonry", "septic", "insulation", "solar", "locksmith", "junk removal", "snow removal", "chimney", "excavat", "demolition", "waterproof", "welding", "appliance", "garage door", "window install", "window replacement")) return "home-services";
   // Artists / musicians / performers — AFTER salon so "tattoo artist"/"makeup artist"
   // stay salon. Uses "artist"/"musician" (not bare "art"/"music") to avoid false hits.
   if (has("musician", "band", "singer", "songwriter", "rapper", "composer", "dj", "deejay", "recording studio", "record label", "artist", "painter", "sculptor", "illustrator", "art gallery")) return "creative";

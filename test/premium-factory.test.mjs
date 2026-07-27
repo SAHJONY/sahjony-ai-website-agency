@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CONCEPTS, createPremiumProject, applyConcept, resolveMarketingIndustry, applyReview, appendRevision, canPublish, canTransition, mergeFactoryProject, selectedConcept, summarizeProject } from "../public/premium-factory.js";
+import { VERTICAL_ORDER } from "../public/verticals.js";
+import { CONCEPTS, INDUSTRY_INTELLIGENCE, createPremiumProject, applyConcept, resolveMarketingIndustry, applyReview, appendRevision, canPublish, canTransition, mergeFactoryProject, selectedConcept, summarizeProject } from "../public/premium-factory.js";
 
 const generated = { primary: "#2dd4bf", design: { accent: "#2dd4bf" }, services: [{}, {}, {}, {}, {}, {}], faqs: [{}, {}, {}] };
 const input = { name: "Northstar Roofing", industry: "roofing contractor", city: "Chicago", country: "USA", hasBrandAssets: true, hasVerifiedProof: true, hasOptimizedMedia: true };
@@ -169,4 +170,92 @@ test("re-publishing without a project payload still extends the stored trail", (
   assert.equal(second.revisions.length, 2);
   assert.equal(second.revisions[1].n, 2);
   assert.equal(mergeFactoryProject(null, undefined, "2026-07-27T00:00:00.000Z"), null, "no project either side stays null");
+});
+
+/* --------------------- industry coverage (registry invariant) --------------------- */
+
+test("every back-office vertical has tailored marketing intelligence", () => {
+  // The guarantee behind "a premium site for each industry": adding a vertical to
+  // verticals.js without giving it marketing intelligence fails here rather than
+  // silently shipping that industry a generic site.
+  const missing = VERTICAL_ORDER.filter((id) => !INDUSTRY_INTELLIGENCE[id]);
+  assert.deepEqual(missing, [], `verticals with no marketing intelligence: ${missing.join(", ")}`);
+});
+
+test("each industry's intelligence is complete and distinct, not filler", () => {
+  const primaries = new Set();
+  for (const id of VERTICAL_ORDER) {
+    const intel = INDUSTRY_INTELLIGENCE[id];
+    assert.ok(intel.primary && intel.secondary, `${id}: needs both calls to action`);
+    assert.ok(intel.trust.length >= 4, `${id}: needs at least 4 trust signals`);
+    assert.ok(intel.objections.length >= 3, `${id}: needs at least 3 objections`);
+    assert.ok(intel.sections.length >= 6, `${id}: needs a real section map`);
+    assert.ok(intel.compliance.length >= 1, `${id}: needs a publication check`);
+    primaries.add(intel.primary);
+  }
+  // Industries may legitimately share a call to action (salon and medical both
+  // book appointments), but the set must not collapse to a handful of defaults.
+  assert.ok(primaries.size >= VERTICAL_ORDER.length - 3, "calls to action are too generic across industries");
+});
+
+test("classification delegates to the registry and resists substring traps", () => {
+  // The trap that shipped: "bar" matched inside "Barber", so barbershops were
+  // sold restaurant sites — reservations, menus and allergen notices.
+  assert.equal(resolveMarketingIndustry("Salon / Beauty / Barber"), "salon");
+  assert.equal(resolveMarketingIndustry("barber shop"), "salon");
+  assert.equal(resolveMarketingIndustry("lawn care service"), "home-services", "'lawn' must not read as 'law'");
+  assert.equal(resolveMarketingIndustry("Hotel / Lodging"), "hotel");
+  assert.equal(resolveMarketingIndustry("boutique hotel"), "hotel", "lodging must not read as retail");
+  assert.equal(resolveMarketingIndustry("we buy houses for cash"), "rei", "investors are not brokerages");
+  assert.equal(resolveMarketingIndustry("crossfit gym"), "fitness");
+  assert.equal(resolveMarketingIndustry("freight brokerage and trucking"), "logistics");
+  assert.equal(resolveMarketingIndustry("wedding venue"), "events");
+});
+
+test("an explicit industry pick overrides inference", () => {
+  // The owner selected an industry in the builder; the typed description says
+  // something else. The deliberate choice must win.
+  const project = createPremiumProject({ ...input, vertical: "fitness", industry: "roofing contractor" }, generated);
+  assert.equal(project.industryId, "fitness");
+  assert.equal(project.intelligence.primary, INDUSTRY_INTELLIGENCE.fitness.primary);
+  // An unknown or empty pick falls back to inference rather than breaking.
+  assert.equal(createPremiumProject({ ...input, vertical: "not-a-vertical" }, generated).industryId, "home-services");
+});
+
+test("industry strategy actually reaches the rendered concepts", () => {
+  const project = createPremiumProject({ ...input, vertical: "hotel" }, generated);
+  for (const concept of project.concepts) {
+    assert.equal(concept.strategy.primary, "Check availability");
+    assert.ok(concept.strategy.sections.includes("rooms"));
+  }
+  assert.equal(summarizeProject(project).industryId, "hotel");
+});
+
+test("classifier regression table: real business descriptions route correctly", () => {
+  // Each trap below shipped at some point or was one keyword away from doing so.
+  // A business misrouted here gets both the wrong website and the wrong dashboard.
+  const cases = {
+    "home-services": ["home services", "handyman", "roofing contractor", "solar installer", "junk removal", "locksmith", "kitchen remodel", "kitchen and bath", "countertop installer", "bathroom remodel", "snow removal", "tradesman", "lawn care service"],
+    restaurant: ["sushi bar", "pizza kitchen", "coffee shop", "taco truck", "sports bar", "ghost kitchen"],
+    salon: ["barber shop", "nail salon", "tattoo studio", "hair salon"],
+    medical: ["dental clinic", "physical therapy", "veterinary clinic", "med spa"],
+    retail: ["textile boutique", "clothing store", "grocery store", "liquor store"],
+    legal: ["law firm", "insurance broker", "mortgage broker", "tax service", "bookkeeping"],
+    logistics: ["freight broker", "freight brokerage and trucking", "trucking company", "courier service", "customs broker"],
+    hotel: ["boutique hotel", "bed and breakfast", "mountain resort"],
+    events: ["wedding venue", "banquet hall", "event photographer"],
+    fitness: ["crossfit gym", "yoga studio", "personal trainer"],
+    rei: ["we buy houses", "hard money lender", "fix and flip"],
+    "real-estate": ["real estate broker", "realty group", "property management"],
+    creative: ["recording studio", "art gallery", "musician"],
+    freelancer: ["freelance copywriter", "business consultant", "web design"],
+  };
+  const wrong = [];
+  for (const [expected, samples] of Object.entries(cases)) {
+    for (const sample of samples) {
+      const got = resolveMarketingIndustry(sample);
+      if (got !== expected) wrong.push(`${JSON.stringify(sample)} -> ${got} (expected ${expected})`);
+    }
+  }
+  assert.deepEqual(wrong, [], `misrouted business descriptions:\n  ${wrong.join("\n  ")}`);
 });

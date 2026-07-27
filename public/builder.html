@@ -484,6 +484,9 @@ Translate EVERY label and all content into ${lang}.`;
     const hasProof=!!(paste && /review|testimonial|rating|customer said|client said/i.test(paste));
     const project=window.PremiumFactory.createPremiumProject({
       name, industry:type, city, country:city.split(",").pop().trim(), language:lang,
+      // The industry the owner picked (or that was inferred) drives the marketing
+      // strategy AND the back-office — one choice, both halves of the platform.
+      vertical:(window.__resolveVertical?window.__resolveVertical(type):""),
       notes, primaryGoal:"", hasBrandAssets:media.photos.length>0,
       hasVerifiedProof:hasProof, hasOptimizedMedia:media.photos.some((u)=>/^https?:/i.test(u))
     }, gen);

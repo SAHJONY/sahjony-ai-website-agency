@@ -1,5 +1,13 @@
 // Premium website-factory foundation. Pure/data-driven so the browser builder
 // and Node tests use the same concept, token, industry, and quality rules.
+//
+// INDUSTRY TAXONOMY: there is exactly one — the vertical registry in
+// verticals.js. Marketing intelligence is keyed by the SAME vertical ids the
+// back-office uses, and classification delegates to inferVertical(), so one
+// industry decision drives both halves of the platform. Adding an industry is
+// a data edit in two registries, never a change to classification logic.
+
+import { VERTICAL_ORDER, inferVertical } from "./verticals.js";
 
 export const CONCEPTS = Object.freeze([
   { id: "authority", label: "Premium Authority", purpose: "Establish trust, expertise, and category leadership.", layout: "editorial", headingFont: "Fraunces", bodyFont: "Inter", radius: 4, motion: 700 },
@@ -7,18 +15,34 @@ export const CONCEPTS = Object.freeze([
   { id: "cinematic", label: "Cinematic Innovation", purpose: "Create a distinctive, immersive, technology-forward brand experience.", layout: "cinematic", headingFont: "Syne", bodyFont: "Figtree", radius: 22, motion: 1000 },
 ]);
 
+// One entry per vertical in VERTICAL_ORDER — enforced by test. Each describes how
+// that industry actually converts: what the visitor is asked to do, what earns
+// their trust, what stops them buying, and what must be verified before publishing.
 export const INDUSTRY_INTELLIGENCE = Object.freeze({
-  "home-services": { keywords: /hvac|plumb|roof|electric|construction|landscap|cleaning|contractor|repair/i, primary: "Request an estimate", secondary: "Call now", trust: ["Service area", "Licensing and insurance", "Verified reviews", "Financing"], objections: ["Response time", "Price clarity", "Workmanship guarantee"], sections: ["services", "service-area", "proof", "process", "financing", "faq", "contact"], compliance: ["Confirm licensing claims before publication"] },
-  medical: { keywords: /medical|clinic|doctor|dental|dentist|health|therapy/i, primary: "Book an appointment", secondary: "Call the practice", trust: ["Provider credentials", "Insurance information", "Patient experience", "Privacy"], objections: ["Treatment anxiety", "Insurance coverage", "Availability"], sections: ["treatments", "providers", "insurance", "process", "faq", "booking"], compliance: ["Do not imply HIPAA compliance without verification", "Do not make unsupported treatment claims"] },
-  legal: { keywords: /law|legal|attorney|solicitor/i, primary: "Schedule a consultation", secondary: "Call confidentially", trust: ["Practice focus", "Attorney credentials", "Case process", "Confidentiality"], objections: ["Cost", "Case fit", "Confidentiality"], sections: ["practice-areas", "expertise", "process", "case-studies", "faq", "consultation"], compliance: ["Do not promise outcomes", "Mark jurisdiction-specific disclaimers"] },
-  restaurant: { keywords: /restaurant|cafe|bakery|bar|food|pizza|taco|hospitality|hotel/i, primary: "Reserve or order", secondary: "View menu", trust: ["Real menu", "Location and hours", "Dietary information", "Guest reviews"], objections: ["Availability", "Dietary needs", "Price expectations"], sections: ["menu", "signature-items", "story", "gallery", "events", "locations", "reservation"], compliance: ["Confirm prices and allergen information"] },
-  "real-estate": { keywords: /real estate|realtor|realty|broker|property/i, primary: "Start a property search", secondary: "Request a valuation", trust: ["Market expertise", "Active listings", "Agent credentials", "Client proof"], objections: ["Market uncertainty", "Agent responsiveness", "Valuation accuracy"], sections: ["listings", "buyer-flow", "seller-flow", "areas", "agents", "proof", "valuation"], compliance: ["Confirm fair-housing and licensing disclosures"] },
-  commerce: { keywords: /shop|store|retail|e-?commerce|product|boutique/i, primary: "Shop products", secondary: "Explore collections", trust: ["Returns", "Delivery", "Secure payment", "Product reviews"], objections: ["Product fit", "Shipping", "Returns"], sections: ["collections", "featured-products", "proof", "recommendations", "faq", "shop"], compliance: ["Confirm pricing, inventory, shipping, and returns"] },
-  general: { keywords: /.*/, primary: "Start a conversation", secondary: "Explore services", trust: ["Specific expertise", "Real customer proof", "Clear process", "Contact details"], objections: ["Fit", "Value", "Next steps"], sections: ["services", "differentiation", "proof", "process", "faq", "contact"], compliance: ["Confirm every factual claim before publication"] },
+  "home-services": { primary: "Request an estimate", secondary: "Call now", trust: ["Service area", "Licensing and insurance", "Verified reviews", "Financing"], objections: ["Response time", "Price clarity", "Workmanship guarantee"], sections: ["services", "service-area", "proof", "process", "financing", "faq", "contact"], compliance: ["Confirm licensing and insurance claims before publication"] },
+  medical: { primary: "Book an appointment", secondary: "Call the practice", trust: ["Provider credentials", "Insurance information", "Patient experience", "Privacy"], objections: ["Treatment anxiety", "Insurance coverage", "Availability"], sections: ["treatments", "providers", "insurance", "process", "faq", "booking"], compliance: ["Do not imply HIPAA compliance without verification", "Do not make unsupported treatment claims"] },
+  legal: { primary: "Schedule a consultation", secondary: "Call confidentially", trust: ["Practice focus", "Attorney credentials", "Case process", "Confidentiality"], objections: ["Cost", "Case fit", "Confidentiality"], sections: ["practice-areas", "expertise", "process", "case-studies", "faq", "consultation"], compliance: ["Do not promise outcomes", "Mark jurisdiction-specific disclaimers"] },
+  restaurant: { primary: "Reserve a table", secondary: "View the menu", trust: ["Real menu and prices", "Location and hours", "Dietary information", "Guest reviews"], objections: ["Availability", "Dietary needs", "Price expectations"], sections: ["menu", "signature-items", "story", "gallery", "events", "locations", "reservation"], compliance: ["Confirm prices and allergen information"] },
+  salon: { primary: "Book an appointment", secondary: "See the lookbook", trust: ["Stylist portfolios", "Licensing", "Hygiene standards", "Real client results"], objections: ["Choosing the right stylist", "Price certainty", "Availability"], sections: ["services", "stylists", "lookbook", "pricing", "reviews", "faq", "booking"], compliance: ["Confirm licensing", "Never promise a guaranteed cosmetic result"] },
+  fitness: { primary: "Start a free trial", secondary: "See the class schedule", trust: ["Coach credentials", "Member results", "Live schedule", "Facility tour"], objections: ["Feeling out of place", "Contract lock-in", "Time to see results"], sections: ["programs", "schedule", "coaches", "results", "pricing", "faq", "trial"], compliance: ["Never guarantee fitness or weight outcomes", "Include a consult-your-physician note"] },
+  hotel: { primary: "Check availability", secondary: "Explore the rooms", trust: ["Real room photography", "Verified guest reviews", "Location and transport", "Cancellation policy"], objections: ["Price versus value", "Location suitability", "Cancellation risk"], sections: ["rooms", "amenities", "gallery", "location", "offers", "faq", "booking"], compliance: ["Confirm rates, taxes, resort fees, and cancellation terms"] },
+  events: { primary: "Check your date", secondary: "Book a venue tour", trust: ["Real event galleries", "Capacity and layouts", "Transparent packages", "Preferred vendors"], objections: ["Date availability", "Total budget", "Guest capacity"], sections: ["spaces", "capacity", "packages", "gallery", "vendors", "faq", "inquiry"], compliance: ["Confirm licensed capacity, alcohol licensing, and insurance requirements"] },
+  retail: { primary: "Shop the collection", secondary: "Explore what's new", trust: ["Returns policy", "Delivery times", "Secure payment", "Product reviews"], objections: ["Will it fit or suit me", "Shipping cost and speed", "Returns friction"], sections: ["collections", "featured-products", "proof", "recommendations", "shipping-returns", "faq", "shop"], compliance: ["Confirm pricing, inventory, shipping, and returns terms"] },
+  "real-estate": { primary: "Start a property search", secondary: "Request a valuation", trust: ["Market expertise", "Active listings", "Agent credentials", "Client proof"], objections: ["Market uncertainty", "Agent responsiveness", "Valuation accuracy"], sections: ["listings", "buyer-flow", "seller-flow", "areas", "agents", "proof", "valuation"], compliance: ["Confirm fair-housing and licensing disclosures"] },
+  rei: { primary: "Get a cash offer", secondary: "See how it works", trust: ["Proof of funds", "Closing speed", "Deals closed", "No-fee guarantee"], objections: ["Is the offer fair", "Will it actually close", "Hidden fees"], sections: ["how-it-works", "offer-form", "proof", "situations", "funding", "faq", "contact"], compliance: ["Confirm lending licensing where required", "Never advertise guaranteed returns or a set purchase price"] },
+  logistics: { primary: "Request a freight quote", secondary: "Track a shipment", trust: ["Lanes and coverage", "Authority and insurance", "On-time record", "Equipment types"], objections: ["Transit time", "Damage and liability", "Rate transparency"], sections: ["services", "coverage", "tracking", "equipment", "compliance", "faq", "quote"], compliance: ["Verify operating authority and cargo insurance before publishing"] },
+  freelancer: { primary: "Book a discovery call", secondary: "See the work", trust: ["Case studies with outcomes", "Clear process", "Current availability", "Credentials"], objections: ["Reliability of a solo provider", "Price versus an agency", "Scope creep"], sections: ["services", "work", "process", "pricing", "about", "faq", "contact"], compliance: ["Get written client permission before naming them or showing their work"] },
+  creative: { primary: "Book or inquire", secondary: "Experience the work", trust: ["Portfolio depth", "Press and features", "Live dates", "Notable collaborators"], objections: ["Stylistic fit", "Budget", "Availability"], sections: ["work", "portfolio", "press", "shows", "about", "faq", "contact"], compliance: ["Confirm rights and licensing for every work displayed"] },
+  general: { primary: "Start a conversation", secondary: "Explore services", trust: ["Specific expertise", "Real customer proof", "Clear process", "Contact details"], objections: ["Fit", "Value", "Next steps"], sections: ["services", "differentiation", "proof", "process", "faq", "contact"], compliance: ["Confirm every factual claim before publication"] },
 });
 
+/** Map a business description to its marketing industry. Classification is NOT
+ *  reimplemented here — it delegates to the registry's inferVertical(), whose
+ *  rule ordering already handles the traps (a "Barber" is not a "bar", "lawn
+ *  care" is not a law firm). Any vertical without an entry degrades to general. */
 export function resolveMarketingIndustry(text) {
-  return Object.keys(INDUSTRY_INTELLIGENCE).find((id) => id !== "general" && INDUSTRY_INTELLIGENCE[id].keywords.test(String(text || ""))) || "general";
+  const vertical = inferVertical(String(text || ""));
+  return INDUSTRY_INTELLIGENCE[vertical] ? vertical : "general";
 }
 
 function hue(hex, delta) {
@@ -65,7 +89,9 @@ export function scoreConcept(concept, context) {
 }
 
 export function createPremiumProject(input, generated) {
-  const industryId = resolveMarketingIndustry(`${input.industry || ""} ${input.notes || ""}`);
+  // An explicit pick in the builder's industry selector wins over inference, so
+  // the owner's one choice steers the marketing site and the back-office alike.
+  const industryId = input.vertical && INDUSTRY_INTELLIGENCE[input.vertical] ? input.vertical : resolveMarketingIndustry(`${input.industry || ""} ${input.notes || ""}`);
   const intelligence = INDUSTRY_INTELLIGENCE[industryId];
   const baseAccent = (generated.design && (generated.design.accent || generated.design.primary)) || generated.primary;
   const concepts = CONCEPTS.map((definition) => {

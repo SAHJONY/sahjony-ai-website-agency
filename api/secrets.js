@@ -15,12 +15,17 @@
 const STORE_KEY = "fda:secrets";
 
 // Provider keys the AI engine actually reads. Only these can be managed.
+// Higgsfield powers the cinematic hero images and looping video in the builder
+// (api/image.js reads these through the same getKey → env-then-store lookup),
+// so the owner can connect their own account here instead of redeploying.
 const MANAGED = [
   { name: "ANTHROPIC_API_KEY", label: "Claude (Anthropic)" },
   { name: "NVIDIA_API_KEY", label: "NVIDIA NIM (free)" },
   { name: "OPENAI_API_KEY", label: "OpenAI" },
   { name: "XAI_API_KEY", label: "Grok (xAI)" },
   { name: "GEMINI_API_KEY", label: "Google Gemini (free)" },
+  { name: "HIGGSFIELD_KEY_ID", label: "Higgsfield — key ID (images & video)" },
+  { name: "HIGGSFIELD_KEY_SECRET", label: "Higgsfield — key secret" },
 ];
 const MANAGED_NAMES = MANAGED.map((m) => m.name);
 

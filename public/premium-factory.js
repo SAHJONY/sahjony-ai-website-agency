@@ -9,12 +9,16 @@
 
 import { VERTICAL_ORDER, inferVertical } from "./verticals.js";
 import { auditSite } from "./quality-engine.js";
+import { ARCHETYPES, buildTokens, motionScale } from "./design-system.js";
 
+// Each concept is bound to a LAYOUT ARCHETYPE in design-system.js. The three are
+// different page systems — section height, type ratio, alignment, CTA placement
+// and scroll behaviour all differ — not one layout with three corner radii.
 export const CONCEPTS = Object.freeze([
-  { id: "authority", label: "Premium Authority", purpose: "Establish trust, expertise, and category leadership.", layout: "editorial", headingFont: "Fraunces", bodyFont: "Inter", radius: 4, motion: 700 },
-  { id: "conversion", label: "Modern Conversion", purpose: "Turn qualified visits into calls, bookings, quotes, or purchases.", layout: "conversion", headingFont: "Manrope", bodyFont: "DM Sans", radius: 14, motion: 420 },
-  { id: "cinematic", label: "Cinematic Innovation", purpose: "Create a distinctive, immersive, technology-forward brand experience.", layout: "cinematic", headingFont: "Syne", bodyFont: "Figtree", radius: 22, motion: 1000 },
-]);
+  { id: "authority", label: "Premium Authority", purpose: "Establish trust, expertise, and category leadership.", layout: "editorial", archetype: "editorial" },
+  { id: "conversion", label: "Modern Conversion", purpose: "Turn qualified visits into calls, bookings, quotes, or purchases.", layout: "monolith", archetype: "monolith" },
+  { id: "cinematic", label: "Cinematic Innovation", purpose: "Create a distinctive, immersive, technology-forward brand experience.", layout: "cinematic", archetype: "cinematic" },
+].map((c) => ({ ...c, headingFont: ARCHETYPES[c.archetype].headingFont, bodyFont: ARCHETYPES[c.archetype].bodyFont, radius: ARCHETYPES[c.archetype].radius, motion: motionScale(ARCHETYPES[c.archetype].tempo).reveal, inspiration: ARCHETYPES[c.archetype].inspiration })));
 
 // One entry per vertical in VERTICAL_ORDER — enforced by test. Each describes how
 // that industry actually converts: what the visitor is asked to do, what earns
@@ -46,29 +50,34 @@ export function resolveMarketingIndustry(text) {
   return INDUSTRY_INTELLIGENCE[vertical] ? vertical : "general";
 }
 
-function hue(hex, delta) {
-  const raw = String(hex || "#2dd4bf").replace("#", "");
-  const n = /^[0-9a-f]{6}$/i.test(raw) ? parseInt(raw, 16) : 0x2dd4bf;
-  const parts = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, i) => Math.max(0, Math.min(255, v + delta * (i === 1 ? .65 : 1))));
-  return "#" + parts.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-}
-
+/**
+ * Tokens for a concept, derived by the design system. The palette is measured
+ * against the surface before it is returned, so `accent` can no longer be a
+ * colour the delivery audit will reject.
+ *
+ * The flat aliases (accent / neutral / shadow / typeScale) are kept because the
+ * quality engine and the rendered CSS read them; `ds` carries the full system.
+ */
 export function createTokens(baseAccent, concept) {
-  const accent = /^#[0-9a-f]{6}$/i.test(baseAccent || "") ? baseAccent : "#2dd4bf";
+  const ds = buildTokens(baseAccent, concept.archetype || concept.id);
+  const p = ds.palette;
   return {
-    primary: accent,
-    secondary: hue(accent, concept.id === "authority" ? -42 : 24),
-    accent: concept.id === "cinematic" ? hue(accent, 38) : accent,
-    neutral: ["#04080f", "#0d1a2d", "#9fb3c9", "#e8eef7"],
-    headingFont: concept.headingFont,
-    bodyFont: concept.bodyFont,
-    typeScale: [12, 14, 16, 20, 28, 40, 64, 88],
-    spacing: [4, 8, 12, 16, 24, 32, 48, 72, 112],
-    radius: concept.radius,
-    shadow: concept.id === "authority" ? "0 24px 70px -36px rgba(0,0,0,.65)" : "0 32px 90px -32px rgba(0,0,0,.72)",
-    motion: { fast: Math.round(concept.motion * .45), standard: concept.motion, slow: Math.round(concept.motion * 1.45) },
-    containers: { reading: 760, content: 1180, wide: 1380 },
-    breakpoints: { mobile: 600, tablet: 820, desktop: 1180 },
+    ds,
+    primary: p.primary,
+    secondary: p.secondary,
+    accent: p.primary,
+    onAccent: p.onPrimary,
+    neutral: [p.surface, p.ramp[1], p.textMuted, p.text],
+    headingFont: ds.headingFont,
+    bodyFont: ds.bodyFont,
+    typeScale: ds.type.map((s) => s.px),
+    spacing: ds.spacing,
+    radius: ds.radius,
+    shadow: ds.elevation[3],
+    motion: { fast: ds.motion.fast, standard: ds.motion.standard, slow: ds.motion.slow, reveal: ds.motion.reveal, easing: ds.motion.easing },
+    layout: ds.layout,
+    containers: { reading: 760, content: ds.layout.maxWidth, wide: ds.layout.maxWidth + 200 },
+    breakpoints: ds.breakpoints,
   };
 }
 

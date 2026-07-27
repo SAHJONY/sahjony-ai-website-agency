@@ -186,3 +186,50 @@ test("every finding carries a severity and an actionable fix", () => {
   const severities = r.findings.map((f) => ["critical", "major", "minor"].indexOf(f.severity));
   assert.deepEqual(severities, severities.slice().sort((a, b) => a - b));
 });
+
+/* ------------------- design system: palettes cannot fail the audit ------------------- */
+
+test("every generated palette clears AA on its surface, for any brand colour", async () => {
+  const { createPalette, hslToHex } = await import("../public/design-system.js");
+  // Sweep the failure zone the old RGB-delta maths produced: dark, desaturated
+  // brand colours across the hue circle. #1b2430 used to yield a 1.9:1 accent.
+  let worst = { ratio: Infinity, seed: "", key: "" };
+  for (let h = 0; h < 360; h += 15) {
+    for (const l of [3, 8, 14, 22, 50, 88]) {
+      for (const s of [8, 45, 90]) {
+        const seed = hslToHex(h, s, l);
+        const p = createPalette(seed);
+        for (const key of ["primary", "secondary", "tertiary", "text", "textMuted"]) {
+          const ratio = contrastRatio(p[key], p.surface);
+          if (ratio < worst.ratio) worst = { ratio, seed, key };
+        }
+      }
+    }
+  }
+  assert.ok(worst.ratio >= 4.5, `${worst.seed} produced ${worst.key} at ${worst.ratio.toFixed(2)}:1 — below AA`);
+});
+
+test("hue rotation rotates hue instead of mangling channels", async () => {
+  const { rotate, hexToHsl } = await import("../public/design-system.js");
+  const base = "#2dd4bf";
+  const spun = rotate(base, 120);
+  const a = hexToHsl(base);
+  const b = hexToHsl(spun);
+  assert.ok(Math.abs(((b.h - a.h + 360) % 360) - 120) < 1, "hue moved by the requested amount");
+  assert.ok(Math.abs(b.s - a.s) < 1, "saturation is preserved");
+  assert.ok(Math.abs(b.l - a.l) < 1, "lightness is preserved");
+});
+
+test("the three archetypes are genuinely different layout systems", async () => {
+  const { buildTokens, archetypeCss, ARCHETYPES } = await import("../public/design-system.js");
+  const ids = Object.keys(ARCHETYPES);
+  assert.equal(ids.length, 3);
+  const built = ids.map((id) => buildTokens("#2dd4bf", id));
+  // Differing on more than decoration: CTA placement, scroll behaviour, type
+  // ratio and section height all vary — that is what makes them distinct designs.
+  assert.equal(new Set(built.map((t) => t.layout.ctaPlacement)).size, 2);
+  assert.equal(new Set(built.map((t) => t.type[7].px)).size, 3, "display sizes differ by type ratio");
+  assert.equal(built.filter((t) => t.layout.scrollSnap).length, 1, "only the Tesla archetype snaps");
+  assert.equal(new Set(built.map((t) => t.headingFont)).size, 3);
+  for (const t of built) assert.ok(archetypeCss(t).length > 1000, `${t.archetype} must emit a real stylesheet`);
+});

@@ -733,6 +733,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   const locationsSection = (locs.length>1) ? `
   <section id="g-locations" class="gsec" style="border-top:1px solid var(--line);background:var(--bg2)"><div style="max-width:1180px;margin:0 auto;padding:14vh 28px"><div style="text-align:center;margin-bottom:46px">${eyebrow(L.find||"Locations")}<h2 class="reveal" style="font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,4.8vw,52px);font-weight:700;letter-spacing:-.02em">${locs.length} ${(L.find&&/location/i.test(L.find))?L.find:"Locations"}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px">${locs.map(l=>`<div class="ccard reveal" style="padding:26px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px">${l.name||name}</div><div style="font-size:15px;color:var(--muted);line-height:1.5;margin-bottom:10px">${l.address}</div>${l.phone?`<a href="tel:${(l.phone||"").replace(/[^0-9+]/g,"")}" style="display:block;font-size:15px;color:${acc};text-decoration:none;font-weight:600;margin-bottom:10px">${l.phone}</a>`:""}${(l.hours&&l.hours.length)?`<div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px">${l.hours.slice(0,7).join("<br>")}</div>`:""}${l.mapsUrl?`<a href="${l.mapsUrl}" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:${acc};text-decoration:none">Directions →</a>`:""}</div>`).join("")}</div></div></section>` : "";
 
+  // The design system emits the token block plus the archetype's own stylesheet.
+  // Concepts differ here as whole layout systems — section height, type ratio,
+  // alignment, CTA placement, scroll behaviour — not just a corner radius.
+  const dsTokens = concept && concept.tokens && concept.tokens.ds;
+  const archId = dsTokens ? dsTokens.archetype : "cinematic";
+  const dsCss = (dsTokens && window.DesignSystem)
+    ? window.DesignSystem.tokensToCss(dsTokens, ".genroot") + window.DesignSystem.archetypeCss(dsTokens)
+    : "";
+
   const cineCss = `
   .genroot{--bg:#04080f;--bg2:#0d1a2d;--fg:#e8eef7;--muted:#9fb3c9;--line:rgba(45,212,191,.16);--card:rgba(13,26,45,.55);--radius:${concept&&concept.tokens?concept.tokens.radius:18}px;--motion:${concept&&concept.tokens?concept.tokens.motion.standard:700}ms;font-family:'${bodyFont}',system-ui,sans-serif;background:radial-gradient(120% 80% at 50% -8%,#0a1626,var(--bg) 60%);color:var(--fg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
   .genroot[data-theme="light"]{--bg:#f6f7f9;--bg2:#ffffff;--fg:#0c0d10;--muted:#5b6270;--line:rgba(0,0,0,.10);--card:#ffffff}
@@ -777,10 +786,7 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   .gphoto:hover img{transform:scale(1.07)}
   .panel-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.1) contrast(1.05) brightness(.9)}
   .cine-hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;overflow:hidden}
-  .concept-authority .cine-hero-content{text-align:left!important;margin-left:max(0px,calc((100vw - 1180px)/2))!important;margin-right:auto!important;max-width:820px!important}
-  .concept-authority .cine-hero-content p{margin-left:0!important}.concept-authority .cine-hero-actions{justify-content:flex-start!important}
-  .concept-conversion .cine-hero-content{background:rgba(4,8,15,.76);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(18px);border-radius:var(--radius);max-width:760px!important;margin:0 auto 8vh!important;padding:42px!important}
-  .concept-cinematic .cine-hero-content{text-align:center}
+  .cine-hero-content{position:relative}
   .cine-panel{position:relative;min-height:88vh;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
   .cine-panel-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,14,.45),rgba(10,11,14,.2) 45%,rgba(10,11,14,.82))}
   .cine-panel-inner{position:relative;max-width:920px;padding:0 28px}
@@ -800,15 +806,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
     .cnav-cta{display:none}
     [data-cine-lang]{padding:6px 8px;font-size:11px}
     .cbtn{padding:13px 24px;font-size:13px}
-    .concept-conversion .cine-hero-content{margin:0 14px 5vh!important;padding:26px 20px!important}
     .mobile-convert{display:flex!important}
   }
   @media(max-width:430px){.genroot [style*="repeat(3"]{grid-template-columns:1fr!important}.cine-hero{min-height:88vh}}
-  @media(prefers-reduced-motion:reduce){.genroot *{scroll-behavior:auto!important;animation:none!important;transition:none!important}.reveal{opacity:1!important;transform:none!important}}`;
+  @media(prefers-reduced-motion:reduce){.genroot *{scroll-behavior:auto!important;animation:none!important;transition:none!important;scroll-snap-type:none!important}.reveal{opacity:1!important;transform:none!important}}
+  ${dsCss}`;
 
   const siteHtml = `
   <style>${cineCss}</style>
-  <div class="genroot concept-${concept?concept.id:"cinematic"}" data-theme="dark" data-acc="${acc}" data-acc-text="${accText}">
+  <div class="genroot arch-${archId} concept-${concept?concept.id:"cinematic"}" data-theme="dark" data-acc="${acc}" data-acc-text="${accText}">
   <nav class="cnav" data-cine-nav>
     <div class="cnav-in">
       <a href="#g-home" class="cnav-logo">${name}</a>

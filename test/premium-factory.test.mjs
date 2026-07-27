@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CONCEPTS, createPremiumProject, applyConcept, resolveMarketingIndustry } from "../public/premium-factory.js";
+import { CONCEPTS, createPremiumProject, applyConcept, resolveMarketingIndustry, applyReview, appendRevision, canPublish, canTransition, mergeFactoryProject, selectedConcept, summarizeProject } from "../public/premium-factory.js";
 
 const generated = { primary: "#2dd4bf", design: { accent: "#2dd4bf" }, services: [{}, {}, {}, {}, {}, {}], faqs: [{}, {}, {}] };
 const input = { name: "Northstar Roofing", industry: "roofing contractor", city: "Chicago", country: "USA", hasBrandAssets: true, hasVerifiedProof: true, hasOptimizedMedia: true };
@@ -41,4 +41,132 @@ test("applying a concept preserves generated business content", () => {
   assert.equal(applied.__concept.id, "cinematic");
   assert.equal(applied.__factoryProject.selectedConcept, "cinematic");
   assert.equal(applied.design.headingFont, "Syne");
+});
+
+/* ---------------------------- approval & revisions ---------------------------- */
+
+// A project below the delivery standard: no brand assets, no proof, no optimised
+// media and too little content for the conversion category to score full marks.
+const weakInput = { name: "", industry: "", hasBrandAssets: false, hasVerifiedProof: false, hasOptimizedMedia: false };
+const weakGenerated = { primary: "#2dd4bf", design: {}, services: [], faqs: [] };
+
+test("a new project starts as a draft with an empty revision trail", () => {
+  const project = createPremiumProject(input, generated);
+  assert.equal(project.review.state, "draft");
+  assert.deepEqual(project.revisions, []);
+  assert.equal(project.selectedConcept, project.recommended);
+  assert.equal(selectedConcept(project).id, project.recommended);
+});
+
+test("review transitions accept real moves and reject no-ops or unknown states", () => {
+  assert.equal(canTransition("draft", "in-review"), true);
+  assert.equal(canTransition("changes-requested", "approved"), true);
+  assert.equal(canTransition("approved", "in-review"), true, "a later edit must be able to re-open review");
+  assert.equal(canTransition("draft", "draft"), false);
+  assert.equal(canTransition("draft", "published"), false);
+});
+
+test("applying a review records state, note and an appended trail entry", () => {
+  const project = createPremiumProject(input, generated);
+  const reviewed = applyReview(project, { state: "changes-requested", note: "Swap the hero photo", by: "owner" });
+  assert.equal(reviewed.review.state, "changes-requested");
+  assert.equal(reviewed.review.note, "Swap the hero photo");
+  assert.equal(reviewed.revisions.length, 1);
+  assert.equal(reviewed.revisions[0].n, 1);
+  assert.equal(reviewed.revisions[0].kind, "review");
+  assert.equal(reviewed.revisions[0].concept, project.selectedConcept);
+  assert.deepEqual(project.revisions, [], "the input project is never mutated");
+});
+
+test("an illegal review transition returns the project untouched", () => {
+  const project = createPremiumProject(input, generated);
+  assert.equal(applyReview(project, { state: "nonsense" }), project);
+  assert.equal(applyReview(project, { state: "draft" }), project);
+});
+
+test("publishing is blocked while changes are outstanding, and unblocked on approval", () => {
+  const project = createPremiumProject(input, generated);
+  assert.equal(canPublish(project).allowed, true);
+  const blocked = applyReview(project, { state: "changes-requested", note: "Fix the pricing table" });
+  const gate = canPublish(blocked);
+  assert.equal(gate.allowed, false);
+  assert.ok(gate.blockers.some((b) => /Fix the pricing table/.test(b)), "the blocker must name the actual reason");
+  assert.equal(canPublish(applyReview(blocked, { state: "approved" })).allowed, true);
+});
+
+test("a below-standard project is blocked and told exactly what to fix", () => {
+  const project = createPremiumProject(weakInput, weakGenerated);
+  const gate = canPublish(project);
+  assert.equal(selectedConcept(project).quality.productionReady, false);
+  assert.equal(gate.allowed, false);
+  assert.ok(gate.blockers.some((b) => /delivery standard/i.test(b)));
+  assert.ok(gate.improvements.length >= 3, "every unmet quality input is surfaced as an improvement");
+});
+
+test("the revision trail numbers entries in order and is capped", () => {
+  let project = createPremiumProject(input, generated);
+  for (let i = 0; i < 40; i++) project = { ...project, revisions: appendRevision(project, { kind: "publish", state: "published" }) };
+  assert.equal(project.revisions.length, 25, "history is trimmed rather than growing without bound");
+  assert.equal(project.revisions[project.revisions.length - 1].n, 40, "numbering keeps counting past the cap");
+  assert.ok(project.revisions.every((r, i, a) => i === 0 || r.n > a[i - 1].n));
+});
+
+test("summary reports the metrics the owner dashboard renders", () => {
+  let project = createPremiumProject(input, generated);
+  project = applyReview(project, { state: "approved", note: "Ship it" });
+  project = { ...project, revisions: appendRevision(project, { kind: "publish", state: "published", overridden: true }) };
+  const summary = summarizeProject(project);
+  assert.equal(summary.reviewState, "approved");
+  assert.equal(summary.reviewNote, "Ship it");
+  assert.equal(summary.revisions, 2);
+  assert.equal(summary.publishes, 1);
+  assert.equal(summary.overrides, 1);
+  assert.equal(summary.productionReady, true);
+  assert.equal(summary.conceptLabel, selectedConcept(project).label);
+  assert.ok(summary.lastPublishedAt);
+});
+
+test("selecting a concept carries the approval trail forward", () => {
+  const project = createPremiumProject(input, generated);
+  const reviewed = applyReview(project, { state: "in-review", note: "Client is reviewing" });
+  const applied = applyConcept(generated, reviewed, "authority");
+  assert.equal(applied.__factoryProject.selectedConcept, "authority");
+  assert.equal(applied.__factoryProject.review.state, "in-review");
+  assert.equal(applied.__factoryProject.revisions.length, 1);
+});
+
+test("publish merge keeps the server's approval trail and ignores a forged one", () => {
+  // Stored: the client asked for changes, and there is already one entry.
+  let stored = createPremiumProject(input, generated);
+  stored = applyReview(stored, { state: "changes-requested", note: "Fix the hero" });
+
+  // Incoming: a payload claiming approval and a fabricated history.
+  const forged = { ...createPremiumProject(input, generated), review: { state: "approved", note: "self-approved", by: "attacker" }, revisions: [{ n: 99, kind: "publish", state: "published" }] };
+
+  const merged = mergeFactoryProject(stored, forged, "2026-07-27T00:00:00.000Z");
+  assert.equal(merged.review.state, "changes-requested", "the stored review state wins");
+  assert.equal(merged.review.note, "Fix the hero");
+  assert.equal(merged.revisions.length, 2, "the forged history is dropped, the real one is extended");
+  assert.equal(merged.revisions[0].note, "Fix the hero");
+  assert.equal(merged.revisions[1].kind, "publish");
+  assert.equal(merged.revisions[1].at, "2026-07-27T00:00:00.000Z");
+  assert.equal(merged.revisions[1].overridden, true, "publishing over an open change request is an override");
+  assert.ok(/Fix the hero/.test(merged.revisions[1].note));
+});
+
+test("a first publish starts a clean trail and is not flagged as an override", () => {
+  const merged = mergeFactoryProject(null, createPremiumProject(input, generated), "2026-07-27T00:00:00.000Z");
+  assert.equal(merged.review.state, "draft");
+  assert.equal(merged.revisions.length, 1);
+  assert.equal(merged.revisions[0].kind, "publish");
+  assert.equal(merged.revisions[0].overridden, false);
+  assert.equal(summarizeProject(merged).publishes, 1);
+});
+
+test("re-publishing without a project payload still extends the stored trail", () => {
+  const first = mergeFactoryProject(null, createPremiumProject(input, generated), "2026-07-27T00:00:00.000Z");
+  const second = mergeFactoryProject(first, undefined, "2026-07-28T00:00:00.000Z");
+  assert.equal(second.revisions.length, 2);
+  assert.equal(second.revisions[1].n, 2);
+  assert.equal(mergeFactoryProject(null, undefined, "2026-07-27T00:00:00.000Z"), null, "no project either side stays null");
 });

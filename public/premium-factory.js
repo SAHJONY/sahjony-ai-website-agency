@@ -81,7 +81,117 @@ export function createPremiumProject(input, generated) {
     return concept;
   });
   const recommended = concepts.slice().sort((a, b) => (b.quality.total + (b.id === "conversion" ? 2 : 0)) - (a.quality.total + (a.id === "conversion" ? 2 : 0)))[0].id;
-  return { version: 1, industryId, intelligence, input, concepts, recommended, createdAt: new Date().toISOString() };
+  return { version: 1, industryId, intelligence, input, concepts, recommended, selectedConcept: recommended, review: newReview(), revisions: [], createdAt: new Date().toISOString() };
+}
+
+/* ============================ APPROVAL & REVISIONS ============================
+   A project moves draft → in-review → (changes-requested ⇄ in-review) → approved.
+   The state and its revision trail live ON the project blob so they survive a
+   publish round-trip through /api/sites (fda:site:<slug>.factoryProject) — the
+   builder is stateless between sessions, so nothing else would remember them. */
+
+export const REVIEW_STATES = Object.freeze(["draft", "in-review", "changes-requested", "approved"]);
+const REVISION_LIMIT = 25;
+
+function newReview() { return { state: "draft", note: "", by: "", at: null }; }
+
+/** True when `next` is a legal move from `current`. Approval is never sticky: any
+ *  later edit re-opens review, so approved → in-review is allowed on purpose. */
+export function canTransition(current, next) {
+  return REVIEW_STATES.includes(next) && REVIEW_STATES.includes(current || "draft") && next !== (current || "draft");
+}
+
+/** Pure publish gate. The builder and the server both call this so an owner can
+ *  never be shown one verdict by the UI and another by the API. */
+export function canPublish(project) {
+  const blockers = [];
+  const concept = selectedConcept(project);
+  if (!concept) blockers.push("Pick a design concept before publishing.");
+  if (concept && !concept.quality.productionReady) blockers.push(`Quality is ${concept.quality.total}/100 — the delivery standard is ${concept.quality.threshold}/100.`);
+  if (project && project.review && project.review.state === "changes-requested") blockers.push(`Changes were requested${project.review.note ? ": " + project.review.note : "."}`);
+  return { allowed: blockers.length === 0, blockers, improvements: (concept && concept.quality.improvements) || [] };
+}
+
+export function selectedConcept(project) {
+  if (!project || !Array.isArray(project.concepts)) return null;
+  return project.concepts.find((c) => c.id === project.selectedConcept) || project.concepts.find((c) => c.id === project.recommended) || project.concepts[0] || null;
+}
+
+/** Record a review decision and append it to the trail. Returns a NEW project —
+ *  callers persist the result; nothing here mutates the input. */
+export function applyReview(project, decision) {
+  const current = (project && project.review && project.review.state) || "draft";
+  const next = decision && decision.state;
+  if (!canTransition(current, next)) return project;
+  const review = { state: next, note: String((decision && decision.note) || "").slice(0, 500), by: String((decision && decision.by) || "").slice(0, 120), at: (decision && decision.at) || new Date().toISOString() };
+  return { ...project, review, revisions: appendRevision(project, { kind: "review", state: next, note: review.note, by: review.by, at: review.at }) };
+}
+
+/** Append a trail entry (review decision or publish), oldest trimmed first. */
+export function appendRevision(project, entry) {
+  const trail = Array.isArray(project && project.revisions) ? project.revisions : [];
+  const concept = selectedConcept(project);
+  const record = {
+    // Counted from the highest number seen, not the array length: once the trail
+    // is trimmed those diverge, and reusing a revision number would make the
+    // audit trail ambiguous about which entry is being referred to.
+    n: trail.reduce((max, r) => Math.max(max, Number(r && r.n) || 0), 0) + 1,
+    at: (entry && entry.at) || new Date().toISOString(),
+    kind: entry && entry.kind === "publish" ? "publish" : "review",
+    state: String((entry && entry.state) || "").slice(0, 40),
+    concept: (concept && concept.id) || "",
+    quality: (concept && concept.quality.total) || 0,
+    note: String((entry && entry.note) || "").slice(0, 500),
+    by: String((entry && entry.by) || "").slice(0, 120),
+    overridden: !!(entry && entry.overridden),
+  };
+  return trail.concat(record).slice(-REVISION_LIMIT);
+}
+
+/** Merge a browser-supplied project over the stored one at publish time.
+ *  The browser owns design data (concepts, tokens, which one is selected); the
+ *  server owns the approval trail, so `review` and `revisions` are always taken
+ *  from what is already stored and a forged trail in the request is discarded.
+ *  Returns the project with the publish already stamped into its history. */
+export function mergeFactoryProject(stored, incoming, at) {
+  const project = incoming && typeof incoming === "object" ? incoming : stored;
+  if (!project || typeof project !== "object") return null;
+  const kept = stored && typeof stored === "object" ? stored : {};
+  const merged = {
+    ...project,
+    review: kept.review || (stored ? newReview() : project.review) || newReview(),
+    revisions: Array.isArray(kept.revisions) ? kept.revisions : [],
+  };
+  // A publish that goes out below the delivery standard is recorded as an
+  // override rather than hidden, so the history stays honest.
+  const gate = canPublish(merged);
+  merged.revisions = appendRevision(merged, { kind: "publish", state: "published", at, overridden: !gate.allowed, note: gate.allowed ? "" : gate.blockers.join(" ") });
+  return merged;
+}
+
+/** Flat metrics for the owner dashboard — everything it needs without shipping
+ *  the whole (large) project blob into the sites index. */
+export function summarizeProject(project) {
+  const concept = selectedConcept(project);
+  const trail = Array.isArray(project && project.revisions) ? project.revisions : [];
+  const gate = canPublish(project);
+  const published = trail.filter((r) => r.kind === "publish");
+  return {
+    concept: (concept && concept.id) || "",
+    conceptLabel: (concept && concept.label) || "",
+    quality: (concept && concept.quality.total) || 0,
+    threshold: (concept && concept.quality.threshold) || 90,
+    productionReady: !!(concept && concept.quality.productionReady),
+    industryId: (project && project.industryId) || "",
+    reviewState: (project && project.review && project.review.state) || "draft",
+    reviewNote: (project && project.review && project.review.note) || "",
+    revisions: trail.length,
+    publishes: published.length,
+    lastPublishedAt: published.length ? published[published.length - 1].at : null,
+    overrides: published.filter((r) => r.overridden).length,
+    blockers: gate.blockers,
+    improvements: gate.improvements,
+  };
 }
 
 export function applyConcept(generated, project, conceptId) {
@@ -95,4 +205,4 @@ export function applyConcept(generated, project, conceptId) {
   };
 }
 
-if (typeof window !== "undefined") window.PremiumFactory = { CONCEPTS, INDUSTRY_INTELLIGENCE, resolveMarketingIndustry, createTokens, scoreConcept, createPremiumProject, applyConcept };
+if (typeof window !== "undefined") window.PremiumFactory = { CONCEPTS, INDUSTRY_INTELLIGENCE, REVIEW_STATES, resolveMarketingIndustry, createTokens, scoreConcept, createPremiumProject, applyConcept, canTransition, canPublish, selectedConcept, applyReview, appendRevision, mergeFactoryProject, summarizeProject };

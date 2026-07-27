@@ -853,7 +853,15 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   ${concept&&concept.id==="conversion"?`<a class="mobile-convert cbtn cbtnA" href="#g-contact" style="display:none;position:fixed;z-index:90;left:14px;right:14px;bottom:14px">${concept.mobileAction}</a>`:""}
   </div>`;
 
-  const comparison = factoryState ? `<div id="conceptBar" style="background:#0d1a2d;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 24px"><div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:8px;flex-wrap:wrap">${factoryState.project.concepts.map(c=>`<button class="conceptPick" data-concept="${c.id}" style="border:1px solid ${c.id===(concept&&concept.id)?"#e8c476":"rgba(255,255,255,.15)"};background:${c.id===(concept&&concept.id)?"rgba(232,196,118,.14)":"rgba(255,255,255,.05)"};color:#f0eef2;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;font-size:12px">${c.label}${c.id===factoryState.project.recommended?" · Recommended":""} · ${c.quality.total}</button>`).join("")}</div><div style="display:flex;gap:6px"><button class="devicePick" data-width="100%">Desktop</button><button class="devicePick" data-width="820px">Tablet</button><button class="devicePick" data-width="390px">Mobile</button></div><div style="font-size:12px;color:${concept&&concept.quality.productionReady?"#2fd47f":"#ff9b73"}">${concept?`Quality ${concept.quality.total}/100 · ${concept.quality.productionReady?"Presentation ready":"Needs improvement"}`:""}</div></div></div>` : "";
+  // Publish gate. The owner is never left staring at a dead button: whatever is
+  // holding delivery back is named here, and publishing anyway stays possible
+  // behind an explicit confirmation (recorded as an override in the trail).
+  const gate = (factoryState && window.PremiumFactory) ? window.PremiumFactory.canPublish(gen.__factoryProject||factoryState.project) : { allowed:true, blockers:[], improvements:[] };
+  const readinessBar = gate.allowed && !gate.improvements.length ? "" : `<div style="max-width:1180px;margin:10px auto 0;padding:10px 14px;border-radius:10px;background:${gate.allowed?"rgba(232,196,118,.10)":"rgba(255,155,115,.10)"};border:1px solid ${gate.allowed?"rgba(232,196,118,.28)":"rgba(255,155,115,.30)"};font-size:12.5px;color:#e6e3ee;line-height:1.6">
+    ${gate.blockers.length?`<div style="font-weight:700;color:#ff9b73;margin-bottom:4px">Blocking publication</div><ul style="margin:0 0 ${gate.improvements.length?"8px":"0"} 18px;padding:0">${gate.blockers.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}
+    ${gate.improvements.length?`<div style="font-weight:700;color:#e8c476;margin-bottom:4px">To reach the delivery standard</div><ul style="margin:0 0 0 18px;padding:0">${gate.improvements.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:""}
+  </div>`;
+  const comparison = factoryState ? `<div id="conceptBar" style="background:#0d1a2d;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 24px"><div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;gap:8px;flex-wrap:wrap">${factoryState.project.concepts.map(c=>`<button class="conceptPick" data-concept="${c.id}" style="border:1px solid ${c.id===(concept&&concept.id)?"#e8c476":"rgba(255,255,255,.15)"};background:${c.id===(concept&&concept.id)?"rgba(232,196,118,.14)":"rgba(255,255,255,.05)"};color:#f0eef2;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;font-size:12px">${c.label}${c.id===factoryState.project.recommended?" · Recommended":""} · ${c.quality.total}</button>`).join("")}</div><div style="display:flex;gap:6px"><button class="devicePick" data-width="100%">Desktop</button><button class="devicePick" data-width="820px">Tablet</button><button class="devicePick" data-width="390px">Mobile</button></div><div style="font-size:12px;color:${concept&&concept.quality.productionReady?"#2fd47f":"#ff9b73"}">${concept?`Quality ${concept.quality.total}/100 · ${concept.quality.productionReady?"Presentation ready":"Needs improvement"}`:""}</div></div>${readinessBar}</div>` : "";
   document.getElementById("site").innerHTML = `
     <div style="background:#04080f;color:#f0eef2;position:sticky;top:0;z-index:200"><div style="max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div style="font-size:13px;color:#b3b0bd"> <b style="color:#fff">${name}</b> · ${lang}</div>
@@ -876,8 +884,12 @@ function renderSite(name, type, city, lang, gen, mediaIn){
   try{ hydrateSocialEmbeds(); }catch(_){ }
   document.getElementById("editBtn").onclick=()=>{ document.getElementById("site").style.display="none"; document.getElementById("builder").style.display="block"; $("#idlePane").style.display="block";$("#loadPane").style.display="none";$("#buildBtn").textContent="⚡ Build my website";$("#buildBtn").disabled=false; };
   document.getElementById("dlBtn").onclick=()=>downloadSite(name, siteHtml, fontsHref, seoHead, lang);
-  document.getElementById("pubBtn").disabled=!!(concept&&!concept.quality.productionReady);
-  document.getElementById("pubBtn").onclick=()=>publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]), gen.__factoryProject||null);
+  const pubBtn=document.getElementById("pubBtn");
+  if(!gate.allowed){ pubBtn.textContent="🚀 Publish anyway"; pubBtn.style.background="#e8c476"; pubBtn.style.color="#04080f"; pubBtn.title=gate.blockers.join("\n"); }
+  pubBtn.onclick=()=>{
+    if(!gate.allowed && !confirm("This site is below the delivery standard:\n\n• "+gate.blockers.join("\n• ")+"\n\nPublish anyway? The override is recorded in the site's revision history.")) return;
+    publishSite(name, siteHtml, fontsHref, seoHead, lang, type, city, (locs.length>1?locs.map(l=>({name:l.name||name,address:l.address})):[]), gen.__factoryProject||null);
+  };
   document.querySelectorAll(".conceptPick").forEach(b=>b.onclick=()=>{ if(!factoryState||!window.PremiumFactory)return;factoryState.selected=b.dataset.concept;renderSite(factoryState.name,factoryState.type,factoryState.city,factoryState.lang,window.PremiumFactory.applyConcept(factoryState.generated,factoryState.project,factoryState.selected),factoryState.media); });
   document.querySelectorAll(".devicePick").forEach(b=>{b.style.cssText="border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#f0eef2;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px";b.onclick=()=>{const root=document.getElementById("siteRoot");root.style.maxWidth=b.dataset.width;root.style.boxShadow=b.dataset.width==="100%"?"none":"0 0 0 1px rgba(255,255,255,.12),0 30px 80px rgba(0,0,0,.5)";};});
   document.getElementById("boBtn").onclick=()=>{
@@ -934,7 +946,11 @@ async function publishSite(name, inner, fontsHref, seoHead, lang, bizType, bizCi
     }
     try{ await navigator.clipboard.writeText(full); }catch(_){}
     btn.textContent="✓ Published";
-    alert("🎉 Live & link copied:\n"+full+"\n\nManage it anytime in Dashboard → Sites.");
+    // Echo back what the server actually recorded (revision number, review state)
+    // so the owner sees the persisted trail, not just the browser's optimism.
+    const f=j.factory;
+    const trail=f?`\n\nDelivery: ${f.conceptLabel||f.concept} · ${f.quality}/100 · review ${f.reviewState} · revision ${f.revisions}${f.overrides?` · ${f.overrides} override(s)`:""}`:"";
+    alert("🎉 Live & link copied:\n"+full+trail+"\n\nManage it anytime in Dashboard → Sites.");
     window.open(j.url, "_blank");
   }catch(e){ alert("Network error while publishing."); }
   finally{ btn.disabled=false; setTimeout(()=>{btn.textContent=old;}, 1500); }

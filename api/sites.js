@@ -7,6 +7,8 @@
 // Storage: index at fda:sites:index, each site at fda:site:<slug> in Upstash.
 // The published HTML is served publicly by /api/site (mapped to /s/<slug>).
 
+import { applyReview, mergeFactoryProject, summarizeProject } from "../public/premium-factory.js";
+
 const INDEX_KEY = "fda:sites:index";
 
 function slugify(s) {
@@ -90,6 +92,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, slug, status: st });
       }
 
+      // Record an approval decision (draft / in-review / changes-requested /
+      // approved) against a published site's premium project. The state and its
+      // trail persist on fda:site:<slug>.factoryProject and are mirrored into
+      // the index so the dashboard can show delivery status at a glance.
+      if (body.action === "review") {
+        const slug = slugify(body.slug);
+        const rec = await readJSON("fda:site:" + slug, null);
+        if (!rec) return res.status(404).json({ error: "Site not found." });
+        if (!rec.factoryProject) return res.status(400).json({ error: "This site has no premium project to review. Rebuild it in the builder first." });
+        const updated = applyReview(rec.factoryProject, { state: body.state, note: body.note, by: body.by });
+        // applyReview returns the input untouched when the transition is illegal.
+        if (updated === rec.factoryProject) return res.status(400).json({ error: "Invalid review state or no change requested." });
+        rec.factoryProject = updated;
+        await writeRaw("fda:site:" + slug, JSON.stringify(rec));
+        const summary = summarizeProject(updated);
+        const e = index.find((s) => s.slug === slug);
+        if (e) { e.factory = summary; await writeRaw(INDEX_KEY, JSON.stringify(index)); }
+        return res.status(200).json({ ok: true, slug, review: updated.review, factory: summary });
+      }
+
       const name = String(body.name || "Website").slice(0, 120);
       let html = body.html;
       if (!html || typeof html !== "string") return res.status(400).json({ error: "Missing site html." });
@@ -120,16 +142,22 @@ export default async function handler(req, res) {
       // Premium factory metadata (tokens, concepts, strategy, scores) is stored
       // beside the project so later revisions stay visually consistent. It is
       // never rendered as HTML and is size-capped independently.
-      let factoryProject = body.factoryProject && typeof body.factoryProject === "object" ? body.factoryProject : (prev && prev.factoryProject) || null;
+      // The approval trail is server-owned: mergeFactoryProject keeps the stored
+      // review state and revision history and stamps this publish into it, so a
+      // client can never forge or reset an approval by editing its own payload.
+      let factoryProject = mergeFactoryProject((prev && prev.factoryProject) || null, body.factoryProject, now);
       if (factoryProject && JSON.stringify(factoryProject).length > 120_000) factoryProject = null;
       await writeRaw("fda:site:" + slug, JSON.stringify({ name, slug, html, at: now, status, bizType, bizCity, locations, factoryProject }));
 
+      // Denormalise the delivery metrics into the index (like status/bizType) so
+      // the owner dashboard can list them without pulling every site's HTML.
+      const factory = factoryProject ? summarizeProject(factoryProject) : null;
       const existing = index.find((s) => s.slug === slug);
-      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; }
-      else index.unshift({ name, slug, at: now, status, bizType });
+      if (existing) { existing.name = name; existing.at = now; existing.status = status; existing.bizType = bizType; existing.factory = factory; }
+      else index.unshift({ name, slug, at: now, status, bizType, factory });
       await writeRaw(INDEX_KEY, JSON.stringify(index));
 
-      return res.status(200).json({ ok: true, slug, url: "/s/" + slug });
+      return res.status(200).json({ ok: true, slug, url: "/s/" + slug, factory });
     }
 
     return res.status(405).json({ error: "Use GET or POST" });

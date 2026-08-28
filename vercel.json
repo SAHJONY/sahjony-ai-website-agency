@@ -15,6 +15,7 @@
   "rewrites": [
     { "source": "/s/:slug", "destination": "/api/site?slug=:slug" },
     { "source": "/api/track", "destination": "/api/health" },
+    { "source": "/api/connect-session", "destination": "/api/health?connect=1" },
     { "source": "/api/login", "destination": "/api/data?action=login" },
     { "source": "/api/telegram", "destination": "/api/contact?tg=1" },
     { "source": "/api/bland", "destination": "/api/outreach?bland=1" }

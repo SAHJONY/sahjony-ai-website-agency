@@ -1,9 +1,60 @@
+import { safeEqual } from "../lib/guard.js";
+
 // GET /api/health — quick check that engines/env are wired up (does not leak secrets)
 //
 // Also serves the PUBLIC analytics beacon (formerly /api/track) when called with
-// a ?slug= param — /api/track is rewritten here in vercel.json. Merging the two
-// keeps the deployment under the Hobby plan's 12-Serverless-Function limit.
+// a ?slug= param and the internal SAHJONY CONNECT adapter with ?connect=1.
+// Folding bounded adapters into this gateway keeps the deployment under the
+// Hobby plan's 12-Serverless-Function limit.
 function cleanSlug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 60); }
+
+const CONNECT_URL = String(process.env.SAHJONY_CONNECT_URL || "https://sahjony-connect.vercel.app").replace(/\/$/, "");
+
+function connectAuthorized(req) {
+  const expected = String(process.env.ADMIN_PASSWORD || "");
+  const supplied = String(req.headers["x-admin-token"] || "");
+  return Boolean(expected && supplied && safeEqual(expected, supplied));
+}
+
+async function connectSession(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (!connectAuthorized(req)) return res.status(401).json({ error: "Owner authorization required" });
+
+  const integrationKey = String(process.env.SAHJONY_CONNECT_INTEGRATION_KEY || "").trim();
+  if (!integrationKey) return res.status(503).json({ error: "SAHJONY Connect integration is not configured" });
+
+  const input = req.body && typeof req.body === "object" ? req.body : {};
+  const mode = input.mode === "voice" || input.mode === "video" ? input.mode : "text";
+  const contextId = String(input.contextId || "agency-command-center").trim().slice(0, 240) || "agency-command-center";
+  const contactName = String(input.contactName || "").trim().slice(0, 180) || undefined;
+  const language = String(input.language || "auto").trim().slice(0, 35) || "auto";
+
+  try {
+    const upstream = await fetch(`${CONNECT_URL}/api/connect/internal/website-agency/session`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-connect-integration-key": integrationKey,
+      },
+      body: JSON.stringify({
+        external_context_id: contextId,
+        context_type: contextId === "agency-command-center" ? "website_agency_operations" : "website_project",
+        display_name: contactName,
+        language,
+        mode,
+        ai_assistance: false,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const text = await upstream.text();
+    res.status(upstream.status);
+    res.setHeader("content-type", upstream.headers.get("content-type") || "application/json");
+    return res.send(text || "{}");
+  } catch {
+    return res.status(502).json({ error: "SAHJONY Connect is temporarily unavailable" });
+  }
+}
 
 async function trackBeacon(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -78,6 +129,9 @@ function buildSocial(marketing) {
 }
 
 export default async function handler(req, res) {
+  // Internal CONNECT adapter mode, rewritten from /api/connect-session.
+  if (req.query && req.query.connect != null) return connectSession(req, res);
+
   // Analytics-beacon mode (rewritten from /api/track) — disambiguated by ?slug=.
   if (req.query && req.query.slug != null) return trackBeacon(req, res);
 
@@ -123,6 +177,7 @@ export default async function handler(req, res) {
       googlePlaces: has("GOOGLE_PLACES_API_KEY"),
       secretsManager: !!process.env.ADMIN_PASSWORD,
       adminPassword: !!process.env.ADMIN_PASSWORD,
+      connectAdapter: !!process.env.SAHJONY_CONNECT_INTEGRATION_KEY,
       // Email readiness: key present, a verified sender set (without OUTREACH_FROM
       // Resend's test sender only delivers to YOUR OWN account email), and an
       // owner notify address for digests/alerts.

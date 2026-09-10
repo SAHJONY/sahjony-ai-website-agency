@@ -387,6 +387,9 @@ async function renderSites(){
   const sites = data.sites || [];
   if(!sites.length){ list.innerHTML = `<div style="color:#8c8998;font-size:14px;padding:20px">No published sites yet. Build one in the <a href="/builder.html" style="color:#2dd4bf">builder</a>, then hit <b>🚀 Save &amp; Publish</b>.</div>`; return; }
 
+  const esc=(s)=>String(s||"").replace(/[<>"&]/g,c=>({"<":"&lt;",">":"&gt;",'"':"&quot;","&":"&amp;"}[c]));
+  const REVIEW_TONE = { approved:["#2fd47f","rgba(21,194,107,.14)"], "changes-requested":["#ff7a6e","rgba(255,90,77,.14)"], "in-review":["#e8c476","rgba(232,196,118,.14)"], draft:["#8c8998","rgba(255,255,255,.07)"] };
+
   list.innerHTML = sites.map(s=>{
     const link = "/s/"+s.slug;
     const when = (s.at||"").slice(0,10);
@@ -397,16 +400,47 @@ async function renderSites(){
     const toggle = live
       ? `<button data-slug="${s.slug}" data-to="suspended" class="siteStatus" style="background:rgba(255,181,71,.14);color:#ffb547;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Pause</button>`
       : `<button data-slug="${s.slug}" data-to="active" class="siteStatus" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Go live</button>`;
+    // Premium-factory delivery metrics (concept, quality, approval state and the
+    // revision count) come denormalised on the index entry — see /api/sites.
+    const f = s.factory;
+    const tone = f ? (REVIEW_TONE[f.reviewState]||REVIEW_TONE.draft) : null;
+    const factoryLine = f ? `<div style="font-size:12px;color:#8c8998;margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:700;color:${tone[0]};background:${tone[1]};padding:2px 8px;border-radius:6px">${esc(f.reviewState).replace("-"," ").toUpperCase()}</span>
+        <span>${esc(f.conceptLabel||f.concept||"—")}</span>
+        <span style="color:${f.productionReady?"#2fd47f":"#ff9b73"}">${Number(f.quality)||0}/${Number(f.threshold)||90}</span>
+        <span>rev ${Number(f.revisions)||0}</span>
+        ${f.publishes?`<span>${Number(f.publishes)} publish${f.publishes===1?"":"es"}</span>`:""}
+        ${f.overrides?`<span style="color:#ff9b73">⚠ ${Number(f.overrides)} override${f.overrides===1?"":"s"}</span>`:""}
+        ${f.reviewNote?`<span style="color:#b6b2c2">“${esc(f.reviewNote)}”</span>`:""}
+      </div>` : "";
+    const reviewBtns = f ? `
+        <button data-slug="${s.slug}" data-state="approved" class="siteReview" style="background:rgba(21,194,107,.14);color:#2fd47f;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Approve</button>
+        <button data-slug="${s.slug}" data-state="changes-requested" class="siteReview" style="background:rgba(232,196,118,.14);color:#e8c476;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Request changes</button>` : "";
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#122236;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 18px">
-      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} ${badge} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div></div>
+      <div style="min-width:0"><div style="font-weight:700;font-size:15px">${s.name||s.slug} ${badge} <span style="font-size:12px;font-weight:600;color:#2fd47f;margin-left:4px">👁 ${(s.views||0).toLocaleString()}</span></div><div style="font-size:12.5px;color:#8c8998;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${location.host}${link}${when?(" · "+when):""}</div>${factoryLine}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(21,194,107,.14);color:#2fd47f;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Open</a>
         <button data-slug="${s.slug}" class="siteCopy" style="background:rgba(123,162,255,.14);color:#7aa2ff;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Copy link</button>
+        ${reviewBtns}
         ${toggle}
         <button data-slug="${s.slug}" class="siteDel" style="background:rgba(255,90,77,.14);color:#ff7a6e;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">Delete</button>
       </div>
     </div>`;
   }).join("");
+
+  list.querySelectorAll(".siteReview").forEach(b=>b.onclick=async()=>{
+    const state=b.dataset.state;
+    // A "request changes" without a reason is useless to whoever picks it up next.
+    const note=state==="changes-requested" ? (prompt("What needs to change before this can be delivered?")||"").trim() : (prompt("Approval note (optional):")||"").trim();
+    if(state==="changes-requested" && !note) return;
+    b.disabled=true; const old=b.textContent; b.textContent="…";
+    try{
+      const r=await fetch("/api/sites",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify({action:"review",slug:b.dataset.slug,state,note})});
+      const j=await r.json();
+      if(!r.ok){ alert(j.error||"Couldn't record the review."); b.disabled=false; b.textContent=old; return; }
+      renderSites();
+    }catch(e){ alert("Network error"); b.disabled=false; b.textContent=old; }
+  });
 
   list.querySelectorAll(".siteStatus").forEach(b=>b.onclick=async()=>{
     const to=b.dataset.to;

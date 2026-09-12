@@ -1,3 +1,4 @@
+import { worldwidePlacesProxy } from "../lib/worldwide-places-proxy.js";
 import { safeEqual } from "../lib/guard.js";
 
 // GET /api/health — quick check that engines/env are wired up (does not leak secrets)
@@ -129,6 +130,8 @@ function buildSocial(marketing) {
 }
 
 export default async function handler(req, res) {
+  if (req.query && req.query.places != null) return worldwidePlacesProxy(req, res);
+
   // Internal CONNECT adapter mode, rewritten from /api/connect-session.
   if (req.query && req.query.connect != null) return connectSession(req, res);
 
